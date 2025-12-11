@@ -8,6 +8,7 @@
     <!-- Core Styles -->
     <link rel="stylesheet" href="assets/css/quiz-core.css">
     <link rel="stylesheet" href="assets/css/quiz-standalone.css">
+    <link rel="stylesheet" href="assets/css/countdown-styles.css">
     
     <!-- Polkadot.js Extension API -->
     <script src="https://unpkg.com/@polkadot/extension-dapp@0.46.1/bundle-polkadot-extension-dapp.js"></script>
@@ -16,7 +17,7 @@
     <div class="quiz-container">
         <!-- Header (nur Standalone) -->
         <div class="quiz-header">
-            <h1>🎮 Polkadot Quiz</h1>
+            <h1>Polkadot Quiz</h1>
             <p>Werde zum Polkadot-Experten!</p>
         </div>
 
@@ -27,18 +28,17 @@
             <div id="start-screen" class="screen start-screen" style="display: block;">
                 <h1>Willkommen!</h1>
                 <p>Teste dein Wissen über Polkadot und werde zum Experten.</p>
-                <p><strong>15 Level</strong> • <strong>Millisekundengenaue Zeitmessung</strong> • <strong>Leaderboard</strong></p>
-                <button onclick="quizUI.showWalletConnect()">Quiz starten</button>
+                <button onclick="quizUI.showWalletConnect()">Start</button>
             </div>
 
             <!-- Wallet Connect Screen -->
-            <div id="wallet-connect-screen" class="screen wallet-connect-screen">
+            <div id="wallet-connect-screen" class="screen wallet-connect-screen" style="display: none;">
                 <h2>Wallet verbinden</h2>
                 <p>Verbinde dein Polkadot Wallet, um zu spielen.</p>
                 
-                <div id="wallet-status"></div>
+                <div id="wallet-status" style="display: none;"></div>
                 
-                <button id="connect-wallet-btn">Wallet verbinden</button>
+                <button id="connect-wallet-btn" style="margin-top: 30px;">Wallet verbinden</button>
                 
                 <div id="accounts-list"></div>
                 
@@ -50,8 +50,48 @@
                 <button id="continue-to-quiz-btn">Weiter zum Quiz</button>
             </div>
 
+            <!-- Anleitung Screen -->
+            <div id="anleitung-screen" class="screen anleitung-screen" style="display: none;">
+                <h2>📖 Anleitung</h2>
+                
+                <div style="text-align: left; max-width: 600px; margin: 0 auto;">
+                    <h3>Wie funktioniert das Quiz?</h3>
+                    
+                    <h4>🎯 Ziel</h4>
+                    <p>Beantworte Fragen über Polkadot und sammle Punkte. Je schneller du antwortest, desto mehr Punkte erhältst du!</p>
+                    
+                    <h4>📊 Levels</h4>
+                    <p>Das Quiz besteht aus 15 Levels mit steigendem Schwierigkeitsgrad. Um ein Level freizuschalten, musst du das vorherige Level bestehen (mindestens 70% richtige Antworten).</p>
+                    
+                    <h4>⏱️ Punktesystem</h4>
+                    <ul>
+                        <li><strong>Millisekundengenaue Zeitmessung:</strong> Deine Antwortzeit wird auf die Millisekunde genau gemessen</li>
+                        <li><strong>Schnelligkeit zahlt sich aus:</strong> Je schneller du antwortest, desto mehr Punkte bekommst du</li>
+                        <li><strong>Nur der erste Versuch zählt:</strong> Für das Leaderboard wird nur dein erster Versuch pro Level gewertet</li>
+                    </ul>
+                    
+                    <h4>💡 Power-Ups</h4>
+                    <p>In jedem Level stehen dir Hilfsmittel zur Verfügung:</p>
+                    <ul>
+                        <li><strong>Hints (3x):</strong> Zeige einen Hinweis zur aktuellen Frage an (kostet Punkte)</li>
+                        <li><strong>Zeitverlängerung (2x):</strong> Erhalte zusätzliche Zeit (kostet Punkte)</li>
+                    </ul>
+                    
+                    <h4>📄 Vorbereitung</h4>
+                    <p>Vor jedem Level kannst du ein PDF mit Wissensbasis herunterladen. Die Vorbereitung ist optional, aber empfohlen!</p>
+                    
+                    <h4>🏆 Leaderboard</h4>
+                    <p>Deine Gesamtpunktzahl aus allen abgeschlossenen Levels bestimmt deine Position im Leaderboard. Wiederholungen verbessern nicht deine Platzierung - nur der erste Versuch zählt!</p>
+                    
+                    <h4>🔄 Wiederholungen</h4>
+                    <p>Du kannst jedes Level beliebig oft wiederholen, um zu üben. Diese Versuche werden separat gespeichert und zählen nicht für das Leaderboard.</p>
+                </div>
+                
+                <button id="back-from-anleitung-btn" style="margin-top: 30px;">Zurück</button>
+            </div>
+
             <!-- Level Overview Screen -->
-            <div id="level-overview-screen" class="screen level-overview-screen">
+            <div id="level-overview-screen" class="screen level-overview-screen" style="display: none;">
                 <h2>Level-Übersicht</h2>
                 
                 <div id="player-info"></div>
@@ -60,7 +100,7 @@
             </div>
 
             <!-- Level Intro Screen -->
-            <div id="level-intro-screen" class="screen level-intro-screen">
+            <div id="level-intro-screen" class="screen level-intro-screen" style="display: none;">
                 <h2 id="level-intro-title"></h2>
                 <p id="level-intro-info"></p>
                 
@@ -85,13 +125,13 @@
                 <button id="start-level-btn">Level starten</button>
             </div>
 
-            <!-- Countdown Screen -->
-            <div id="countdown-screen" class="screen countdown-screen">
+            <!-- Countdown Screen (NUR beim Level-Start, NICHT am Anfang!) -->
+            <div id="countdown-screen" class="screen countdown-screen" style="display: none;">
                 <div id="countdown-number">3</div>
             </div>
 
             <!-- Question Screen -->
-            <div id="question-screen" class="screen question-screen">
+            <div id="question-screen" class="screen question-screen" style="display: none;">
                 <div class="question-header">
                     <div>
                         <strong id="question-number">Frage 1/3</strong>
@@ -114,7 +154,7 @@
             </div>
 
             <!-- Feedback Screen -->
-            <div id="feedback-screen" class="screen feedback-screen">
+            <div id="feedback-screen" class="screen feedback-screen" style="display: none;">
                 <div id="feedback-message" class="feedback-message"></div>
                 <div id="feedback-points"></div>
                 <div id="feedback-time"></div>
@@ -125,7 +165,7 @@
             </div>
 
             <!-- Level Complete Screen -->
-            <div id="level-complete-screen" class="screen level-complete-screen">
+            <div id="level-complete-screen" class="screen level-complete-screen" style="display: none;">
                 <h2>Level abgeschlossen!</h2>
                 
                 <div class="result-stats">

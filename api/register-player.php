@@ -44,6 +44,8 @@ if (strlen($playerName) > 20) {
     errorResponse('Player name must be max 20 characters');
 }
 
+
+
 // WICHTIG: Speichere ORIGINAL (Generic) als Primary Key
 $genericAddress = $walletAddress;
 $polkadotAddress = $walletAddress;

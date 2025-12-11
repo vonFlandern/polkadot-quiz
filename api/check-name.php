@@ -36,6 +36,8 @@ if (strlen($playerName) > 20) {
     ]);
 }
 
+
+
 // Players laden
 $playersData = loadJSON('players.json');
 if (!$playersData || !isset($playersData['players'])) {

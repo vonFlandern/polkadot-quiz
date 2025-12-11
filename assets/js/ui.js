@@ -8,6 +8,7 @@ class QuizUI {
         this.currentHintUsedThisQuestion = false;
         this.currentTimeAddUsedThisQuestion = false;
         this.eventListenersInitialized = false; // Verhindert Mehrfach-Registrierung
+        this.countdownInterval = null; // Speichere Interval-ID für Cleanup
     }
 
     /**
@@ -35,6 +36,22 @@ class QuizUI {
     }
 
     /**
+     * Zeige Anleitung-Screen
+     */
+    showAnleitung() {
+        this.showScreen('anleitung');
+        
+        // Event Listener für Zurück-Button
+        const backBtn = document.getElementById('back-from-anleitung-btn');
+        if (backBtn && !backBtn.hasAttribute('data-listener-added')) {
+            backBtn.setAttribute('data-listener-added', 'true');
+            backBtn.addEventListener('click', () => {
+                this.showWalletConnect();
+            });
+        }
+    }
+
+    /**
      * Zeige Wallet-Connect Screen
      */
     async showWalletConnect() {
@@ -57,6 +74,8 @@ class QuizUI {
 
         connectBtn.addEventListener('click', async () => {
             try {
+                // Zeige Status-Div erst jetzt
+                statusDiv.style.display = 'block';
                 statusDiv.innerHTML = '<p>Verbinde mit Wallet...</p>';
                 
                 const accounts = await walletManager.connect();
@@ -167,13 +186,16 @@ class QuizUI {
                                 originalSubmitBtn.remove();
                             }
                             
-                            // Beide Buttons nebeneinander mit Space
+                            // DREI Buttons nebeneinander: Weiter zum Quiz | Anleitung | Name ändern
                             const buttonsDiv = document.createElement('div');
                             buttonsDiv.id = 'action-buttons';
                             buttonsDiv.style.cssText = 'display: flex; gap: 15px; margin-top: 15px;';
                             buttonsDiv.innerHTML = `
                                 <button id="continue-quiz-btn" type="button" style="flex: 1; padding: 15px; font-size: 16px; font-weight: 600; background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%); border: none; border-radius: 8px; color: white; cursor: pointer;">
                                     Weiter zum Quiz
+                                </button>
+                                <button id="open-anleitung-btn" type="button" style="flex: 1; padding: 15px; font-size: 16px; font-weight: 600; background: #6b7280; border: none; border-radius: 8px; color: white; cursor: pointer;">
+                                    Anleitung
                                 </button>
                                 <button id="open-change-name-btn" type="button" style="flex: 1; padding: 15px; font-size: 16px; font-weight: 600; background: #6b7280; border: none; border-radius: 8px; color: white; cursor: pointer;">
                                     Name ändern
@@ -195,6 +217,11 @@ class QuizUI {
                                     this.showLevelOverview();
                                 });
                                 
+                                // "Anleitung" Button
+                                document.getElementById('open-anleitung-btn').addEventListener('click', () => {
+                                    this.showAnleitung();
+                                });
+                                
                                 // "Name ändern" Button öffnet Modal
                                 document.getElementById('open-change-name-btn').addEventListener('click', () => {
                                     this.openChangeNameModal(account);
@@ -202,7 +229,7 @@ class QuizUI {
                             }, 0);
                             
                         } else {
-                            // Neuer Spieler: Normaler Input
+                            // Neuer Spieler: 3-Button-Layout wie bekannte Spieler
                             const nameLabel = document.querySelector('label[for="player-name"]');
                             if (nameLabel) {
                                 nameLabel.innerHTML = '<strong>Wähle deinen Spielernamen:</strong>';
@@ -211,18 +238,6 @@ class QuizUI {
                             const nameInput = document.getElementById('player-name');
                             nameInput.style.display = 'block';
                             nameInput.disabled = false;
-                            
-                            // Stelle sicher, dass Submit-Button existiert
-                            let originalSubmitBtn = document.getElementById('continue-to-quiz-btn');
-                            if (!originalSubmitBtn) {
-                                // Button wurde entfernt, erstelle neuen
-                                originalSubmitBtn = document.createElement('button');
-                                originalSubmitBtn.id = 'continue-to-quiz-btn';
-                                originalSubmitBtn.textContent = 'Weiter zum Quiz';
-                                playerNameInput.appendChild(originalSubmitBtn);
-                            } else {
-                                originalSubmitBtn.style.display = 'block';
-                            }
                             
                             // Lade Namen-Vorschlag
                             try {
@@ -246,9 +261,113 @@ class QuizUI {
                                 nameInput.value = '';
                                 nameInput.placeholder = 'z.B. Player_1';
                             }
+                            
+                            // ENTFERNE originalen Submit-Button komplett
+                            const originalSubmitBtn = document.getElementById('continue-to-quiz-btn');
+                            if (originalSubmitBtn) {
+                                originalSubmitBtn.remove();
+                            }
+                            
+                            // DREI Buttons nebeneinander: Weiter zum Quiz | Anleitung | Name ändern
+                            const buttonsDiv = document.createElement('div');
+                            buttonsDiv.id = 'action-buttons';
+                            buttonsDiv.style.cssText = 'display: flex; gap: 15px; margin-top: 15px;';
+                            buttonsDiv.innerHTML = `
+                                <button id="continue-quiz-btn" type="button" style="flex: 1; padding: 15px; font-size: 16px; font-weight: 600; background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%); border: none; border-radius: 8px; color: white; cursor: pointer;">
+                                    Weiter zum Quiz
+                                </button>
+                                <button id="open-anleitung-btn" type="button" style="flex: 1; padding: 15px; font-size: 16px; font-weight: 600; background: #6b7280; border: none; border-radius: 8px; color: white; cursor: pointer;">
+                                    Anleitung
+                                </button>
+                                <button id="open-change-name-btn" type="button" style="flex: 1; padding: 15px; font-size: 16px; font-weight: 600; background: #6b7280; border: none; border-radius: 8px; color: white; cursor: pointer;">
+                                    Name ändern
+                                </button>
+                            `;
+                            
+                            playerNameInput.appendChild(buttonsDiv);
+                            
+                            // Event Listeners
+                            setTimeout(() => {
+                                // "Weiter zum Quiz" Button - MIT Validierung
+                                document.getElementById('continue-quiz-btn').addEventListener('click', async () => {
+                                    const playerName = nameInput.value.trim();
+                                    
+                                    // Validierung
+                                    if (!playerName || playerName.length < 3) {
+                                        alert('❌ Bitte gib einen Spielernamen ein (mindestens 3 Zeichen)');
+                                        return;
+                                    }
+                                    
+                                    if (playerName.length > 20) {
+                                        alert('❌ Der Name darf maximal 20 Zeichen haben!');
+                                        return;
+                                    }
+                                    
+                                    // Prüfe ob Name verfügbar
+                                    try {
+                                        const checkResponse = await fetch('api/check-name.php', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ 
+                                                playerName: playerName,
+                                                walletAddress: account.genericAddress
+                                            })
+                                        });
+                                        
+                                        const checkResult = await checkResponse.json();
+                                        
+                                        if (!checkResult.available) {
+                                            alert(`❌ Der Name "${playerName}" ist bereits vergeben!\n\nBitte wähle einen anderen Namen.`);
+                                            return;
+                                        }
+                                    } catch (error) {
+                                        console.error('Name check failed:', error);
+                                    }
+                                    
+                                    // Registriere Spieler
+                                    try {
+                                        const registerResponse = await fetch('api/register-player.php', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                walletAddress: account.genericAddress,
+                                                playerName: playerName
+                                            })
+                                        });
+                                        
+                                        if (!registerResponse.ok) {
+                                            const errorData = await registerResponse.json();
+                                            throw new Error(errorData.error || 'Registration failed');
+                                        }
+                                        
+                                        console.log('✅ Player registered');
+                                        
+                                        // WICHTIG: Setze Session-Daten
+                                        sessionStorage.setItem('walletAddress', account.genericAddress);
+                                        sessionStorage.setItem('playerName', playerName);
+                                        sessionStorage.setItem('polkadotAddress', account.polkadotAddress);
+                                        
+                                        // Zeige Level-Übersicht
+                                        this.showLevelOverview();
+                                        
+                                    } catch (error) {
+                                        console.error('Player registration error:', error);
+                                        alert(`❌ Fehler beim Speichern: ${error.message}\n\nBitte versuche es erneut.`);
+                                    }
+                                });
+                                
+                                // "Anleitung" Button
+                                document.getElementById('open-anleitung-btn').addEventListener('click', () => {
+                                    this.showAnleitung();
+                                });
+                                
+                                // "Name ändern" Button - für neue Spieler = Input editierbar machen
+                                document.getElementById('open-change-name-btn').addEventListener('click', () => {
+                                    nameInput.focus();
+                                    nameInput.select();
+                                });
+                            }, 0);
                         }
-                        
-                        continueBtn.style.display = 'block';
                     });
                     accountsDiv.appendChild(accountBtn);
                 });
@@ -642,9 +761,6 @@ class QuizUI {
     }
 
     /**
-     * Zeige Level-Intro
-     */
-    /**
      * Extrahiere Level-Titel aus Level-Daten
      */
     getLevelTitle(levelNumber, levelData) {
@@ -671,6 +787,9 @@ class QuizUI {
         return titles[levelNumber] || `Level ${levelNumber}`;
     }
 
+    /**
+     * Zeige Level-Intro
+     */
     showLevelIntro(levelNumber) {
         this.showScreen('level-intro');
 
@@ -693,27 +812,70 @@ class QuizUI {
             pdfDownloadDiv.style.display = 'none';
         }
 
+        // WICHTIG: Entferne alte Event Listener durch Klonen
         const startBtn = document.getElementById('start-level-btn');
-        startBtn.onclick = () => {
+        const newStartBtn = startBtn.cloneNode(true);
+        startBtn.parentNode.replaceChild(newStartBtn, startBtn);
+        
+        // Setze neuen Event Listener
+        newStartBtn.onclick = () => {
+            console.log('🎮 Level start button clicked');
             this.startCountdown(levelNumber);
         };
     }
 
     /**
-     * Countdown vor Level-Start
+     * Countdown vor Level-Start (ROBUST)
      */
     startCountdown(levelNumber) {
+        console.log('🎬 Starting countdown for level', levelNumber);
+        
+        // KRITISCH: Cleane ALLE bestehenden Intervals
+        // Manchmal können mehrere Intervals existieren durch Doppelklicks
+        if (this.countdownInterval) {
+            console.log('⚠️ Clearing existing countdown interval');
+            clearInterval(this.countdownInterval);
+            this.countdownInterval = null;
+        }
+
+        // Zeige Countdown-Screen
         this.showScreen('countdown');
 
         const countdownEl = document.getElementById('countdown-number');
+        
+        // Starte bei 3
         let count = 3;
+        
+        // Zeige initiale "3" SOFORT
+        countdownEl.textContent = count;
+        console.log(`⏱️ Countdown: ${count}`);
+        
+        // Animiere die Zahl (optional, für visuellen Effekt)
+        countdownEl.style.animation = 'none';
+        setTimeout(() => {
+            countdownEl.style.animation = 'countdown-pulse 1s ease-in-out';
+        }, 10);
 
-        const interval = setInterval(() => {
+        // Starte Interval mit exakt 1 Sekunde
+        this.countdownInterval = setInterval(() => {
+            count--;
+            console.log(`⏱️ Countdown: ${count}`);
+            
             if (count > 0) {
+                // Zeige 2, dann 1
                 countdownEl.textContent = count;
-                count--;
+                
+                // Re-triggere Animation
+                countdownEl.style.animation = 'none';
+                setTimeout(() => {
+                    countdownEl.style.animation = 'countdown-pulse 1s ease-in-out';
+                }, 10);
+                
             } else {
-                clearInterval(interval);
+                // Bei 0: Cleanup und Start
+                console.log('🚀 Countdown finished, starting level');
+                clearInterval(this.countdownInterval);
+                this.countdownInterval = null;
                 this.startLevel(levelNumber);
             }
         }, 1000);

@@ -435,3 +435,114 @@ button.secondary {
         flex-direction: column;
     }
 }
+
+/**
+ * Polkadot Quiz - Additional Styles for Anleitung Screen
+ * Füge diese Styles zu quiz-core.css hinzu oder verwende als separate Datei
+ */
+
+/* Anleitung Screen */
+.anleitung-screen {
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.anleitung-screen h2 {
+    color: var(--primary-color);
+    margin-bottom: 30px;
+}
+
+.anleitung-screen h3 {
+    color: var(--text-color);
+    margin-top: 30px;
+    margin-bottom: 15px;
+    text-align: left;
+}
+
+.anleitung-screen h4 {
+    color: var(--primary-color);
+    margin-top: 20px;
+    margin-bottom: 10px;
+    text-align: left;
+}
+
+.anleitung-screen p {
+    text-align: left;
+    margin: 10px 0;
+    line-height: 1.6;
+}
+
+.anleitung-screen ul {
+    text-align: left;
+    margin: 10px 0 20px 20px;
+    line-height: 1.8;
+}
+
+.anleitung-screen li {
+    margin: 8px 0;
+}
+
+.anleitung-screen strong {
+    color: var(--primary-color);
+}
+
+/* Responsive für Anleitung */
+@media (max-width: 768px) {
+    .anleitung-screen {
+        padding: 20px 10px;
+    }
+    
+    .anleitung-screen h2 {
+        font-size: 1.5em;
+    }
+    
+    .anleitung-screen h3 {
+        font-size: 1.2em;
+    }
+    
+    .anleitung-screen h4 {
+        font-size: 1.1em;
+    }
+}
+
+/**
+ * Countdown Screen Styling
+ * Sorgt für korrekte Zentrierung der Countdown-Zahl
+ */
+
+.countdown-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+}
+
+#countdown-number {
+    font-size: 120px;
+    font-weight: 900;
+    color: var(--primary-color);
+    text-align: center;
+    animation: countdown-pulse 1.5s ease-in-out;
+    width: 100%;
+    display: block;
+}
+
+@keyframes countdown-pulse {
+    0% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Fallback für ältere Browser */
+.countdown-screen > div {
+    width: 100%;
+    text-align: center;
+}
