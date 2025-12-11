@@ -1,0 +1,56 @@
+/**
+ * Polkadot Quiz - Standalone Styles
+ * Zusätzliche Styles für Standalone-Modus
+ */
+
+body {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.quiz-container {
+    background-color: white;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+/* Header für Standalone */
+.quiz-header {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 20px;
+    border-radius: 16px 16px 0 0;
+    text-align: center;
+}
+
+.quiz-header h1 {
+    margin: 0;
+    font-size: 2em;
+}
+
+.quiz-header p {
+    margin: 5px 0 0 0;
+    opacity: 0.9;
+}
+
+/* Footer für Standalone */
+.quiz-footer {
+    background-color: #f9fafb;
+    padding: 20px;
+    border-radius: 0 0 16px 16px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 0.9em;
+}
+
+.quiz-footer a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.quiz-footer a:hover {
+    text-decoration: underline;
+}

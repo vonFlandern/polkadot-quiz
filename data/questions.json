@@ -1,0 +1,276 @@
+{
+  "level1": {
+    "levelInfo": "Willkommen beim Polkadot Quiz! In diesem Test-Level lernst du die Grundlagen von Polkadot kennen.",
+    "pdfUrl": "downloads/level1_polkadot_basics.pdf",
+    "pdfTitle": "Polkadot Basics - Wissensbasis",
+    "questions": [
+      {
+        "question": "Was ist Polkadot?",
+        "answers": [
+          "Eine Blockchain-Plattform für Interoperabilität",
+          "Eine Kryptowährung",
+          "Ein Smart Contract",
+          "Eine Wallet-App"
+        ],
+        "answerCount": 4,
+        "correct": 0,
+        "hint": "Es verbindet verschiedene Blockchains miteinander...",
+        "explanation": "Polkadot ist eine Blockchain-Plattform, die verschiedene Blockchains (Parachains) miteinander verbindet und Interoperabilität ermöglicht. Der DOT-Token ist die native Währung, aber Polkadot selbst ist viel mehr als nur eine Kryptowährung.",
+        "tQuestion": 30,
+        "pointsPerMillisecond": 0.02,
+        "hintPenalty": 20,
+        "timeAddPenalty": 10,
+        "timeAddBonus": 15
+      },
+      {
+        "question": "Wer hat Polkadot gegründet?",
+        "answers": [
+          "Vitalik Buterin",
+          "Gavin Wood",
+          "Satoshi Nakamoto",
+          "Charles Hoskinson"
+        ],
+        "answerCount": 4,
+        "correct": 1,
+        "hint": "Er war auch Co-Founder von Ethereum...",
+        "explanation": "Gavin Wood, Co-Founder von Ethereum und Erfinder der Programmiersprache Solidity, hat Polkadot gegründet und entwickelt.",
+        "tQuestion": 30,
+        "pointsPerMillisecond": 0.02,
+        "hintPenalty": 20,
+        "timeAddPenalty": 10,
+        "timeAddBonus": 15
+      },
+      {
+        "question": "Was ist der native Token von Polkadot?",
+        "answers": [
+          "ETH",
+          "BTC",
+          "DOT",
+          "ADA",
+          "SOL"
+        ],
+        "answerCount": 5,
+        "correct": 2,
+        "hint": "Es hat drei Buchstaben und endet mit T...",
+        "explanation": "DOT ist der native Token von Polkadot. Er wird für Governance, Staking und Bonding von Parachains verwendet.",
+        "tQuestion": 20,
+        "pointsPerMillisecond": 0.025,
+        "hintPenalty": 15,
+        "timeAddPenalty": 8,
+        "timeAddBonus": 10
+      }
+    ]
+  },
+  "level2": {
+    "levelInfo": "In diesem Level lernst du die Kernkonzepte der Polkadot-Architektur kennen: Relay Chain, Parachains und wie sie zusammenarbeiten.",
+    "pdfUrl": "/downloads/level2_polkadot_architecture.pdf",
+    "pdfTitle": "Polkadot Architektur - Wissensbasis",
+    "questions": [
+      {
+        "question": "Was ist die Relay Chain?",
+        "answers": [
+          "Eine Smart Contract Plattform",
+          "Das Herzstück von Polkadot, das Sicherheit und Konsens bereitstellt",
+          "Eine externe Blockchain",
+          "Ein Wallet-System"
+        ],
+        "answerCount": 4,
+        "correct": 1,
+        "hint": "Sie sorgt für Sicherheit und koordiniert alle Parachains...",
+        "explanation": "Die Relay Chain ist das Herzstück von Polkadot. Sie stellt Sicherheit, Konsens und Interoperabilität für alle angeschlossenen Parachains bereit, führt aber selbst keine Smart Contracts aus.",
+        "tQuestion": 35,
+        "pointsPerMillisecond": 0.018,
+        "hintPenalty": 25,
+        "timeAddPenalty": 12,
+        "timeAddBonus": 18
+      },
+      {
+        "question": "Was sind Parachains?",
+        "answers": [
+          "Parallele Blockchains mit eigener Logik",
+          "Sicherheitskopien der Relay Chain",
+          "Smart Contracts auf Polkadot",
+          "Validator-Nodes"
+        ],
+        "answerCount": 4,
+        "correct": 0,
+        "hint": "Sie laufen parallel zur Relay Chain...",
+        "explanation": "Parachains sind eigenständige Blockchains, die parallel zur Relay Chain laufen. Jede Parachain kann ihre eigene Logik, Token und Governance haben, profitiert aber von der gemeinsamen Sicherheit der Relay Chain.",
+        "tQuestion": 35,
+        "pointsPerMillisecond": 0.018,
+        "hintPenalty": 25,
+        "timeAddPenalty": 12,
+        "timeAddBonus": 18
+      },
+      {
+        "question": "Wie erhalten Parachains einen Slot auf Polkadot?",
+        "answers": [
+          "Durch Mining",
+          "Durch Kauf mit Fiat-Währung",
+          "Durch Parachain Slot Auctions",
+          "Automatisch bei der Erstellung"
+        ],
+        "answerCount": 4,
+        "correct": 2,
+        "hint": "Es gibt ein Auktionssystem dafür...",
+        "explanation": "Parachains erhalten ihren Slot durch Parachain Slot Auctions. Projekte bieten DOT-Token, um einen Slot für einen bestimmten Zeitraum (z.B. 96 Wochen) zu mieten.",
+        "tQuestion": 40,
+        "pointsPerMillisecond": 0.016,
+        "hintPenalty": 30,
+        "timeAddPenalty": 15,
+        "timeAddBonus": 20
+      },
+      {
+        "question": "Was ist XCM?",
+        "answers": [
+          "Ein Consensus-Algorithmus",
+          "Cross-Consensus Message Format für Interoperabilität",
+          "Eine Programmiersprache",
+          "Ein Token-Standard"
+        ],
+        "answerCount": 4,
+        "correct": 1,
+        "hint": "Es ermöglicht Kommunikation zwischen Chains...",
+        "explanation": "XCM (Cross-Consensus Message Format) ist das Nachrichtenformat, das Interoperabilität zwischen verschiedenen Chains im Polkadot-Ökosystem ermöglicht. Es erlaubt Parachains, miteinander zu kommunizieren und Assets auszutauschen.",
+        "tQuestion": 40,
+        "pointsPerMillisecond": 0.016,
+        "hintPenalty": 30,
+        "timeAddPenalty": 15,
+        "timeAddBonus": 20
+      },
+      {
+        "question": "Was ist der Unterschied zwischen Parachains und Parathreads?",
+        "answers": [
+          "Parathreads sind langsamer",
+          "Parathreads zahlen pro Block, Parachains mieten einen dauerhaften Slot",
+          "Es gibt keinen Unterschied",
+          "Parathreads sind nur für Testzwecke"
+        ],
+        "answerCount": 4,
+        "correct": 1,
+        "hint": "Es geht um das Bezahlmodell...",
+        "explanation": "Parachains mieten einen dauerhaften Slot und haben kontinuierlichen Zugang zur Relay Chain. Parathreads zahlen pro Block (pay-as-you-go) und sind für Chains gedacht, die nicht dauerhaft aktiv sein müssen.",
+        "tQuestion": 45,
+        "pointsPerMillisecond": 0.015,
+        "hintPenalty": 35,
+        "timeAddPenalty": 18,
+        "timeAddBonus": 22
+      }
+    ]
+  },
+  "level3": {
+    "levelInfo": "Jetzt wird's technisch! Lerne über Staking, Governance und die wirtschaftlichen Mechanismen von Polkadot.",
+    "pdfUrl": "/downloads/level3_polkadot_economics.pdf",
+    "pdfTitle": "Polkadot Economics & Governance - Wissensbasis",
+    "questions": [
+      {
+        "question": "Was ist Nominated Proof of Stake (NPoS)?",
+        "answers": [
+          "Ein Mining-Algorithmus",
+          "Der Konsens-Mechanismus von Polkadot, bei dem Nominatoren Validatoren wählen",
+          "Ein Smart Contract System",
+          "Eine Wallet-Technologie"
+        ],
+        "answerCount": 4,
+        "correct": 1,
+        "hint": "Nominatoren spielen eine wichtige Rolle...",
+        "explanation": "NPoS ist der Konsens-Mechanismus von Polkadot. DOT-Holder können als Nominatoren fungieren und Validatoren auswählen, die sie vertrauen. Die Validatoren sichern das Netzwerk und beide werden mit Staking-Rewards belohnt.",
+        "tQuestion": 40,
+        "pointsPerMillisecond": 0.016,
+        "hintPenalty": 30,
+        "timeAddPenalty": 15,
+        "timeAddBonus": 20
+      },
+      {
+        "question": "Was passiert beim Slashing?",
+        "answers": [
+          "Validatoren erhalten Bonus-Rewards",
+          "Token werden vernichtet als Strafe für Fehlverhalten",
+          "Neue Token werden erstellt",
+          "Transaktionen werden beschleunigt"
+        ],
+        "answerCount": 4,
+        "correct": 1,
+        "hint": "Es ist eine Bestrafung...",
+        "explanation": "Slashing ist ein Mechanismus, bei dem gestakte DOT-Token von Validatoren (und ihren Nominatoren) vernichtet werden, wenn der Validator Fehlverhalten zeigt, z.B. Offline-Zeit oder doppelte Block-Produktion.",
+        "tQuestion": 35,
+        "pointsPerMillisecond": 0.018,
+        "hintPenalty": 25,
+        "timeAddPenalty": 12,
+        "timeAddBonus": 18
+      },
+      {
+        "question": "Wie funktioniert Governance auf Polkadot?",
+        "answers": [
+          "Nur Entwickler können entscheiden",
+          "On-Chain Governance mit Council, Technical Committee und Referenden",
+          "Es gibt keine Governance",
+          "Durch Mining-Power"
+        ],
+        "answerCount": 4,
+        "correct": 1,
+        "hint": "Es läuft direkt auf der Chain...",
+        "explanation": "Polkadot hat ein ausgefeiltes On-Chain Governance System mit mehreren Komponenten: DOT-Holder können Referenden vorschlagen und abstimmen, ein gewählter Council überwacht das Netzwerk, und ein Technical Committee kann in Notfällen eingreifen.",
+        "tQuestion": 45,
+        "pointsPerMillisecond": 0.015,
+        "hintPenalty": 35,
+        "timeAddPenalty": 18,
+        "timeAddBonus": 22
+      },
+      {
+        "question": "Was ist die Inflation-Rate von DOT?",
+        "answers": [
+          "Es gibt keine Inflation",
+          "Fest bei 5% pro Jahr",
+          "Variabel, abhängig von der Staking-Participation",
+          "100% pro Jahr"
+        ],
+        "answerCount": 4,
+        "correct": 2,
+        "hint": "Sie hängt von den Teilnehmern ab...",
+        "explanation": "Die Inflation-Rate von DOT ist variabel und richtet sich nach der Staking-Participation. Das Ziel ist eine optimale Staking-Rate (aktuell etwa 50%). Bei niedrigerer Participation steigt die Inflation, um mehr Anreize zu schaffen.",
+        "tQuestion": 50,
+        "pointsPerMillisecond": 0.014,
+        "hintPenalty": 40,
+        "timeAddPenalty": 20,
+        "timeAddBonus": 25
+      },
+      {
+        "question": "Was ist das Treasury?",
+        "answers": [
+          "Eine private Firma",
+          "Ein On-Chain Fund für die Finanzierung von Projekten im Ökosystem",
+          "Eine Wallet-App",
+          "Ein Staking-Pool"
+        ],
+        "answerCount": 4,
+        "correct": 1,
+        "hint": "Es finanziert Community-Projekte...",
+        "explanation": "Das Treasury ist ein On-Chain Fund, der aus Transaktionsgebühren, Slashing-Strafen und einem Teil der Inflation gespeist wird. Community-Mitglieder können Proposals einreichen, um Funding für Projekte zu erhalten, die das Polkadot-Ökosystem verbessern.",
+        "tQuestion": 40,
+        "pointsPerMillisecond": 0.016,
+        "hintPenalty": 30,
+        "timeAddPenalty": 15,
+        "timeAddBonus": 20
+      },
+      {
+        "question": "Was bedeutet 'Bonding' im Kontext von Parachains?",
+        "answers": [
+          "Das Erstellen von Smart Contracts",
+          "Das Sperren von DOT-Token für einen Parachain-Slot",
+          "Das Mining von DOT",
+          "Das Übertragen von Token"
+        ],
+        "answerCount": 4,
+        "correct": 1,
+        "hint": "Token werden für einen Slot gebunden...",
+        "explanation": "Bonding bezeichnet das Sperren von DOT-Token, um einen Parachain-Slot zu sichern. Diese Token bleiben für die Dauer des Slots gebunden (z.B. 96 Wochen) und werden danach wieder freigegeben.",
+        "tQuestion": 40,
+        "pointsPerMillisecond": 0.016,
+        "hintPenalty": 30,
+        "timeAddPenalty": 15,
+        "timeAddBonus": 20
+      }
+    ]
+  }
+}

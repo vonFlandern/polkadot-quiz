@@ -1,0 +1,20 @@
+{
+  "gameSettings": {
+    "totalLevels": 15,
+    "minCorrectPercentage": 0.7,
+    "hintCountPerLevel": 3,
+    "timeAddCountPerLevel": 2
+  },
+  "branding": {
+    "title": "Polkadot Quiz",
+    "subtitle": "Werde zum Polkadot-Experten!",
+    "logo": "assets/img/polkadot-logo.png",
+    "primaryColor": "#E6007A",
+    "secondaryColor": "#000000",
+    "accentColor": "#552BBF"
+  },
+  "integration": {
+    "allowIframe": true,
+    "corsOrigins": ["https://vonflandern.org"]
+  }
+}

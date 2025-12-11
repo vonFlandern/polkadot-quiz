@@ -1,0 +1,337 @@
+/**
+ * Quiz Engine - Haupt-Spiel-Logik
+ */
+
+class QuizEngine {
+    constructor() {
+        this.config = null;
+        this.questions = null;
+        this.currentLevel = null;
+        this.currentQuestionIndex = 0;
+        this.timer = new QuizTimer();
+        this.levelState = {
+            score: 0,
+            correctAnswers: 0,
+            hintsUsed: 0,
+            timeAddsUsed: 0,
+            hintsRemaining: 3,
+            timeAddsRemaining: 2,
+            questionScores: []
+        };
+    }
+
+    /**
+     * Initialisiere Quiz (lade Config und Fragen)
+     */
+    async initialize() {
+        try {
+            // Lade Config
+            const configResponse = await fetch('data/config.json');
+            this.config = await configResponse.json();
+
+            // Lade Fragen
+            const questionsResponse = await fetch('data/questions.json');
+            this.questions = await questionsResponse.json();
+
+            return true;
+        } catch (error) {
+            console.error('Initialization error:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Starte ein Level
+     */
+    startLevel(levelNumber) {
+        const levelKey = `level${levelNumber}`;
+        this.currentLevel = this.questions[levelKey];
+
+        if (!this.currentLevel) {
+            throw new Error(`Level ${levelNumber} nicht gefunden`);
+        }
+
+        // Reset Level State
+        this.currentQuestionIndex = 0;
+        this.levelState = {
+            score: 0,
+            correctAnswers: 0,
+            hintsUsed: 0,
+            timeAddsUsed: 0,
+            hintsRemaining: this.config.gameSettings.hintCountPerLevel,
+            timeAddsRemaining: this.config.gameSettings.timeAddCountPerLevel,
+            questionScores: []
+        };
+
+        return this.currentLevel;
+    }
+
+    /**
+     * Hole aktuelle Frage
+     */
+    getCurrentQuestion() {
+        if (!this.currentLevel) return null;
+        return this.currentLevel.questions[this.currentQuestionIndex];
+    }
+
+    /**
+     * Starte Frage-Timer
+     */
+    startQuestionTimer(onTick, onTimeout) {
+        const question = this.getCurrentQuestion();
+        if (!question) return;
+
+        this.timer.start(question.tQuestion, onTick, onTimeout);
+    }
+
+    /**
+     * Nutze Hint
+     */
+    useHint() {
+        if (this.levelState.hintsRemaining <= 0) {
+            return { success: false, message: 'Keine Hints mehr verfügbar' };
+        }
+
+        this.levelState.hintsRemaining--;
+        this.levelState.hintsUsed++;
+
+        const question = this.getCurrentQuestion();
+        return {
+            success: true,
+            hint: question.hint,
+            remaining: this.levelState.hintsRemaining
+        };
+    }
+
+    /**
+     * Nutze Time Add
+     */
+    useTimeAdd() {
+        if (this.levelState.timeAddsRemaining <= 0) {
+            return { success: false, message: 'Keine Zeitverlängerungen mehr verfügbar' };
+        }
+
+        const question = this.getCurrentQuestion();
+        this.timer.addTime(question.timeAddBonus);
+        this.levelState.timeAddsRemaining--;
+        this.levelState.timeAddsUsed++;
+
+        return {
+            success: true,
+            bonusTime: question.timeAddBonus,
+            remaining: this.levelState.timeAddsRemaining
+        };
+    }
+
+    /**
+     * Berechne Punkte für eine Antwort
+     */
+    calculatePoints(elapsedTimeMs, isCorrect, hintUsed, timeAddUsed) {
+        if (!isCorrect) return 0;
+
+        const question = this.getCurrentQuestion();
+        const tQuestionMs = question.tQuestion * 1000;
+        
+        // Basis-Punkte: (Verfügbare Zeit - Verstrichene Zeit) × Punkte pro MS
+        const remainingTimeMs = Math.max(0, tQuestionMs - elapsedTimeMs);
+        let points = Math.round(remainingTimeMs * question.pointsPerMillisecond);
+
+        // Abzüge für Power-Ups
+        if (hintUsed) {
+            points -= question.hintPenalty;
+        }
+        if (timeAddUsed) {
+            points -= question.timeAddPenalty;
+        }
+
+        return points;
+    }
+
+    /**
+     * Beantworte Frage
+     */
+    answerQuestion(selectedAnswerIndex) {
+        const question = this.getCurrentQuestion();
+        const elapsedTimeMs = this.timer.getElapsedTime();
+        
+        this.timer.stop();
+
+        const isCorrect = selectedAnswerIndex === question.correct;
+        const isTimeout = elapsedTimeMs >= (question.tQuestion * 1000);
+
+        // Wurde Hint oder TimeAdd bei dieser Frage genutzt?
+        // (Vereinfachung: wir tracken global, könnte pro Frage verfeinert werden)
+        const hintUsedThisQuestion = false; // TODO: Pro-Frage tracking
+        const timeAddUsedThisQuestion = false; // TODO: Pro-Frage tracking
+
+        const points = this.calculatePoints(elapsedTimeMs, isCorrect, hintUsedThisQuestion, timeAddUsedThisQuestion);
+
+        // Update State
+        this.levelState.score += points;
+        if (isCorrect) {
+            this.levelState.correctAnswers++;
+        }
+
+        // Speichere Question-Score
+        this.levelState.questionScores.push({
+            question: this.currentQuestionIndex + 1,
+            points: points,
+            timeMs: elapsedTimeMs,
+            correct: isCorrect,
+            timeout: isTimeout
+        });
+
+        return {
+            correct: isCorrect,
+            timeout: isTimeout,
+            points: points,
+            elapsedTimeMs: elapsedTimeMs,
+            correctAnswer: question.correct,
+            explanation: question.explanation
+        };
+    }
+
+    /**
+     * Gehe zur nächsten Frage
+     */
+    nextQuestion() {
+        this.currentQuestionIndex++;
+        return this.hasMoreQuestions();
+    }
+
+    /**
+     * Prüfe ob noch Fragen übrig sind
+     */
+    hasMoreQuestions() {
+        return this.currentQuestionIndex < this.currentLevel.questions.length;
+    }
+
+    /**
+     * Berechne Level-Ergebnis
+     */
+    calculateLevelResult() {
+        const totalQuestions = this.currentLevel.questions.length;
+        const correctAnswers = this.levelState.correctAnswers;
+        const percentage = correctAnswers / totalQuestions;
+        const minPercentage = this.config.gameSettings.minCorrectPercentage;
+        const passed = percentage >= minPercentage;
+
+        // Minimum-Regel: Score kann nicht negativ sein
+        let finalScore = this.levelState.score;
+        if (finalScore < 0) {
+            finalScore = 0;
+        }
+
+        // Gesamtzeit berechnen
+        const totalTimeMs = this.levelState.questionScores.reduce((sum, q) => sum + q.timeMs, 0);
+
+        return {
+            score: finalScore,
+            time: Math.round(totalTimeMs / 1000), // in Sekunden
+            correctAnswers: correctAnswers,
+            totalQuestions: totalQuestions,
+            percentage: Math.round(percentage * 100),
+            passed: passed,
+            hintsUsed: this.levelState.hintsUsed,
+            timeAddsUsed: this.levelState.timeAddsUsed,
+            questionScores: this.levelState.questionScores
+        };
+    }
+
+    /**
+     * Speichere Level-Ergebnis
+     */
+    async saveLevelResult(walletAddress, playerName, levelNumber) {
+        const result = this.calculateLevelResult();
+
+        console.log('Saving level result:', {
+            walletAddress,
+            playerName,
+            levelNumber,
+            result
+        });
+
+        try {
+            const response = await fetch('api/save-score.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    walletAddress: walletAddress,
+                    playerName: playerName,
+                    levelNumber: levelNumber,
+                    levelData: result
+                })
+            });
+
+            console.log('Response status:', response.status);
+            
+            if (!response.ok) {
+                const text = await response.text();
+                console.error('Response error:', text);
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('Save successful:', data);
+            return data;
+        } catch (error) {
+            console.error('Save score error:', error);
+            alert('⚠️ Fehler beim Speichern: ' + error.message + '\n\nÜberprüfe die Browser-Console (F12) für Details.');
+            throw error;
+        }
+    }
+
+    /**
+     * Lade Spieler-Daten
+     */
+    async loadPlayer(walletAddress) {
+        console.log('Loading player data for:', walletAddress);
+        
+        try {
+            const response = await fetch('api/get-player.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    walletAddress: walletAddress
+                })
+            });
+
+            console.log('Load player response status:', response.status);
+            
+            if (!response.ok) {
+                const text = await response.text();
+                console.error('Load player error response:', text);
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('Player data loaded:', data);
+            return data;
+        } catch (error) {
+            console.error('Load player error:', error);
+            console.warn('Continuing without player data (new player?)');
+            return { found: false };
+        }
+    }
+
+    /**
+     * Lade Leaderboard
+     */
+    async loadLeaderboard(limit = 100) {
+        try {
+            const response = await fetch(`api/get-leaderboard.php?limit=${limit}`);
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Load leaderboard error:', error);
+            throw error;
+        }
+    }
+}
+
+// Globale Instanz
+const quizEngine = new QuizEngine();

@@ -1,0 +1,32 @@
+1. ✅ Mechanik/Logik fertigstellen (fast done)
+   
+2. 🔧 Code-Restrukturierung
+   - HTML/JS/CSS strikt trennen
+   - Inline-Styles in CSS auslagern
+   - Kommentare BEHALTEN (!)
+   
+3. 🌐 Integration + Design
+   - In vonflandern.org einbauen
+   - Design gleichzeitig anpassen
+   - Als eine kombinierte Phase
+   
+4. 🌍 Internationalisierung
+   - Vollständige Übersetzung ins Englische
+   - i18n-System implementieren (optional)
+   
+5. 📝 Content Creation
+   - 15 Level komplett mit Fragen
+   - PDFs erstellen
+   - Bereits parallel gestartet!
+   
+6. 🧪 Testing & Polishing
+   - Alles testen
+   - Bug-Fixes
+   - Performance-Optimierung
+   
+7. 🚀 Pre-Launch
+   - Kommentare entfernen
+   - Code final minifizieren
+   - Backup erstellen
+   
+8. ✨ Go Live!
