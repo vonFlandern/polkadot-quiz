@@ -1,187 +1,165 @@
 # 🎮 Polkadot Quiz
 
-Ein interaktives Quiz zum Testen und Vertiefen deines Wissens über Polkadot.
+An interactive quiz to test and deepen your knowledge about Polkadot.
 
 ![PHP](https://img.shields.io/badge/PHP-777BB4?style=flat&logo=php&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat&logo=javascript&logoColor=black)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
+> **Note:** This is currently a test version with 3 sample quiz levels. More comprehensive content is in development.
+
 ## ✨ Features
 
-- **3 Quiz-Level** mit progressivem Schwierigkeitsgrad
+- **3 Test Quiz Levels** with progressive difficulty
   - Level 1: Polkadot Basics
-  - Level 2: Polkadot Architektur (Relay Chain, Parachains, XCM)
+  - Level 2: Polkadot Architecture (Relay Chain, Parachains, XCM)
   - Level 3: Economics & Governance (NPoS, Staking, Treasury)
-- **Wallet-Integration** für Polkadot SS58-Adressen
-- **Leaderboard-System** zum Vergleich mit anderen Teilnehmern
-- **Timer & Punktesystem** mit Bonuspunkten für schnelle Antworten
-- **Hint-System** für zusätzliche Hilfestellungen
-- **PDF-Downloads** mit Wissensbasis zu jedem Level
-- **Responsive Design** für Desktop und Mobile
+- **Wallet Integration** for Polkadot SS58 addresses
+- **Leaderboard System** to compare with other participants
+- **Timer & Points System** with bonus points for fast answers
+- **Hint System** for additional help
+- **PDF Downloads** with knowledge base for each level
+- **Responsive Design** for desktop and mobile
 
 ## 🚀 Installation
 
-### Voraussetzungen
+### Prerequisites
 
-- PHP 7.4 oder höher
-- Webserver (Apache/Nginx) oder XAMPP/WAMP
-- Schreibrechte für `data/` Ordner
+- PHP 7.4 or higher
+- Web server (Apache/Nginx) or XAMPP/WAMP
+- Write permissions for `data/` folder
 
 ### Setup
 
-1. **Repository klonen**
+1. **Clone repository**
    ```bash
    git clone https://github.com/vonFlandern/polkadot-quiz.git
    cd polkadot-quiz
    ```
 
-2. **Konfiguration anpassen**
+2. **Adjust configuration**
    ```bash
-   # config.php bearbeiten und an deine Umgebung anpassen
+   # Edit config.php and adjust to your environment
    nano config.php
    ```
 
-3. **Berechtigungen setzen**
+3. **Set permissions**
    ```bash
    chmod 755 data/
    chmod 644 data/*.json
    ```
 
-4. **Im Browser öffnen**
+4. **Open in browser**
    ```
    http://localhost/polkadot-quiz/
    ```
 
-## 📂 Projektstruktur
+## 📂 Project Structure
 
 ```
 polkadot-quiz/
-├── api/                      # Backend API-Endpunkte
-│   ├── get-leaderboard.php   # Leaderboard abrufen
-│   ├── get-player.php        # Spielerdaten abrufen
-│   ├── save-score.php        # Score speichern
-│   ├── register-player.php   # Spieler registrieren
-│   └── convert-address.php   # SS58 Adresskonvertierung
+├── api/                      # Backend API endpoints
+│   ├── get-leaderboard.php   # Fetch leaderboard
+│   ├── get-player.php        # Fetch player data
+│   ├── save-score.php        # Save score
+│   ├── register-player.php   # Register player
+│   └── convert-address.php   # SS58 address conversion
 ├── assets/
 │   ├── css/                  # Stylesheets
-│   ├── js/                   # JavaScript-Module
-│   │   ├── quiz-engine.js    # Quiz-Logik
-│   │   ├── timer.js          # Timer-Funktion
-│   │   ├── ui.js             # UI-Interaktionen
-│   │   └── wallet.js         # Wallet-Integration
-│   └── img/                  # Bilder & Logos
+│   ├── js/                   # JavaScript modules
+│   │   ├── quiz-engine.js    # Quiz logic
+│   │   ├── timer.js          # Timer function
+│   │   ├── ui.js             # UI interactions
+│   │   └── wallet.js         # Wallet integration
+│   └── img/                  # Images & logos
 ├── data/
-│   ├── questions.json        # Quiz-Fragen & Antworten
-│   ├── config.json           # Quiz-Konfiguration
-│   └── players.json          # Spielerdaten (wird automatisch erstellt)
-├── downloads/                # PDF-Downloads
-├── index.php                 # Hauptseite
-├── leaderboard.php           # Leaderboard-Seite
-└── config.php                # Server-Konfiguration
+│   ├── questions.json        # Quiz questions & answers
+│   ├── config.json           # Quiz configuration
+│   └── players.json          # Player data (auto-generated)
+├── downloads/                # PDF downloads
+├── index.php                 # Main page
+├── leaderboard.php           # Leaderboard page
+└── config.php                # Server configuration
 ```
 
-## 🎯 Wie es funktioniert
+## 🎯 How It Works
 
-### Quiz-Ablauf
+### Quiz Flow
 
-1. **Wallet verbinden** (optional): Spieler können ihre Polkadot-Wallet verbinden
-2. **Level auswählen**: Zwischen Level 1-3 wählen
-3. **Quiz starten**: Fragen mit Multiple-Choice-Antworten
-4. **Punkte sammeln**: 
-   - Schnelle Antworten = mehr Punkte
-   - Hints nutzen = Punktabzug
-   - Zeit verlängern = Punktabzug
-5. **Score eintragen**: Nach Abschluss im Leaderboard erscheinen
+1. **Connect Wallet** (optional): Players can connect their Polkadot wallet
+2. **Select Level**: Choose between Level 1-3
+3. **Start Quiz**: Answer multiple-choice questions
+4. **Collect Points**: 
+   - Fast answers = more points
+   - Using hints = point deduction
+   - Extending time = point deduction
+5. **Submit Score**: Appear on the leaderboard after completion
 
-### Punktesystem
+### Points System
 
-- Basispunkte werden nach Zeit berechnet: `Zeit × pointsPerMillisecond`
-- Bonus für Zeitüberschuss: `übrigeSekunden × timeAddBonus`
-- Abzug für Hints: `hintPenalty` Punkte
-- Abzug für Zeitverlängerung: `timeAddPenalty` Punkte
+- Base points calculated by time: `time × pointsPerMillisecond`
+- Bonus for remaining time: `remainingSeconds × timeAddBonus`
+- Deduction for hints: `hintPenalty` points
+- Deduction for time extension: `timeAddPenalty` points
 
-## 🔧 Konfiguration
+## 🔧 Configuration
 
-### Quiz-Fragen hinzufügen
+### Adding Quiz Questions
 
-Bearbeite `data/questions.json` um neue Levels oder Fragen hinzuzufügen:
+Edit `data/questions.json` to add new levels or questions:
 
 ```json
 {
-  "question": "Was ist Polkadot?",
+  "question": "What is Polkadot?",
   "answers": [
-    "Eine Blockchain-Plattform für Interoperabilität",
-    "Eine Kryptowährung"
+    "A blockchain platform for interoperability",
+    "A cryptocurrency"
   ],
   "answerCount": 2,
   "correct": 0,
-  "hint": "Es verbindet verschiedene Blockchains...",
-  "explanation": "Polkadot ist eine Blockchain-Plattform...",
+  "hint": "It connects different blockchains...",
+  "explanation": "Polkadot is a blockchain platform...",
   "tQuestion": 30,
   "pointsPerMillisecond": 0.02
 }
 ```
 
-### Server-Einstellungen
+### Server Settings
 
-Passe `config.php` an deine Umgebung an:
+Adjust `config.php` to your environment:
 
 ```php
 define('BASE_URL', '/polkadot-quiz/');
 define('DATA_DIR', __DIR__ . '/data/');
 ```
 
-## 🛠️ Technologie-Stack
+## 🛠️ Technology Stack
 
 - **Frontend**: Vanilla JavaScript, CSS3, HTML5
 - **Backend**: PHP 7.4+
-- **Daten**: JSON-basierte Speicherung
-- **Wallet**: Polkadot.js Integration für SS58-Adressen
+- **Data**: JSON-based storage
+- **Wallet**: Polkadot.js integration for SS58 addresses
 
 ## 📊 Leaderboard
 
-Das Leaderboard zeigt die besten Spieler mit:
-- Spielername
-- Polkadot-Adresse (anonymisiert)
-- Gesamtscore über alle Level
-- Level-spezifische Scores
+The leaderboard displays top players with:
+- Player name
+- Polkadot address (anonymized)
+- Total score across all levels
+- Level-specific scores
 
-## 🤝 Contributing
+## 📝 License
 
-Beiträge sind willkommen! So kannst du mitmachen:
-
-1. Fork das Repository
-2. Erstelle einen Feature-Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit deine Änderungen (`git commit -m 'Add some AmazingFeature'`)
-4. Push zum Branch (`git push origin feature/AmazingFeature`)
-5. Öffne einen Pull Request
-
-## 📝 Lizenz
-
-Dieses Projekt steht unter der MIT-Lizenz.
+This project is licensed under the MIT License.
 
 ## 🐛 Bug Reports
 
-Bitte öffne ein Issue auf GitHub wenn du Bugs findest oder Verbesserungsvorschläge hast.
+Please open an issue on GitHub if you find bugs or have suggestions for improvements.
 
-## 🌟 Roadmap
-
-- [ ] Mehr Quiz-Level hinzufügen
-- [ ] Mehrsprachige Unterstützung
-- [ ] NFT-Badges für Quiz-Erfolge
-- [ ] On-Chain Leaderboard
-- [ ] Integration mit Polkadot Governance
-
-## 👥 Autor
+## 👥 Author
 
 **vonFlandern** - [GitHub](https://github.com/vonFlandern)
 
-## 🙏 Acknowledgments
-
-- Polkadot Community für die Inspiration
-- Web3 Foundation für die Entwicklung von Polkadot
-- Alle Contributors und Tester
-
 ---
 
-⭐ Falls dir dieses Projekt gefällt, gib ihm einen Star auf GitHub!
+⭐ If you like this project, give it a star on GitHub!
