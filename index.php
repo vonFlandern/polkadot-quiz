@@ -8,7 +8,6 @@
     <!-- Core Styles -->
     <link rel="stylesheet" href="assets/css/quiz-core.css">
     <link rel="stylesheet" href="assets/css/quiz-standalone.css">
-    <link rel="stylesheet" href="assets/css/countdown-styles.css">
     
     <!-- Polkadot.js Extension API -->
     <script src="https://unpkg.com/@polkadot/extension-dapp@0.46.1/bundle-polkadot-extension-dapp.js"></script>
@@ -137,7 +136,7 @@
                         <strong id="question-number">Frage 1/3</strong>
                         <div id="current-score">Punkte: 0</div>
                     </div>
-                    <div id="timer-display">00.000</div>
+                    <div id="timer-display">00:00</div>
                 </div>
 
                 <div class="question-content">

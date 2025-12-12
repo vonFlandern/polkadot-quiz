@@ -829,7 +829,7 @@ class QuizUI {
      */
     startCountdown(levelNumber) {
         console.log('🎬 Starting countdown for level', levelNumber);
-        
+
         // KRITISCH: Cleane ALLE bestehenden Intervals
         // Manchmal können mehrere Intervals existieren durch Doppelklicks
         if (this.countdownInterval) {
@@ -841,36 +841,29 @@ class QuizUI {
         // Zeige Countdown-Screen
         this.showScreen('countdown');
 
+        // Starte bei 5
+        let count = 5;
+
+        // Hole Element
         const countdownEl = document.getElementById('countdown-number');
-        
-        // Starte bei 3
-        let count = 3;
-        
-        // Zeige initiale "3" SOFORT
-        countdownEl.textContent = count;
-        console.log(`⏱️ Countdown: ${count}`);
-        
-        // Animiere die Zahl (optional, für visuellen Effekt)
-        countdownEl.style.animation = 'none';
-        setTimeout(() => {
-            countdownEl.style.animation = 'countdown-pulse 1s ease-in-out';
-        }, 10);
+
+        // Funktion zum Aktualisieren der Zahl
+        const updateCountdown = () => {
+            countdownEl.textContent = count;
+            console.log(`⏱️ Countdown: ${count}`);
+        };
+
+        // Zeige initiale "5" SOFORT
+        updateCountdown();
 
         // Starte Interval mit exakt 1 Sekunde
         this.countdownInterval = setInterval(() => {
             count--;
-            console.log(`⏱️ Countdown: ${count}`);
-            
+
             if (count > 0) {
-                // Zeige 2, dann 1
-                countdownEl.textContent = count;
-                
-                // Re-triggere Animation
-                countdownEl.style.animation = 'none';
-                setTimeout(() => {
-                    countdownEl.style.animation = 'countdown-pulse 1s ease-in-out';
-                }, 10);
-                
+                // Zeige nächste Zahl
+                updateCountdown();
+
             } else {
                 // Bei 0: Cleanup und Start
                 console.log('🚀 Countdown finished, starting level');

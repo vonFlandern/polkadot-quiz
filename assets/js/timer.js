@@ -119,13 +119,14 @@ class QuizTimer {
     }
 
     /**
-     * Formatiere Zeit kurz (SS.mmm)
+     * Formatiere Zeit kurz (MM:SS)
      */
     formatTimeShort(milliseconds) {
-        const seconds = Math.floor(milliseconds / 1000);
-        const ms = Math.floor(milliseconds % 1000);
+        const totalSeconds = Math.floor(milliseconds / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
 
-        return `${String(seconds).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
+        return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     }
 
     /**

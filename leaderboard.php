@@ -56,47 +56,80 @@ require_once 'config.php';
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
+            gap: 20px;
             border-bottom: 2px solid var(--border-color);
         }
 
-        .filter-buttons {
+        .search-container {
             display: flex;
             gap: 10px;
+            align-items: center;
+            flex: 1;
         }
 
-        .filter-btn {
-            padding: 8px 16px;
+        #player-search-input {
+            flex: 1;
+            max-width: 400px;
+            padding: 10px 15px;
             border: 2px solid var(--border-color);
-            background-color: white;
-            color: var(--text-color);
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.2s;
+        }
+
+        #player-search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        #player-search-btn,
+        #show-all-btn {
+            padding: 10px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
             border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
             transition: all 0.2s;
         }
 
-        .filter-btn:hover {
-            border-color: var(--primary-color);
-            color: var(--primary-color);
+        #player-search-btn:hover,
+        #show-all-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
         }
 
-        .filter-btn.active {
-            background-color: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
+        #show-all-btn {
+            background-color: #6b7280;
         }
 
         .refresh-info {
             color: #6b7280;
-            font-size: 0.9em;
+            font-size: 1em;
             font-weight: 600;
         }
 
         #total-players-display {
             color: var(--primary-color);
             font-weight: 700;
+        }
+
+        /* Highlight für gesuchten Spieler */
+        .leaderboard-table tbody tr.search-highlight {
+            background: linear-gradient(90deg, #fef3c7 0%, #fde68a 100%);
+            border-left: 4px solid var(--warning-color);
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+        }
+
+        .leaderboard-table tbody tr.search-highlight:hover {
+            background: linear-gradient(90deg, #fde68a 0%, #fcd34d 100%);
+        }
+
+        /* Kontext-Zeilen (darüber) */
+        .leaderboard-table tbody tr.search-context {
+            opacity: 0.7;
         }
 
         .leaderboard-content {
@@ -307,11 +340,16 @@ require_once 'config.php';
 
             .leaderboard-controls {
                 flex-direction: column;
-                align-items: stretch;
+                gap: 15px;
             }
 
-            .filter-buttons {
-                justify-content: center;
+            .search-container {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            #player-search-input {
+                max-width: 100%;
             }
 
             .leaderboard-table {
@@ -340,10 +378,10 @@ require_once 'config.php';
 
         <!-- Controls -->
         <div class="leaderboard-controls">
-            <div class="filter-buttons">
-                <button class="filter-btn active" onclick="leaderboard.setLimit(10)">Top 10</button>
-                <button class="filter-btn" onclick="leaderboard.setLimit(50)">Top 50</button>
-                <button class="filter-btn" onclick="leaderboard.setLimit(100)">Top 100</button>
+            <div class="search-container">
+                <input type="text" id="player-search-input" placeholder="Spielername suchen...">
+                <button id="player-search-btn">Suchen</button>
+                <button id="show-all-btn" style="display: none;">Alle anzeigen</button>
             </div>
             <div class="refresh-info">
                 <span id="total-players-display">Lädt...</span>
@@ -405,7 +443,6 @@ require_once 'config.php';
          * Leaderboard Manager
          */
         const leaderboard = {
-            currentLimit: 10,
             data: null,
 
             /**
@@ -414,7 +451,18 @@ require_once 'config.php';
             async init() {
                 await this.loadLeaderboard();
                 this.updateLastUpdate();
-                
+
+                // Event Listener für Suche
+                const searchBtn = document.getElementById('player-search-btn');
+                const searchInput = document.getElementById('player-search-input');
+                const showAllBtn = document.getElementById('show-all-btn');
+
+                searchBtn.addEventListener('click', () => this.searchPlayer());
+                searchInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.searchPlayer();
+                });
+                showAllBtn.addEventListener('click', () => this.showAllPlayers());
+
                 // Auto-Refresh alle 30 Sekunden
                 setInterval(() => {
                     this.loadLeaderboard(true);
@@ -422,7 +470,7 @@ require_once 'config.php';
             },
 
             /**
-             * Lade Leaderboard von API
+             * Lade Leaderboard von API (alle Einträge)
              */
             async loadLeaderboard(silent = false) {
                 try {
@@ -432,7 +480,8 @@ require_once 'config.php';
                         document.getElementById('empty-state').style.display = 'none';
                     }
 
-                    const response = await fetch(`api/get-leaderboard.php?limit=${this.currentLimit}`);
+                    // Lade ALLE Spieler (limit=1000 als praktisches Maximum)
+                    const response = await fetch(`api/get-leaderboard.php?limit=1000`);
                     const data = await response.json();
 
                     this.data = data;
@@ -463,59 +512,160 @@ require_once 'config.php';
                 document.getElementById('leaderboard-table').style.display = 'block';
 
                 this.data.leaderboard.forEach(player => {
-                    const tr = document.createElement('tr');
-
-                    // Rang mit Styling
-                    let rankClass = '';
-                    let rankEmoji = '';
-                    if (player.rank === 1) {
-                        rankClass = 'top1';
-                        rankEmoji = '🥇 ';
-                    } else if (player.rank === 2) {
-                        rankClass = 'top2';
-                        rankEmoji = '🥈 ';
-                    } else if (player.rank === 3) {
-                        rankClass = 'top3';
-                        rankEmoji = '🥉 ';
-                    }
-
-                    // Berechne Prozentsatz
-                    const percentage = player.totalQuestions > 0 
-                        ? Math.round((player.correctAnswers / player.totalQuestions) * 100)
-                        : 0;
-                    
-                    tr.innerHTML = `
-                        <td class="center">
-                            <span class="rank ${rankClass}">${rankEmoji}${player.rank}</span>
-                        </td>
-                        <td>
-                            <div class="player-name">${this.escapeHtml(player.playerName)}</div>
-                        </td>
-                        <td class="right">
-                            <span class="score">${this.formatNumber(player.totalScore)}</span>
-                        </td>
-                        <td class="center">
-                            <span class="level-badge">${player.completedLevels}/15</span>
-                        </td>
-                        <td class="center hide-mobile">
-                            <span class="questions">${player.correctAnswers || 0}/${player.totalQuestions || 0}</span>
-                        </td>
-                        <td class="center hide-mobile">
-                            <span class="percentage">${percentage}%</span>
-                        </td>
-                        <td class="center hide-mobile">
-                            <span class="time">${this.formatTime(player.totalTime)}</span>
-                        </td>
-                        <td class="center hide-mobile">
-                            <span class="time-adds">${player.timeAddsUsed || 0}</span>
-                        </td>
-                        <td class="center hide-mobile">
-                            <span class="hints">${player.hintsUsed || 0}</span>
-                        </td>
-                    `;
-
+                    const tr = this.createPlayerRow(player);
                     tbody.appendChild(tr);
                 });
+            },
+
+            /**
+             * Erstelle Tabellenzeile für Spieler
+             */
+            createPlayerRow(player) {
+                const tr = document.createElement('tr');
+
+                // Rang mit Styling
+                let rankClass = '';
+                let rankEmoji = '';
+                if (player.rank === 1) {
+                    rankClass = 'top1';
+                    rankEmoji = '🥇 ';
+                } else if (player.rank === 2) {
+                    rankClass = 'top2';
+                    rankEmoji = '🥈 ';
+                } else if (player.rank === 3) {
+                    rankClass = 'top3';
+                    rankEmoji = '🥉 ';
+                }
+
+                // Berechne Prozentsatz
+                const percentage = player.totalQuestions > 0
+                    ? Math.round((player.correctAnswers / player.totalQuestions) * 100)
+                    : 0;
+
+                tr.innerHTML = `
+                    <td class="center">
+                        <span class="rank ${rankClass}">${rankEmoji}${player.rank}</span>
+                    </td>
+                    <td>
+                        <div class="player-name">${this.escapeHtml(player.playerName)}</div>
+                    </td>
+                    <td class="right">
+                        <span class="score">${this.formatNumber(player.totalScore)}</span>
+                    </td>
+                    <td class="center">
+                        <span class="level-badge">${player.completedLevels}/15</span>
+                    </td>
+                    <td class="center hide-mobile">
+                        <span class="questions">${player.correctAnswers || 0}/${player.totalQuestions || 0}</span>
+                    </td>
+                    <td class="center hide-mobile">
+                        <span class="percentage">${percentage}%</span>
+                    </td>
+                    <td class="center hide-mobile">
+                        <span class="time">${this.formatTime(player.totalTime)}</span>
+                    </td>
+                    <td class="center hide-mobile">
+                        <span class="time-adds">${player.timeAddsUsed || 0}</span>
+                    </td>
+                    <td class="center hide-mobile">
+                        <span class="hints">${player.hintsUsed || 0}</span>
+                    </td>
+                `;
+
+                return tr;
+            },
+
+            /**
+             * Suche nach Spieler und zeige Ergebnisse
+             */
+            searchPlayer() {
+                const searchInput = document.getElementById('player-search-input');
+                const searchTerm = searchInput.value.trim().toLowerCase();
+
+                // Leeres Suchfeld → alle anzeigen
+                if (!searchTerm) {
+                    this.showAllPlayers();
+                    return;
+                }
+
+                // Suche in Leaderboard
+                const matches = [];
+                this.data.leaderboard.forEach((player, index) => {
+                    if (player.playerName.toLowerCase().includes(searchTerm)) {
+                        matches.push({ player, index });
+                    }
+                });
+
+                // Keine Treffer
+                if (matches.length === 0) {
+                    this.showNoResults(searchTerm);
+                    return;
+                }
+
+                // Zeige Treffer mit Kontext
+                this.renderSearchResults(matches);
+
+                // Zeige "Alle anzeigen" Button
+                document.getElementById('show-all-btn').style.display = 'inline-block';
+            },
+
+            /**
+             * Rendere Such-Ergebnisse mit Kontext
+             */
+            renderSearchResults(matches) {
+                const tbody = document.getElementById('leaderboard-body');
+                tbody.innerHTML = '';
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('leaderboard-table').style.display = 'block';
+                document.getElementById('empty-state').style.display = 'none';
+
+                matches.forEach(({ player, index }) => {
+                    // Bestimme wie viele Einträge darüber gezeigt werden
+                    const contextCount = Math.min(2, index); // Max 2, aber nicht mehr als verfügbar
+                    const startIndex = index - contextCount;
+
+                    // Zeige Kontext-Zeilen
+                    for (let i = startIndex; i < index; i++) {
+                        const contextPlayer = this.data.leaderboard[i];
+                        const tr = this.createPlayerRow(contextPlayer);
+                        tr.classList.add('search-context');
+                        tbody.appendChild(tr);
+                    }
+
+                    // Zeige gesuchten Spieler (highlighted)
+                    const tr = this.createPlayerRow(player);
+                    tr.classList.add('search-highlight');
+                    tbody.appendChild(tr);
+                });
+            },
+
+            /**
+             * Zeige "Keine Ergebnisse" Meldung
+             */
+            showNoResults(searchTerm) {
+                const tbody = document.getElementById('leaderboard-body');
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 60px 20px; color: #6b7280;">
+                            <h3 style="color: var(--text-color); margin-bottom: 10px;">Keine Treffer</h3>
+                            <p>Kein Spieler mit dem Namen "<strong>${this.escapeHtml(searchTerm)}</strong>" gefunden.</p>
+                        </td>
+                    </tr>
+                `;
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('leaderboard-table').style.display = 'block';
+                document.getElementById('show-all-btn').style.display = 'inline-block';
+            },
+
+            /**
+             * Zeige alle Spieler (ursprüngliche Liste)
+             */
+            showAllPlayers() {
+                document.getElementById('player-search-input').value = '';
+                document.getElementById('show-all-btn').style.display = 'none';
+                this.render();
             },
 
             /**
@@ -538,21 +688,6 @@ require_once 'config.php';
                 const now = new Date();
                 const timeStr = now.toLocaleTimeString('de-DE');
                 document.getElementById('last-update').textContent = `Zuletzt aktualisiert: ${timeStr}`;
-            },
-
-            /**
-             * Setze Limit und lade neu
-             */
-            async setLimit(limit) {
-                this.currentLimit = limit;
-
-                // Update Button States
-                document.querySelectorAll('.filter-btn').forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                event.target.classList.add('active');
-
-                await this.loadLeaderboard();
             },
 
             /**
