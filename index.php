@@ -91,10 +91,15 @@
 
             <!-- Level Overview Screen -->
             <div id="level-overview-screen" class="screen level-overview-screen" style="display: none;">
+                <!-- Bereich 1: Account-Informationen -->
+                <div id="player-account-info"></div>
+
+                <!-- Bereich 2: Avatar Badge (unter Account) -->
+                <div id="player-badge-container"></div>
+
+                <!-- Bereich 3: Spiel -->
                 <h2>Level-Übersicht</h2>
-                
-                <div id="player-info"></div>
-                
+                <div id="player-rank-info"></div>
                 <div id="levels-list"></div>
             </div>
 

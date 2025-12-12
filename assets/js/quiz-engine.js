@@ -6,6 +6,7 @@ class QuizEngine {
     constructor() {
         this.config = null;
         this.questions = null;
+        this.categories = [];  // NEU: Category-Daten
         this.currentLevel = null;
         this.currentQuestionIndex = 0;
         this.timer = new QuizTimer();
@@ -33,11 +34,59 @@ class QuizEngine {
             const questionsResponse = await fetch('data/questions.json');
             this.questions = await questionsResponse.json();
 
+            // NEU: Lade Categories
+            await this.loadCategories();
+
             return true;
         } catch (error) {
             console.error('Initialization error:', error);
             return false;
         }
+    }
+
+    /**
+     * Lade Categories von API
+     */
+    async loadCategories() {
+        try {
+            const response = await fetch('api/get-categories.php');
+            const data = await response.json();
+
+            if (data.success && data.categories) {
+                this.categories = data.categories;
+                console.log('✅ Categories loaded:', this.categories.length);
+                return true;
+            } else {
+                console.error('Failed to load categories');
+                this.categories = [];
+                return false;
+            }
+        } catch (error) {
+            console.error('Error loading categories:', error);
+            this.categories = [];
+            return false;
+        }
+    }
+
+    /**
+     * Hole Category-Objekt für catId
+     */
+    getCategoryById(catId) {
+        return this.categories.find(cat => cat.catId === catId) || null;
+    }
+
+    /**
+     * Hole Category für Level-Nummer
+     */
+    getCategoryForLevel(levelNumber) {
+        const levelKey = `level${levelNumber}`;
+        const levelData = this.questions[levelKey];
+
+        if (!levelData || !levelData.catId) {
+            return null;
+        }
+
+        return this.getCategoryById(levelData.catId);
     }
 
     /**

@@ -89,6 +89,7 @@ foreach (array_slice($players, 0, $limit) as $index => $player) {
         'timeAddsUsed' => $player['totalTimeAddsUsed'], // Gesamtanzahl genutzter Time-Adds
         'correctAnswers' => $player['totalCorrectAnswers'], // Richtige Antworten
         'totalQuestions' => $player['totalQuestions'], // Gesamtanzahl Fragen
+        'currentCategory' => isset($player['currentCategory']) ? $player['currentCategory'] : 0, // Aktuelle Kategorie (Belt)
         'registeredAt' => $player['registeredAt']
     ];
 }

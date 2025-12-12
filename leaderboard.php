@@ -366,6 +366,13 @@ require_once 'config.php';
                 display: none;
             }
         }
+
+        /* Category Badge in Leaderboard */
+        .leaderboard-badge {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+        }
     </style>
 </head>
 <body>
@@ -400,6 +407,7 @@ require_once 'config.php';
                         <tr>
                             <th class="center">Rang</th>
                             <th>Spieler</th>
+                            <th class="center hide-mobile">Belt</th>
                             <th class="right">Punkte</th>
                             <th class="center">Level</th>
                             <th class="center hide-mobile">Fragen</th>
@@ -444,11 +452,13 @@ require_once 'config.php';
          */
         const leaderboard = {
             data: null,
+            categories: [],
 
             /**
              * Initialisierung
              */
             async init() {
+                await this.loadCategories();
                 await this.loadLeaderboard();
                 this.updateLastUpdate();
 
@@ -467,6 +477,33 @@ require_once 'config.php';
                 setInterval(() => {
                     this.loadLeaderboard(true);
                 }, 30000);
+            },
+
+            /**
+             * Lade Categories
+             */
+            async loadCategories() {
+                try {
+                    const response = await fetch('api/get-categories.php');
+                    const data = await response.json();
+                    if (data.success && data.categories) {
+                        this.categories = data.categories;
+                        console.log('✅ Categories loaded:', this.categories);
+                    } else {
+                        this.categories = [];
+                        console.warn('⚠️ No categories found in response');
+                    }
+                } catch (error) {
+                    console.error('❌ Failed to load categories:', error);
+                    this.categories = [];
+                }
+            },
+
+            /**
+             * Hole Category by ID
+             */
+            getCategoryById(catId) {
+                return this.categories.find(c => c.catId === catId) || null;
             },
 
             /**
@@ -542,6 +579,24 @@ require_once 'config.php';
                     ? Math.round((player.correctAnswers / player.totalQuestions) * 100)
                     : 0;
 
+                // Badge-HTML (mit Shiro-Fallback für neue Spieler)
+                let badgeHTML = '—';
+                const currentCategory = player.currentCategory || 0;
+
+                // Fallback: Neue Spieler (currentCategory = 0) erhalten Shiro-Badge (catId 1)
+                const badgeCatId = currentCategory > 0 ? currentCategory : 1;
+                const category = this.getCategoryById(badgeCatId);
+
+                // Debug
+                console.log(`Player: ${player.playerName}, currentCategory: ${currentCategory}, badgeCatId: ${badgeCatId}, category:`, category);
+
+                if (category) {
+                    badgeHTML = `<img src="assets/img/categories/${category.catSymbol}"
+                                     alt="${category.catDescription}"
+                                     class="leaderboard-badge"
+                                     title="${category.catDescription}">`;
+                }
+
                 tr.innerHTML = `
                     <td class="center">
                         <span class="rank ${rankClass}">${rankEmoji}${player.rank}</span>
@@ -549,6 +604,7 @@ require_once 'config.php';
                     <td>
                         <div class="player-name">${this.escapeHtml(player.playerName)}</div>
                     </td>
+                    <td class="center hide-mobile">${badgeHTML}</td>
                     <td class="right">
                         <span class="score">${this.formatNumber(player.totalScore)}</span>
                     </td>

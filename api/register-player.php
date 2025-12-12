@@ -112,7 +112,9 @@ if ($playerIndex === -1) {
         'totalScore' => 0,
         'totalTime' => 0,
         'completedLevels' => 0,
-        'levels' => []
+        'levels' => [],
+        'currentCategory' => 0,           // NEU: Höchste erreichte Kategorie
+        'categoryHistory' => []           // NEU: Chronologischer Verlauf
     ];
     $playersData['players'][] = $newPlayer;
     $playerIndex = count($playersData['players']) - 1;

@@ -476,6 +476,355 @@ class QuizUI {
     }
 
     /**
+     * Rendere Player-Info mit Category-Badge (NEUE VERSION - 3 Bereiche)
+     */
+    renderPlayerInfo(playerData, playerName, walletAddress, rankInfo) {
+        let displayAddress = walletAddress ? walletAddress.substring(0, 12) + '...' : '';
+
+        if (playerData.polkadotAddress) {
+            displayAddress = playerData.polkadotAddress.substring(0, 12) + '...';
+        } else if (playerData.found && playerData.player && playerData.player.polkadotAddress) {
+            displayAddress = playerData.player.polkadotAddress.substring(0, 12) + '...';
+        }
+
+        const currentCategory = playerData.player?.currentCategory || 0;
+
+        // Hole Badge (Shiro als Fallback für neue Spieler)
+        const categoryObj = this.getPlayerBadge(playerData);
+
+        // Sensai-Spezialtext (nur bei erreichten Kategorien, nicht bei Fallback)
+        let greetingText = playerName;
+        if (currentCategory === 8) {
+            greetingText = `Willkommen, Sensai ${playerName}!`;
+        }
+
+        // === BEREICH 1: Avatar Badge (ganz oben, zentriert, groß) ===
+        const badgeHTML = categoryObj
+            ? `<img src="assets/img/categories/${categoryObj.catSymbol}"
+                   alt="${categoryObj.catDescription}"
+                   class="category-avatar-badge"
+                   title="${categoryObj.catDescription}">`
+            : '';
+
+        document.getElementById('player-badge-container').innerHTML = badgeHTML;
+
+        // === BEREICH 2: Account-Informationen ===
+        document.getElementById('player-account-info').innerHTML = `
+            <div class="player-account-details">
+                <div class="player-name-display">${greetingText}</div>
+                <div class="player-wallet-display">${displayAddress}</div>
+            </div>
+            <button onclick="quizUI.logout()" style="background-color: #ef4444; padding: 10px 20px; border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer;">
+                Abmelden
+            </button>
+        `;
+
+        // === BEREICH 3: Rang-Info (unter Überschrift) ===
+        let rankHTML = rankInfo || '';
+        rankHTML += `
+            <div style="text-align: center; margin-top: 15px;">
+                <a href="leaderboard.php" target="_blank" style="display: block; padding: 12px 24px; background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; transition: all 0.2s;">
+                    🏆 Zum Leaderboard
+                </a>
+            </div>
+        `;
+
+        document.getElementById('player-rank-info').innerHTML = rankHTML;
+    }
+
+    /**
+     * Hole Badge-Objekt für Spieler (mit Shiro als Fallback)
+     */
+    getPlayerBadge(playerData) {
+        const currentCategory = playerData.player?.currentCategory || 0;
+
+        // Fallback: Neue Spieler (currentCategory = 0) erhalten Shiro-Badge (catId 1)
+        const badgeCatId = currentCategory > 0 ? currentCategory : 1;
+
+        return quizEngine.getCategoryById(badgeCatId);
+    }
+
+    /**
+     * Gruppiere Level nach Kategorien
+     */
+    groupLevelsByCategory(questions) {
+        const grouped = {};
+
+        Object.keys(questions).forEach(levelKey => {
+            const levelData = questions[levelKey];
+            const levelNum = parseInt(levelKey.replace('level', ''));
+            const catId = levelData.catId;
+
+            if (!grouped[catId]) {
+                grouped[catId] = [];
+            }
+            grouped[catId].push(levelNum);
+        });
+
+        // Sortiere Level innerhalb jeder Kategorie
+        Object.keys(grouped).forEach(catId => {
+            grouped[catId].sort((a, b) => a - b);
+        });
+
+        return grouped;
+    }
+
+    /**
+     * Erstelle Level-Button
+     */
+    createLevelButton(levelNum, questions, playerLevels, highestUnlockedLevel) {
+        const levelKey = `level${levelNum}`;
+        const levelData = questions[levelKey];
+
+        if (!levelData) {
+            const emptyBtn = document.createElement('button');
+            emptyBtn.className = 'level-btn level-btn-locked';
+            emptyBtn.disabled = true;
+            emptyBtn.innerHTML = `<h3>🔒 Level ${levelNum}: Coming Soon</h3>`;
+            return emptyBtn;
+        }
+
+        const isUnlocked = levelNum === 1 || highestUnlockedLevel >= (levelNum - 1);
+        const levelStats = playerLevels[levelNum] || playerLevels[levelNum.toString()];
+        const isLevelUnlocked = levelStats?.unlocked || levelStats?.firstAttempt?.passed || false;
+
+        const levelTitle = this.getLevelTitle(levelNum, levelData);
+        const questionCount = levelData.questions?.length || 0;
+
+        // Score-Info
+        let scoreInfo = '';
+        if (levelStats) {
+            const firstScore = levelStats.firstAttempt?.score;
+            const bestScore = levelStats.bestAttempt?.score;
+            const attempts = levelStats.attempts || 1;
+
+            if (firstScore !== undefined) {
+                scoreInfo = `<br><small>`;
+                if (levelStats.unlocked || levelStats.firstAttempt?.passed) {
+                    scoreInfo += `✓ Bestanden (1. Versuch) • ${firstScore} Punkte`;
+                } else {
+                    scoreInfo += `✗ Nicht bestanden (1. Versuch) • ${firstScore} Punkte`;
+                }
+
+                if (attempts > 1 && bestScore !== firstScore) {
+                    scoreInfo += `<br>🔄 ${attempts} Versuche • Bester: ${bestScore} Punkte`;
+                }
+                scoreInfo += `</small>`;
+            }
+        }
+
+        const levelBtn = document.createElement('button');
+
+        if (!isUnlocked) {
+            levelBtn.className = 'level-btn level-btn-locked';
+            levelBtn.disabled = true;
+            levelBtn.innerHTML = `
+                <h3>🔒 Level ${levelNum}: ${levelTitle}</h3>
+                <p>${questionCount} Fragen • Schließe Level ${levelNum - 1} ab</p>
+            `;
+        } else {
+            levelBtn.className = `level-btn ${isLevelUnlocked ? 'level-btn-completed' : ''}`;
+            levelBtn.innerHTML = `
+                <h3>${isLevelUnlocked ? '✓' : '○'} Level ${levelNum}: ${levelTitle}</h3>
+                <p>${questionCount} Fragen${scoreInfo}</p>
+            `;
+            levelBtn.addEventListener('click', () => {
+                this.showLevelIntro(levelNum);
+            });
+        }
+
+        return levelBtn;
+    }
+
+    /**
+     * Toggle Category Expand/Collapse
+     */
+    toggleCategory(catId) {
+        const container = document.querySelector(`[data-cat-id="${catId}"]`);
+        if (!container) return;
+
+        const isExpanded = container.classList.contains('expanded');
+
+        if (isExpanded) {
+            container.classList.remove('expanded');
+            container.classList.add('collapsed');
+
+            const icon = container.querySelector('.category-toggle-icon');
+            if (icon) icon.textContent = '▶';
+        } else {
+            container.classList.remove('collapsed');
+            container.classList.add('expanded');
+
+            const icon = container.querySelector('.category-toggle-icon');
+            if (icon) icon.textContent = '▼';
+        }
+    }
+
+    /**
+     * Rendere Level gruppiert nach Kategorien
+     */
+    renderLevelsByCategory(playerData, totalLevels, questions) {
+        const levelsContainer = document.getElementById('levels-list');
+        levelsContainer.innerHTML = '';
+
+        const playerLevels = playerData.player?.levels || {};
+
+        // Bestimme höchstes freigeschaltetes Level
+        const unlockedLevels = [];
+        Object.keys(playerLevels).forEach(levelKey => {
+            const levelNum = parseInt(levelKey);
+            const levelStats = playerLevels[levelKey];
+
+            if (levelStats.unlocked || levelStats.firstAttempt?.passed) {
+                unlockedLevels.push(levelNum);
+            }
+        });
+        const highestUnlockedLevel = unlockedLevels.length > 0
+            ? Math.max(...unlockedLevels)
+            : 0;
+
+        // Finde Kategorie die standardmäßig aufgeklappt sein soll
+        // = Kategorie des nächsten spielbaren Levels
+        let expandedCategoryId = null;
+        let nextPlayableLevel = highestUnlockedLevel + 1;
+
+        // Für neue Spieler (keine bestandenen Level) ist Level 1 das nächste
+        if (nextPlayableLevel < 1) {
+            nextPlayableLevel = 1;
+        }
+
+        // Hole Kategorie des nächsten spielbaren Levels
+        const categoryForNextLevel = quizEngine.getCategoryForLevel(nextPlayableLevel);
+        expandedCategoryId = categoryForNextLevel?.catId || null;
+
+        // Fallback: Wenn kein nächstes Level existiert, nutze Kategorie des letzten bestandenen
+        if (!expandedCategoryId && highestUnlockedLevel > 0) {
+            const categoryForHighestLevel = quizEngine.getCategoryForLevel(highestUnlockedLevel);
+            expandedCategoryId = categoryForHighestLevel?.catId || null;
+        }
+
+        // Fallback 2: Wenn immer noch keine Kategorie, öffne die erste (Shiro)
+        if (!expandedCategoryId) {
+            expandedCategoryId = 1;
+        }
+
+        // Gruppiere Level nach Kategorien
+        const levelsByCategory = this.groupLevelsByCategory(questions);
+
+        // Bestimme welche Kategorien angezeigt werden sollen
+        const visibleCategoryIds = this.getVisibleCategories(
+            levelsByCategory,
+            playerLevels,
+            nextPlayableLevel
+        );
+
+        // Für jede Kategorie: Erstelle Container (nur wenn sichtbar)
+        quizEngine.categories.forEach(category => {
+            const levelsInCategory = levelsByCategory[category.catId] || [];
+
+            if (levelsInCategory.length === 0) {
+                return; // Kategorie hat keine Level
+            }
+
+            // Überspringe nicht-sichtbare Kategorien
+            if (!visibleCategoryIds.includes(category.catId)) {
+                return;
+            }
+
+            // Prüfe ob Kategorie standardmäßig aufgeklappt sein soll
+            const isExpanded = category.catId === expandedCategoryId;
+
+            // Erstelle Category-Container
+            const categoryContainer = document.createElement('div');
+            categoryContainer.className = `category-container ${isExpanded ? 'expanded' : 'collapsed'}`;
+            categoryContainer.setAttribute('data-cat-id', category.catId);
+
+            // Category Header
+            const categoryHeader = document.createElement('div');
+            categoryHeader.className = 'category-header';
+            categoryHeader.style.background = `linear-gradient(90deg, ${category.catColor}20 0%, ${category.catColor}10 100%)`;
+            categoryHeader.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <img src="assets/img/categories/${category.catSymbol}"
+                         alt="${category.catDescription}"
+                         class="category-icon">
+                    <strong>${category.catDescription}</strong>
+                    <span class="category-level-count">${levelsInCategory.length} Level</span>
+                </div>
+                <span class="category-toggle-icon">${isExpanded ? '▼' : '▶'}</span>
+            `;
+
+            // Click-Handler für Toggle
+            categoryHeader.addEventListener('click', () => {
+                this.toggleCategory(category.catId);
+            });
+
+            // Category Content (Level-Liste)
+            const categoryContent = document.createElement('div');
+            categoryContent.className = 'category-content';
+
+            // Level-Buttons rendern
+            levelsInCategory.forEach(levelNum => {
+                const levelBtn = this.createLevelButton(
+                    levelNum,
+                    questions,
+                    playerLevels,
+                    highestUnlockedLevel
+                );
+                categoryContent.appendChild(levelBtn);
+            });
+
+            // Zusammenbauen
+            categoryContainer.appendChild(categoryHeader);
+            categoryContainer.appendChild(categoryContent);
+            levelsContainer.appendChild(categoryContainer);
+        });
+    }
+
+    /**
+     * Bestimme welche Kategorien sichtbar sein sollen
+     * Regel: Abgeschlossene + Aktuelle + Nächste Kategorie
+     */
+    getVisibleCategories(levelsByCategory, playerLevels, nextPlayableLevel) {
+        const visibleCategories = new Set();
+
+        // Hole Kategorie des nächsten spielbaren Levels (= aktuelle Kategorie)
+        const currentCategory = quizEngine.getCategoryForLevel(nextPlayableLevel);
+        const currentCatId = currentCategory?.catId || 1;
+
+        // Durchlaufe alle Kategorien und prüfe ihren Status
+        quizEngine.categories.forEach(category => {
+            const catId = category.catId;
+            const levelsInCategory = levelsByCategory[catId] || [];
+
+            if (levelsInCategory.length === 0) {
+                return; // Kategorie hat keine Level
+            }
+
+            // Prüfe ob Kategorie komplett abgeschlossen ist
+            const allLevelsCompleted = levelsInCategory.every(levelNum => {
+                const levelKey = levelNum.toString();
+                const levelStats = playerLevels[levelNum] || playerLevels[levelKey];
+                return levelStats?.unlocked || levelStats?.firstAttempt?.passed || false;
+            });
+
+            // Kategorie anzeigen wenn:
+            // 1. Komplett abgeschlossen
+            // 2. Ist aktuelle Kategorie (enthält nächstes spielbares Level)
+            // 3. Ist die Kategorie nach der aktuellen
+            if (allLevelsCompleted) {
+                visibleCategories.add(catId); // Abgeschlossene Kategorie
+            } else if (catId === currentCatId) {
+                visibleCategories.add(catId); // Aktuelle Kategorie
+            } else if (catId === currentCatId + 1) {
+                visibleCategories.add(catId); // Nächste Kategorie
+            }
+        });
+
+        return Array.from(visibleCategories);
+    }
+
+    /**
      * Zeige Level-Übersicht
      */
     async showLevelOverview() {
@@ -484,266 +833,68 @@ class QuizUI {
         const walletAddress = sessionStorage.getItem('walletAddress');
         const playerName = sessionStorage.getItem('playerName');
 
-        // Lade Spieler-Daten um Polkadot-Adresse zu bekommen
-        let displayAddress = walletAddress ? walletAddress.substring(0, 12) + '...' : '';
-        
         try {
             const playerData = await quizEngine.loadPlayer(walletAddress);
-            
-            console.log('Player data:', playerData);
-            
-            // Wenn Polkadot-Adresse verfügbar, nutze diese
-            if (playerData.polkadotAddress) {
-                displayAddress = playerData.polkadotAddress.substring(0, 12) + '...';
-            } else if (playerData.found && playerData.player && playerData.player.polkadotAddress) {
-                displayAddress = playerData.player.polkadotAddress.substring(0, 12) + '...';
-            }
 
-            // Lade Leaderboard um Rang zu ermitteln
+            // Lade Leaderboard für Rang
+            const leaderboardData = await quizEngine.loadLeaderboard(100);
+            const leaderboard = leaderboardData?.leaderboard || [];
+
+            // Rang bestimmen
             let rankInfo = '';
-            try {
-                const leaderboardResponse = await fetch('api/get-leaderboard.php?limit=100');
-                const leaderboardData = await leaderboardResponse.json();
-                
-                if (leaderboardData && leaderboardData.leaderboard) {
-                    // Finde eigenen Eintrag
-                    const ownEntry = leaderboardData.leaderboard.find(p => p.playerName === playerName);
-                    
-                    if (ownEntry) {
-                        const totalPlayers = leaderboardData.total;
-                        let rankEmoji = '';
-                        
-                        if (ownEntry.rank === 1) rankEmoji = '🥇';
-                        else if (ownEntry.rank === 2) rankEmoji = '🥈';
-                        else if (ownEntry.rank === 3) rankEmoji = '🥉';
-                        
-                        const formattedScore = new Intl.NumberFormat('de-DE').format(ownEntry.totalScore);
-                        
-                        rankInfo = `
-                            <div style="margin-top: 15px; padding: 15px; background: white; border-radius: 8px; border: 2px solid var(--primary-color);">
-                                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                                    <div>
-                                        <strong style="color: var(--primary-color); font-size: 1.1em;">${rankEmoji} Du bist aktuell auf Platz ${ownEntry.rank} im Leaderboard</strong>
-                                    </div>
-                                    <div style="text-align: right;">
-                                        <div style="font-size: 1.2em; font-weight: bold; color: var(--primary-color);">${formattedScore} Punkte</div>
-                                        <div style="font-size: 0.85em; color: #6b7280;">Leaderboard-Score</div>
-                                    </div>
+            if (leaderboard.length > 0) {
+                const playerRank = leaderboard.find(p =>
+                    p.genericAddress === walletAddress ||
+                    p.polkadotAddress === walletAddress ||
+                    p.playerName === playerName
+                );
+
+                if (playerRank) {
+                    const rank = playerRank.rank;
+                    let rankEmoji = '';
+                    if (rank === 1) rankEmoji = '🥇 ';
+                    else if (rank === 2) rankEmoji = '🥈 ';
+                    else if (rank === 3) rankEmoji = '🥉 ';
+
+                    const formattedScore = new Intl.NumberFormat('de-DE').format(playerData.player?.totalScore || 0);
+
+                    rankInfo = `
+                        <div style="margin-top: 15px; padding: 15px; background: white; border-radius: 8px; border: 2px solid var(--primary-color);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                                <div>
+                                    <strong style="color: var(--primary-color); font-size: 1.1em;">${rankEmoji}Du bist aktuell auf Platz ${rank} im Leaderboard</strong>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 1.2em; font-weight: bold; color: var(--primary-color);">${formattedScore} Punkte</div>
+                                    <div style="font-size: 0.85em; color: #6b7280;">Leaderboard-Score</div>
                                 </div>
                             </div>
-                        `;
-                    }
-                }
-            } catch (error) {
-                console.warn('Could not load leaderboard for rank display:', error);
-                // Kein Problem, zeige einfach keine Rang-Info
-            }
-            
-            // Zeige Spieler-Info mit Logout-Button und Rang
-            document.getElementById('player-info').innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <strong>${playerName}</strong><br>
-                        <small style="color: var(--primary-color);">${displayAddress}</small>
-                    </div>
-                    <button onclick="quizUI.logout()" style="background-color: #ef4444;">Abmelden</button>
-                </div>
-                ${rankInfo}
-                <div style="text-align: center; margin-top: 15px;">
-                    <a href="leaderboard.php" target="_blank" style="display: block; padding: 12px 24px; background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; transition: all 0.2s;">
-                        🏆 Zum Leaderboard
-                    </a>
-                </div>
-            `;
-
-            const levelsContainer = document.getElementById('levels-list');
-            levelsContainer.innerHTML = '';
-
-            // Lade Config für Level-Info
-            let config = null;
-            try {
-                const configResponse = await fetch('data/config.json');
-                config = await configResponse.json();
-            } catch (error) {
-                console.error('Could not load config:', error);
-            }
-
-            // Lade Questions für Fragen-Anzahl
-            let questions = null;
-            try {
-                const questionsResponse = await fetch('data/questions.json');
-                questions = await questionsResponse.json();
-            } catch (error) {
-                console.error('Could not load questions:', error);
-            }
-
-            // Bestimme welche Level verfügbar sind
-            const playerLevels = playerData.player?.levels || {};
-            
-            // Finde alle Level die gespielt wurden (für Anzeige)
-            const playedLevels = Object.keys(playerLevels).map(l => parseInt(l));
-            
-            // Finde alle Level die freigeschaltet sind (für Progression)
-            const unlockedLevels = [];
-            Object.keys(playerLevels).forEach(levelKey => {
-                const levelNum = parseInt(levelKey);
-                const levelStats = playerLevels[levelKey];
-                
-                // Level gilt als unlocked wenn:
-                // 1. unlocked Flag gesetzt ist, ODER
-                // 2. firstAttempt bestanden wurde (Rückwärtskompatibilität)
-                const isUnlockedLevel = levelStats.unlocked || levelStats.firstAttempt?.passed || false;
-                
-                if (isUnlockedLevel) {
-                    unlockedLevels.push(levelNum);
-                }
-            });
-            
-            const highestUnlockedLevel = unlockedLevels.length > 0 ? Math.max(...unlockedLevels) : 0;
-            
-            console.log('🎮 Level System Debug:', {
-                playerLevels: playerLevels,
-                playedLevels: playedLevels,
-                unlockedLevels: unlockedLevels,
-                highestUnlockedLevel: highestUnlockedLevel
-            });
-
-            // Erstelle Level-Buttons dynamisch
-            const totalLevels = config?.totalLevels || 15;
-            
-            for (let levelNum = 1; levelNum <= totalLevels; levelNum++) {
-                const levelKey = `level${levelNum}`;
-                const levelData = questions?.[levelKey];
-                
-                // Prüfe ob Level existiert in questions.json
-                if (!levelData) {
-                    // Level existiert noch nicht - zeige als "Coming Soon"
-                    if (levelNum <= 3) { // Nur die ersten 3 als Coming Soon
-                        const levelBtn = document.createElement('button');
-                        levelBtn.className = 'level-btn level-btn-locked';
-                        levelBtn.disabled = true;
-                        levelBtn.innerHTML = `
-                            <h3>🔒 Level ${levelNum}: Coming Soon</h3>
-                            <p>Wird bald verfügbar sein</p>
-                        `;
-                        levelsContainer.appendChild(levelBtn);
-                    }
-                    continue;
-                }
-
-                // Prüfe ob Level freigeschaltet ist
-                const isUnlocked = levelNum === 1 || highestUnlockedLevel >= (levelNum - 1);
-                const isPlayed = playedLevels.includes(levelNum);
-                const isLevelUnlocked = unlockedLevels.includes(levelNum);
-                
-                // Hole Level-Titel
-                const levelTitle = this.getLevelTitle(levelNum, levelData);
-                const questionCount = levelData.questions?.length || 0;
-                
-                // Hole Score falls vorhanden
-                // WICHTIG: Level-Keys können Strings sein ("1", "2") oder Integers (1, 2)
-                const playerLevelKey = levelNum.toString();
-                let scoreInfo = '';
-                if (isPlayed && (playerLevels[levelNum] || playerLevels[playerLevelKey])) {
-                    const levelStats = playerLevels[levelNum] || playerLevels[playerLevelKey];
-                    
-                    // firstAttempt zählt für Leaderboard/Score-Anzeige
-                    const firstAttempt = levelStats.firstAttempt || levelStats;
-                    const firstScore = firstAttempt.score || 0;
-                    const firstPassed = firstAttempt.passed || false;
-                    
-                    // unlocked zeigt ob Level freigeschaltet ist (kann durch Wiederholung bestanden werden)
-                    const levelUnlockedByRepeat = levelStats.unlocked || firstPassed;
-                    
-                    // bestAttempt für zusätzliche Info
-                    const bestAttempt = levelStats.bestAttempt;
-                    const attempts = levelStats.attempts || 1;
-                    
-                    console.log(`📊 Level ${levelNum} Stats:`, { 
-                        levelStats, 
-                        firstAttempt, 
-                        firstScore, 
-                        firstPassed,
-                        levelUnlockedByRepeat,
-                        bestAttempt,
-                        attempts
-                    });
-                    
-                    // Zeige firstAttempt Score
-                    if (firstPassed) {
-                        scoreInfo = `<br><small style="color: var(--success-color);">✓ Bestanden (1. Versuch) • ${firstScore} Punkte</small>`;
-                    } else if (levelUnlockedByRepeat && bestAttempt && bestAttempt.passed) {
-                        // Erstes Mal nicht bestanden, aber später schon
-                        const bestScore = bestAttempt.score || 0;
-                        scoreInfo = `<br><small style="color: var(--success-color);">✓ Bestanden (Versuch ${attempts}) • Bester Score: ${bestScore}</small>`;
-                        scoreInfo += `<br><small style="color: #9ca3af; font-size: 0.85em;">1. Versuch: ${firstScore} Punkte</small>`;
-                    } else {
-                        // Nicht bestanden
-                        scoreInfo = `<br><small style="color: #f59e0b;">○ Nicht bestanden • ${firstScore} Punkte</small>`;
-                        if (attempts > 1) {
-                            scoreInfo += `<br><small style="color: #9ca3af; font-size: 0.85em;">${attempts} Versuche</small>`;
-                        }
-                    }
-                }
-
-                const levelBtn = document.createElement('button');
-                
-                if (!isUnlocked) {
-                    // Gesperrt
-                    levelBtn.className = 'level-btn level-btn-locked';
-                    levelBtn.disabled = true;
-                    levelBtn.innerHTML = `
-                        <h3>🔒 Level ${levelNum}: ${levelTitle}</h3>
-                        <p>${questionCount} Fragen • Schließe Level ${levelNum - 1} ab</p>
+                        </div>
                     `;
-                } else {
-                    // Freigeschaltet
-                    levelBtn.className = `level-btn ${isLevelUnlocked ? 'level-btn-completed' : ''}`;
-                    levelBtn.innerHTML = `
-                        <h3>${isLevelUnlocked ? '✓' : '○'} Level ${levelNum}: ${levelTitle}</h3>
-                        <p>${questionCount} Fragen${scoreInfo}</p>
-                    `;
-                    levelBtn.addEventListener('click', () => {
-                        this.showLevelIntro(levelNum);
-                    });
                 }
-                
-                levelsContainer.appendChild(levelBtn);
             }
+
+            // Player-Info mit Badge rendern
+            this.renderPlayerInfo(playerData, playerName, walletAddress, rankInfo);
+
+            // Config & Questions laden
+            const configResponse = await fetch('data/config.json');
+            const config = await configResponse.json();
+            const totalLevels = config.gameSettings?.totalLevels || 15;
+
+            const questionsResponse = await fetch('data/questions.json');
+            const questions = await questionsResponse.json();
+
+            // Level nach Kategorien gruppiert rendern
+            this.renderLevelsByCategory(playerData, totalLevels, questions);
 
         } catch (error) {
             console.error('Error loading player:', error);
-            
-            // Fallback: Zeige Generic-Adresse (12 Zeichen)
             document.getElementById('player-info').innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <strong>${playerName}</strong><br>
-                        <small style="color: var(--primary-color);">${displayAddress}</small>
-                    </div>
-                    <button onclick="quizUI.logout()" style="background-color: #ef4444;">Abmelden</button>
-                </div>
-                <div style="text-align: center; margin-top: 15px;">
-                    <a href="leaderboard.php" target="_blank" style="display: block; padding: 12px 24px; background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; transition: all 0.2s;">
-                        🏆 Zum Leaderboard
-                    </a>
+                <div style="color: #ef4444;">
+                    Fehler beim Laden der Spielerdaten. Bitte neu anmelden.
                 </div>
             `;
-            
-            // Zeige Level 1 als Fallback
-            const levelsContainer = document.getElementById('levels-list');
-            levelsContainer.innerHTML = '';
-            
-            const levelBtn = document.createElement('button');
-            levelBtn.className = 'level-btn';
-            levelBtn.innerHTML = `
-                <h3>○ Level 1: Polkadot Basics</h3>
-                <p>3 Fragen</p>
-            `;
-            levelBtn.addEventListener('click', () => {
-                this.showLevelIntro(1);
-            });
-            levelsContainer.appendChild(levelBtn);
         }
     }
 

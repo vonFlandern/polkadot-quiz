@@ -1,0 +1,52 @@
+{
+  "categories": [
+    {
+      "catId": 1,
+      "catDescription": "Shiro",
+      "catColor": "#ffffff",
+      "catSymbol": "shiro.png"
+    },
+    {
+      "catId": 2,
+      "catDescription": "Kiiro",
+      "catColor": "#ffcc00",
+      "catSymbol": "kiiro.png"
+    },
+    {
+      "catId": 3,
+      "catDescription": "Daidai",
+      "catColor": "#e67300",
+      "catSymbol": "daidai.png"
+    },
+    {
+      "catId": 4,
+      "catDescription": "Midori",
+      "catColor": "#00802b",
+      "catSymbol": "midori.png"
+    },
+    {
+      "catId": 5,
+      "catDescription": "Ao",
+      "catColor": "#0047b3",
+      "catSymbol": "ao.png"
+    },
+    {
+      "catId": 6,
+      "catDescription": "Chairo",
+      "catColor": "#5c3317",
+      "catSymbol": "chairo.png"
+    },
+    {
+      "catId": 7,
+      "catDescription": "Sempai",
+      "catColor": "#1a1a1a",
+      "catSymbol": "sempai.png"
+    },
+    {
+      "catId": 8,
+      "catDescription": "Sensai",
+      "catColor": "#000000",
+      "catSymbol": "sensai.png"
+    }
+  ]
+}

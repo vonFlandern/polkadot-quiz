@@ -482,17 +482,190 @@ button.secondary {
     .anleitung-screen {
         padding: 20px 10px;
     }
-    
+
     .anleitung-screen h2 {
         font-size: 1.5em;
     }
-    
+
     .anleitung-screen h3 {
         font-size: 1.2em;
     }
-    
+
     .anleitung-screen h4 {
         font-size: 1.1em;
     }
 }
 
+/* ========================================
+   CATEGORY SYSTEM STYLES
+   ======================================== */
+
+/* Category Container */
+.category-container {
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.category-container.expanded {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Category Header */
+.category-header {
+    padding: 15px 20px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--border-color);
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.category-header:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.category-icon {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+}
+
+.category-level-count {
+    font-size: 0.9em;
+    color: #6b7280;
+    font-weight: normal;
+}
+
+.category-toggle-icon {
+    font-size: 1.2em;
+    color: var(--primary-color);
+    transition: transform 0.3s;
+}
+
+/* Category Content (Level-Liste) */
+.category-content {
+    max-height: 2000px;
+    overflow: hidden;
+    transition: max-height 0.4s ease, padding 0.4s ease;
+    padding: 15px;
+}
+
+.category-container.collapsed .category-content {
+    max-height: 0;
+    padding: 0 15px;
+}
+
+/* Level-Buttons innerhalb Categories */
+.category-content .level-btn {
+    margin-bottom: 10px;
+}
+
+.category-content .level-btn:last-child {
+    margin-bottom: 0;
+}
+
+/* Player Badge */
+.category-badge {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+}
+
+/* Leaderboard Badge */
+.leaderboard-badge {
+    width: 54px;
+    height: 54px;
+    object-fit: contain;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .category-header {
+        padding: 12px 15px;
+    }
+
+    .category-icon {
+        width: 24px;
+        height: 24px;
+    }
+
+    .category-badge {
+        width: 36px;
+        height: 36px;
+    }
+
+    .category-level-count {
+        font-size: 0.8em;
+    }
+}
+
+/* ========================================
+   AVATAR BADGE & ACCOUNT INFO STYLES
+   ======================================== */
+
+/* Avatar Badge (groß, zentriert, ganz oben) */
+#player-badge-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px 0;
+    margin-bottom: 15px;
+}
+
+.category-avatar-badge {
+    width: 200px;
+    height: 200px;
+    object-fit: contain;
+}
+
+/* Account-Informationen Container */
+#player-account-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: white;
+    border-radius: 12px;
+    border: 2px solid var(--border-color);
+    margin-bottom: 20px;
+}
+
+.player-account-details {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.player-name-display {
+    font-size: 1.2em;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.player-wallet-display {
+    font-size: 0.9em;
+    color: var(--primary-color);
+}
+
+/* Rank Info Container */
+#player-rank-info {
+    margin-bottom: 20px;
+}
+
+/* Responsive - Avatar & Account */
+@media (max-width: 768px) {
+    .category-avatar-badge {
+        width: 90px;
+        height: 90px;
+    }
+
+    #player-account-info {
+        flex-direction: column;
+        gap: 15px;
+    }
+}

@@ -255,6 +255,50 @@ if ($isFirstAttempt) {
 // Spielername updaten (falls geändert)
 $player['playerName'] = $playerName;
 
+// NEU: Category-Tracking nach Level-Bestehen
+if ($levelData['passed']) {
+    // Lade Categories und Questions
+    $categoriesData = loadJSON('categories.json');
+    $questionsData = loadJSON('questions.json');
+
+    // Hole catId des bestandenen Levels
+    $levelKeyForQuestions = "level{$levelNumber}";
+    $catId = isset($questionsData[$levelKeyForQuestions]['catId'])
+        ? $questionsData[$levelKeyForQuestions]['catId']
+        : null;
+
+    if ($catId !== null && $catId > $player['currentCategory']) {
+        // Prüfe ob ALLE Level dieser Kategorie bestanden sind
+        $allLevelsInCategoryPassed = true;
+
+        foreach ($questionsData as $lvlKey => $lvlData) {
+            if (isset($lvlData['catId']) && $lvlData['catId'] == $catId) {
+                $lvlNum = (int)str_replace('level', '', $lvlKey);
+                $levelUnlocked = isset($player['levels'][$lvlNum]['unlocked'])
+                    ? $player['levels'][$lvlNum]['unlocked']
+                    : false;
+
+                if (!$levelUnlocked) {
+                    $allLevelsInCategoryPassed = false;
+                    break;
+                }
+            }
+        }
+
+        // Kategorie freischalten!
+        if ($allLevelsInCategoryPassed) {
+            $player['currentCategory'] = $catId;
+            $player['categoryHistory'][] = [
+                'category' => $catId,
+                'completed' => date('c'),
+                'levelNumber' => $levelNumber
+            ];
+
+            error_log("Player {$genericAddress} unlocked category {$catId}");
+        }
+    }
+}
+
 // Speichern
 if (!saveJSON('players.json', $playersData)) {
     errorResponse('Could not save player data', 500);
