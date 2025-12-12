@@ -620,7 +620,7 @@ require_once 'config.php';
                 document.getElementById('leaderboard-table').style.display = 'block';
                 document.getElementById('empty-state').style.display = 'none';
 
-                matches.forEach(({ player, index }) => {
+                matches.forEach(({ player, index }, matchIndex) => {
                     // Bestimme wie viele Einträge darüber gezeigt werden
                     const contextCount = Math.min(2, index); // Max 2, aber nicht mehr als verfügbar
                     const startIndex = index - contextCount;
@@ -637,6 +637,16 @@ require_once 'config.php';
                     const tr = this.createPlayerRow(player);
                     tr.classList.add('search-highlight');
                     tbody.appendChild(tr);
+
+                    // Zeige ALLE Spieler nach dem LETZTEN Treffer
+                    const isLastMatch = matchIndex === matches.length - 1;
+                    if (isLastMatch) {
+                        for (let i = index + 1; i < this.data.leaderboard.length; i++) {
+                            const followingPlayer = this.data.leaderboard[i];
+                            const followingTr = this.createPlayerRow(followingPlayer);
+                            tbody.appendChild(followingTr);
+                        }
+                    }
                 });
             },
 
