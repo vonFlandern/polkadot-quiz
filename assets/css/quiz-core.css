@@ -504,18 +504,15 @@ button.secondary {
 .category-container {
     border: 2px solid var(--border-color);
     border-radius: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 5px;
     overflow: hidden;
     transition: all 0.3s ease;
-}
-
-.category-container.expanded {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* Category Header */
 .category-header {
-    padding: 15px 20px;
+    padding: 1px 15px;
     cursor: pointer;
     display: flex;
     justify-content: space-between;
@@ -530,8 +527,8 @@ button.secondary {
 }
 
 .category-icon {
-    width: 32px;
-    height: 32px;
+    width: 64px;
+    height: 64px;
     object-fit: contain;
 }
 
@@ -571,8 +568,8 @@ button.secondary {
 
 /* Player Badge */
 .category-badge {
-    width: 48px;
-    height: 48px;
+    width: 54px;
+    height: 54px;
     object-fit: contain;
 }
 
@@ -590,13 +587,13 @@ button.secondary {
     }
 
     .category-icon {
-        width: 24px;
-        height: 24px;
+        width: 48px;
+        height: 48px;
     }
 
     .category-badge {
-        width: 36px;
-        height: 36px;
+        width: 48px;
+        height: 48px;
     }
 
     .category-level-count {
@@ -608,48 +605,111 @@ button.secondary {
    AVATAR BADGE & ACCOUNT INFO STYLES
    ======================================== */
 
-/* Avatar Badge (groß, zentriert, ganz oben) */
-#player-badge-container {
+/* ========================================
+   VONFLANDERN ACCOUNT DISPLAY
+   ======================================== */
+
+/* vonFlandern Account Container */
+.vonflandern-account {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+    margin-bottom: 20px;
+    border-radius: 8px;
+}
+
+/* Badge-Kreis mit Schatten */
+.account-badge-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 20px 0;
-    margin-bottom: 15px;
+    overflow: hidden;
+    flex-shrink: 0;
 }
 
-.category-avatar-badge {
-    width: 200px;
-    height: 200px;
+.account-badge-circle .category-avatar-badge {
+    width: 75px;
+    height: 75px;
+    margin-top: 0.5em;
     object-fit: contain;
 }
 
-/* Account-Informationen Container */
-#player-account-info {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 20px;
-    background: white;
-    border-radius: 12px;
-    border: 2px solid var(--border-color);
-    margin-bottom: 20px;
-}
-
-.player-account-details {
+/* Account-Info rechts */
+.account-info-right {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 3px;
 }
 
 .player-name-display {
-    font-size: 1.2em;
-    font-weight: 600;
-    color: var(--text-color);
+    font-size: 1.5em;
+    font-weight: 700;
+    color: #ffffff;
 }
 
 .player-wallet-display {
-    font-size: 0.9em;
-    color: var(--primary-color);
+    font-size: 1em;
+    color: #ffffff;
+}
+
+/* Menü-Link (Hamburger-Icon) */
+.account-menu {
+    position: relative;
+}
+
+.account-menu a#account-menu-trigger {
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 1.5em;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: background 0.2s;
+    display: block;
+    line-height: 1;
+}
+
+.account-menu a#account-menu-trigger:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Dropdown-Menü */
+.menu-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 5px;
+    background: white;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 200px;
+    z-index: 1000;
+}
+
+.menu-dropdown a {
+    display: block;
+    padding: 12px 20px;
+    color: var(--text-color);
+    text-decoration: none;
+    transition: background 0.2s;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.menu-dropdown a:last-child {
+    border-bottom: none;
+}
+
+.menu-dropdown a:hover {
+    background: rgba(0, 0, 0, 0.05);
 }
 
 /* Rank Info Container */
@@ -657,15 +717,57 @@ button.secondary {
     margin-bottom: 20px;
 }
 
-/* Responsive - Avatar & Account */
+/* Responsive - vonFlandern Account */
 @media (max-width: 768px) {
-    .category-avatar-badge {
-        width: 90px;
-        height: 90px;
+    .vonflandern-account {
+        padding: 10px 15px;
+        gap: 10px;
     }
 
-    #player-account-info {
-        flex-direction: column;
-        gap: 15px;
+    .account-badge-circle {
+        width: 60px;
+        height: 60px;
     }
+
+    .account-badge-circle .category-avatar-badge {
+        width: 50px;
+        height: 50px;
+    }
+
+    .player-name-display {
+        font-size: 1em;
+    }
+
+    .player-wallet-display {
+        font-size: 0.75em;
+    }
+}
+
+/* ========================================
+   WELCOME SECTION
+   ======================================== */
+
+/* Welcome Section Container */
+#welcome-section {
+    margin: 20px 0;
+}
+
+/* Welcome Name Input */
+#welcome-name-input {
+    font-family: inherit;
+}
+
+#welcome-name-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(230, 0, 122, 0.1);
+}
+
+/* Leaderboard Info Link */
+#player-rank-info a {
+    transition: color 0.2s;
+}
+
+#player-rank-info a:hover {
+    color: var(--accent-color) !important;
 }

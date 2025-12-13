@@ -40,13 +40,18 @@ class QuizUI {
      */
     showAnleitung() {
         this.showScreen('anleitung');
-        
+
         // Event Listener für Zurück-Button
         const backBtn = document.getElementById('back-from-anleitung-btn');
         if (backBtn && !backBtn.hasAttribute('data-listener-added')) {
             backBtn.setAttribute('data-listener-added', 'true');
             backBtn.addEventListener('click', () => {
-                this.showWalletConnect();
+                // Wenn von Level-Übersicht aufgerufen, zurück zur Übersicht
+                if (sessionStorage.getItem('walletAddress')) {
+                    this.showLevelOverview();
+                } else {
+                    this.showWalletConnect();
+                }
             });
         }
     }
@@ -476,9 +481,9 @@ class QuizUI {
     }
 
     /**
-     * Rendere Player-Info mit Category-Badge (NEUE VERSION - 3 Bereiche)
+     * Rendere Player-Info mit Category-Badge (Account-Container)
      */
-    renderPlayerInfo(playerData, playerName, walletAddress, rankInfo) {
+    renderPlayerInfo(playerData, playerName, walletAddress) {
         let displayAddress = walletAddress ? walletAddress.substring(0, 12) + '...' : '';
 
         if (playerData.polkadotAddress) {
@@ -487,18 +492,10 @@ class QuizUI {
             displayAddress = playerData.player.polkadotAddress.substring(0, 12) + '...';
         }
 
-        const currentCategory = playerData.player?.currentCategory || 0;
-
         // Hole Badge (Shiro als Fallback für neue Spieler)
         const categoryObj = this.getPlayerBadge(playerData);
 
-        // Sensai-Spezialtext (nur bei erreichten Kategorien, nicht bei Fallback)
-        let greetingText = playerName;
-        if (currentCategory === 8) {
-            greetingText = `Willkommen, Sensai ${playerName}!`;
-        }
-
-        // === BEREICH 1: Avatar Badge (ganz oben, zentriert, groß) ===
+        // Badge HTML
         const badgeHTML = categoryObj
             ? `<img src="assets/img/categories/${categoryObj.catSymbol}"
                    alt="${categoryObj.catDescription}"
@@ -506,30 +503,222 @@ class QuizUI {
                    title="${categoryObj.catDescription}">`
             : '';
 
-        document.getElementById('player-badge-container').innerHTML = badgeHTML;
-
-        // === BEREICH 2: Account-Informationen ===
+        // === vonFlandern Account Container ===
         document.getElementById('player-account-info').innerHTML = `
-            <div class="player-account-details">
-                <div class="player-name-display">${greetingText}</div>
-                <div class="player-wallet-display">${displayAddress}</div>
+            <div class="vonflandern-account">
+                <div class="account-badge-circle">
+                    ${badgeHTML}
+                </div>
+                <div class="account-info-right">
+                    <div class="player-name-display">${playerName}</div>
+                    <div class="player-wallet-display">${displayAddress}</div>
+                </div>
+                <div class="account-menu">
+                    <a href="#" id="account-menu-trigger">☰</a>
+                    <div id="account-menu-dropdown" class="menu-dropdown" style="display: none;">
+                        <a href="#" id="menu-logout">Abmelden</a>
+                        <a href="#" id="menu-change-name">Spielername ändern</a>
+                        <a href="#" id="menu-anleitung">Spielanleitung</a>
+                    </div>
+                </div>
             </div>
-            <button onclick="quizUI.logout()" style="background-color: #ef4444; padding: 10px 20px; border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer;">
-                Abmelden
-            </button>
         `;
 
-        // === BEREICH 3: Rang-Info (unter Überschrift) ===
-        let rankHTML = rankInfo || '';
-        rankHTML += `
-            <div style="text-align: center; margin-top: 15px;">
-                <a href="leaderboard.php" target="_blank" style="display: block; padding: 12px 24px; background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; transition: all 0.2s;">
-                    🏆 Zum Leaderboard
-                </a>
+        // Badge-Container leeren (wird nicht mehr benötigt)
+        const badgeContainer = document.getElementById('player-badge-container');
+        if (badgeContainer) {
+            badgeContainer.innerHTML = '';
+        }
+
+        // Rang-Info wird separat in showLevelOverview() durch renderLeaderboardInfo() gerendert
+    }
+
+    /**
+     * Rendere Begrüßungstext oder Spielernamen-Eingabe
+     */
+    renderWelcomeSection(playerData, playerName) {
+        const welcomeContainer = document.getElementById('welcome-section');
+        if (!welcomeContainer) return;
+
+        // FALL 1: Neuer Spieler (playerName startet mit "Player_")
+        if (playerName && playerName.startsWith('Player_')) {
+            welcomeContainer.innerHTML = `
+                <div style="text-align: center; margin: 20px 0; padding: 20px; background: white; border-radius: 8px; border: 2px solid var(--border-color);">
+                    <label for="welcome-name-input" style="display: block; margin-bottom: 10px; font-size: 1.1em; font-weight: 600; color: var(--text-color);">
+                        Willkommen! Bitte gib deinen Spielernamen ein:
+                    </label>
+                    <input
+                        type="text"
+                        id="welcome-name-input"
+                        placeholder="Dein Name"
+                        maxlength="20"
+                        style="width: 100%; max-width: 400px; padding: 12px; font-size: 16px; border: 2px solid var(--border-color); border-radius: 8px; margin-bottom: 15px;"
+                    />
+                    <button id="welcome-save-name-btn" style="padding: 12px 24px; font-size: 16px;">
+                        Namen speichern
+                    </button>
+                    <p style="margin-top: 10px; font-size: 0.9em; color: #6b7280;">
+                        3-20 Zeichen, muss eindeutig sein
+                    </p>
+                </div>
+            `;
+
+            // Event-Handler für Speichern-Button
+            this.initWelcomeNameSave();
+            return;
+        }
+
+        // FALL 2: Bestehender Spieler
+        const categoryObj = this.getPlayerBadge(playerData);
+        const isSensei = categoryObj && categoryObj.catId === 8;
+
+        const greeting = isSensei
+            ? `Willkommen, Sensei ${playerName}!`
+            : `Willkommen, ${playerName}!`;
+
+        welcomeContainer.innerHTML = `
+            <div style="text-align: center; margin: 20px 0; font-size: 1.3em; font-weight: 600; color: var(--text-color);">
+                ${greeting}
             </div>
         `;
+    }
 
-        document.getElementById('player-rank-info').innerHTML = rankHTML;
+    /**
+     * Initialisiere Event-Handler für Willkommens-Namenseingabe
+     */
+    initWelcomeNameSave() {
+        const saveBtn = document.getElementById('welcome-save-name-btn');
+        const nameInput = document.getElementById('welcome-name-input');
+
+        if (!saveBtn || !nameInput) return;
+
+        const handleSave = async () => {
+            const newName = nameInput.value.trim();
+
+            // Validierung
+            if (!newName || newName.length < 3) {
+                alert('❌ Der Name muss mindestens 3 Zeichen haben!');
+                return;
+            }
+
+            if (newName.length > 20) {
+                alert('❌ Der Name darf maximal 20 Zeichen haben!');
+                return;
+            }
+
+            // Prüfe Eindeutigkeit
+            try {
+                const account = walletManager.selectedAccount;
+                const checkResponse = await fetch('api/check-name.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        playerName: newName,
+                        walletAddress: account.address
+                    })
+                });
+
+                const checkResult = await checkResponse.json();
+
+                if (!checkResult.available) {
+                    alert(`❌ Der Name "${newName}" ist bereits vergeben!\n\nBitte wähle einen anderen Namen.`);
+                    return;
+                }
+
+                // Speichere Namen
+                const registerResponse = await fetch('api/register-player.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        walletAddress: account.address,
+                        playerName: newName
+                    })
+                });
+
+                if (!registerResponse.ok) {
+                    const errorData = await registerResponse.json();
+                    throw new Error(errorData.error || 'Update failed');
+                }
+
+                console.log('✅ Player name updated');
+
+                // Update Session Storage
+                sessionStorage.setItem('playerName', newName);
+
+                // Update im Wallet Manager
+                if (walletManager.selectedAccount && walletManager.selectedAccount.existingPlayer) {
+                    walletManager.selectedAccount.existingPlayer.playerName = newName;
+                }
+
+                // Reload Level-Übersicht
+                this.showLevelOverview();
+
+            } catch (error) {
+                console.error('Name save error:', error);
+                alert(`❌ Fehler beim Speichern: ${error.message}\n\nBitte versuche es erneut.`);
+            }
+        };
+
+        // Event-Listener
+        saveBtn.addEventListener('click', handleSave);
+        nameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleSave();
+            }
+        });
+    }
+
+    /**
+     * Rendere Leaderboard-Info (mit Link statt Button)
+     */
+    renderLeaderboardInfo(leaderboard, playerName, walletAddress) {
+        const rankContainer = document.getElementById('player-rank-info');
+        if (!rankContainer) return;
+
+        // Wenn kein Leaderboard vorhanden, nichts anzeigen
+        if (!leaderboard || leaderboard.length === 0) {
+            rankContainer.innerHTML = '';
+            return;
+        }
+
+        // Finde Spieler im Leaderboard
+        const playerRank = leaderboard.find(p =>
+            p.genericAddress === walletAddress ||
+            p.polkadotAddress === walletAddress ||
+            p.playerName === playerName
+        );
+
+        if (!playerRank) {
+            rankContainer.innerHTML = '';
+            return;
+        }
+
+        const rank = playerRank.rank;
+        let rankEmoji = '';
+        if (rank === 1) rankEmoji = '🥇 ';
+        else if (rank === 2) rankEmoji = '🥈 ';
+        else if (rank === 3) rankEmoji = '🥉 ';
+
+        const formattedScore = new Intl.NumberFormat('de-DE').format(playerRank.totalScore || 0);
+
+        rankContainer.innerHTML = `
+            <div style="margin: 20px 0; padding: 15px; background: white; border-radius: 8px; border: 2px solid var(--primary-color);">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div>
+                        <strong style="color: var(--primary-color); font-size: 1.1em;">
+                            ${rankEmoji}Du bist aktuell auf Platz ${rank} im
+                            <a href="leaderboard.php" target="_blank" style="color: var(--primary-color); text-decoration: underline; font-weight: 600;">
+                                Leaderboard
+                            </a>
+                        </strong>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 1.2em; font-weight: bold; color: var(--primary-color);">${formattedScore} Punkte</div>
+                        <div style="font-size: 0.85em; color: #6b7280;">Leaderboard-Score</div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     /**
@@ -542,6 +731,49 @@ class QuizUI {
         const badgeCatId = currentCategory > 0 ? currentCategory : 1;
 
         return quizEngine.getCategoryById(badgeCatId);
+    }
+
+    /**
+     * Initialisiere Account-Menü (Hamburger-Dropdown)
+     */
+    initAccountMenu() {
+        const menuTrigger = document.getElementById('account-menu-trigger');
+        const menuDropdown = document.getElementById('account-menu-dropdown');
+
+        if (!menuTrigger || !menuDropdown) return;
+
+        // Toggle Menü
+        menuTrigger.addEventListener('click', (e) => {
+            e.preventDefault();
+            const isVisible = menuDropdown.style.display === 'block';
+            menuDropdown.style.display = isVisible ? 'none' : 'block';
+        });
+
+        // Click außerhalb schließt Menü
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.account-menu')) {
+                menuDropdown.style.display = 'none';
+            }
+        });
+
+        // Menü-Optionen
+        document.getElementById('menu-logout').addEventListener('click', (e) => {
+            e.preventDefault();
+            this.logout();
+        });
+
+        document.getElementById('menu-change-name').addEventListener('click', (e) => {
+            e.preventDefault();
+            menuDropdown.style.display = 'none';
+            const account = walletManager.selectedAccount;
+            this.openChangeNameModal(account);
+        });
+
+        document.getElementById('menu-anleitung').addEventListener('click', (e) => {
+            e.preventDefault();
+            menuDropdown.style.display = 'none';
+            this.showAnleitung();
+        });
     }
 
     /**
@@ -840,42 +1072,17 @@ class QuizUI {
             const leaderboardData = await quizEngine.loadLeaderboard(100);
             const leaderboard = leaderboardData?.leaderboard || [];
 
-            // Rang bestimmen
-            let rankInfo = '';
-            if (leaderboard.length > 0) {
-                const playerRank = leaderboard.find(p =>
-                    p.genericAddress === walletAddress ||
-                    p.polkadotAddress === walletAddress ||
-                    p.playerName === playerName
-                );
+            // Player-Info mit Badge rendern (Account-Container)
+            this.renderPlayerInfo(playerData, playerName, walletAddress);
 
-                if (playerRank) {
-                    const rank = playerRank.rank;
-                    let rankEmoji = '';
-                    if (rank === 1) rankEmoji = '🥇 ';
-                    else if (rank === 2) rankEmoji = '🥈 ';
-                    else if (rank === 3) rankEmoji = '🥉 ';
+            // Account-Menü initialisieren
+            this.initAccountMenu();
 
-                    const formattedScore = new Intl.NumberFormat('de-DE').format(playerData.player?.totalScore || 0);
+            // Begrüßungstext oder Namenseingabe rendern
+            this.renderWelcomeSection(playerData, playerName);
 
-                    rankInfo = `
-                        <div style="margin-top: 15px; padding: 15px; background: white; border-radius: 8px; border: 2px solid var(--primary-color);">
-                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                                <div>
-                                    <strong style="color: var(--primary-color); font-size: 1.1em;">${rankEmoji}Du bist aktuell auf Platz ${rank} im Leaderboard</strong>
-                                </div>
-                                <div style="text-align: right;">
-                                    <div style="font-size: 1.2em; font-weight: bold; color: var(--primary-color);">${formattedScore} Punkte</div>
-                                    <div style="font-size: 0.85em; color: #6b7280;">Leaderboard-Score</div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-            }
-
-            // Player-Info mit Badge rendern
-            this.renderPlayerInfo(playerData, playerName, walletAddress, rankInfo);
+            // Leaderboard-Info separat rendern (mit Link statt Button)
+            this.renderLeaderboardInfo(leaderboard, playerName, walletAddress);
 
             // Config & Questions laden
             const configResponse = await fetch('data/config.json');
@@ -1403,9 +1610,12 @@ class QuizUI {
                 if (walletManager.selectedAccount) {
                     walletManager.selectedAccount.existingPlayer.playerName = newName;
                 }
-                
+
                 // Schließe Modal
                 modal.style.display = 'none';
+
+                // Aktualisiere Level-Übersicht (damit neuer Name angezeigt wird)
+                this.showLevelOverview();
                 
             } catch (error) {
                 console.error('Player name update error:', error);

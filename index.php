@@ -91,15 +91,17 @@
 
             <!-- Level Overview Screen -->
             <div id="level-overview-screen" class="screen level-overview-screen" style="display: none;">
-                <!-- Bereich 1: Account-Informationen -->
+                <!-- vonFlandern Account (Badge + Info + Menü) -->
                 <div id="player-account-info"></div>
 
-                <!-- Bereich 2: Avatar Badge (unter Account) -->
-                <div id="player-badge-container"></div>
+                <!-- Begrüßung / Spielernamen-Eingabe -->
+                <div id="welcome-section"></div>
 
-                <!-- Bereich 3: Spiel -->
-                <h2>Level-Übersicht</h2>
+                <!-- Leaderboard-Info -->
                 <div id="player-rank-info"></div>
+
+                <!-- Level-Übersicht -->
+                <h2>Level-Übersicht</h2>
                 <div id="levels-list"></div>
             </div>
 

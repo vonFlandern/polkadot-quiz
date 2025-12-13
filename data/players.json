@@ -10,6 +10,18 @@
                     "name": "Amsterdam",
                     "timestamp": "2025-12-12T18:34:18+01:00",
                     "action": "initial"
+                },
+                {
+                    "name": "Amsterdam2",
+                    "timestamp": "2025-12-13T00:55:06+01:00",
+                    "action": "changed",
+                    "previousName": "Amsterdam"
+                },
+                {
+                    "name": "Amsterdam",
+                    "timestamp": "2025-12-13T00:55:13+01:00",
+                    "action": "changed",
+                    "previousName": "Amsterdam2"
                 }
             ],
             "registeredAt": "2025-12-12T18:34:18+01:00",
@@ -38,7 +50,7 @@
                         "hintsUsed": 0,
                         "timeAddsUsed": 0
                     },
-                    "attempts": 1,
+                    "attempts": 2,
                     "unlocked": true
                 },
                 "2": {
@@ -86,7 +98,7 @@
                         "hintsUsed": 0,
                         "timeAddsUsed": 0
                     },
-                    "attempts": 1,
+                    "attempts": 3,
                     "unlocked": true
                 }
             },
@@ -271,16 +283,16 @@
                         "timeAddsUsed": 0
                     },
                     "bestAttempt": {
-                        "score": 3116,
-                        "time": 6,
+                        "score": 3126,
+                        "time": 5,
                         "correctAnswers": 5,
                         "totalQuestions": 5,
                         "passed": true,
-                        "timestamp": "2025-12-12T19:20:08+01:00",
+                        "timestamp": "2025-12-12T23:06:24+01:00",
                         "hintsUsed": 0,
                         "timeAddsUsed": 0
                     },
-                    "attempts": 1,
+                    "attempts": 2,
                     "unlocked": true
                 },
                 "3": {
@@ -331,37 +343,49 @@
             "genericAddress": "5EXGsgSAcjJKv1uBNKU4aHhaa6kgtMaMkmJ9WwW4aoRJKmqp",
             "polkadotAddress": "13Ta21hEUWZoMYuhKxX4iSXjRikLaf8VqG2dgEVR8tSpWEVU",
             "walletAddress": "5EXGsgSAcjJKv1uBNKU4aHhaa6kgtMaMkmJ9WwW4aoRJKmqp",
-            "playerName": "Player_1",
+            "playerName": "Duesseldorf2",
             "nameHistory": [
                 {
                     "name": "Player_1",
-                    "timestamp": "2025-12-12T20:00:52+01:00",
+                    "timestamp": "2025-12-13T01:52:21+01:00",
                     "action": "initial"
+                },
+                {
+                    "name": "Duesseldorf",
+                    "timestamp": "2025-12-13T01:56:23+01:00",
+                    "action": "changed",
+                    "previousName": "Player_1"
+                },
+                {
+                    "name": "Duesseldorf2",
+                    "timestamp": "2025-12-13T01:56:49+01:00",
+                    "action": "changed",
+                    "previousName": "Duesseldorf"
                 }
             ],
-            "registeredAt": "2025-12-12T20:00:52+01:00",
-            "totalScore": 8557,
-            "totalTime": 16,
+            "registeredAt": "2025-12-13T01:52:21+01:00",
+            "totalScore": 8650,
+            "totalTime": 11,
             "completedLevels": 3,
             "levels": {
                 "1": {
                     "firstAttempt": {
-                        "score": 1604,
-                        "time": 4,
+                        "score": 1655,
+                        "time": 2,
                         "correctAnswers": 3,
                         "totalQuestions": 3,
                         "passed": true,
-                        "timestamp": "2025-12-12T20:21:12+01:00",
+                        "timestamp": "2025-12-13T01:53:46+01:00",
                         "hintsUsed": 0,
                         "timeAddsUsed": 0
                     },
                     "bestAttempt": {
-                        "score": 1604,
-                        "time": 4,
+                        "score": 1655,
+                        "time": 2,
                         "correctAnswers": 3,
                         "totalQuestions": 3,
                         "passed": true,
-                        "timestamp": "2025-12-12T20:21:12+01:00",
+                        "timestamp": "2025-12-13T01:53:46+01:00",
                         "hintsUsed": 0,
                         "timeAddsUsed": 0
                     },
@@ -370,22 +394,22 @@
                 },
                 "2": {
                     "firstAttempt": {
-                        "score": 3122,
-                        "time": 6,
+                        "score": 3139,
+                        "time": 5,
                         "correctAnswers": 5,
                         "totalQuestions": 5,
                         "passed": true,
-                        "timestamp": "2025-12-12T20:21:34+01:00",
+                        "timestamp": "2025-12-13T01:58:23+01:00",
                         "hintsUsed": 0,
                         "timeAddsUsed": 0
                     },
                     "bestAttempt": {
-                        "score": 3122,
-                        "time": 6,
+                        "score": 3139,
+                        "time": 5,
                         "correctAnswers": 5,
                         "totalQuestions": 5,
                         "passed": true,
-                        "timestamp": "2025-12-12T20:21:34+01:00",
+                        "timestamp": "2025-12-13T01:58:23+01:00",
                         "hintsUsed": 0,
                         "timeAddsUsed": 0
                     },
@@ -394,22 +418,22 @@
                 },
                 "3": {
                     "firstAttempt": {
-                        "score": 3831,
-                        "time": 6,
+                        "score": 3856,
+                        "time": 4,
                         "correctAnswers": 6,
                         "totalQuestions": 6,
                         "passed": true,
-                        "timestamp": "2025-12-12T20:31:11+01:00",
+                        "timestamp": "2025-12-13T01:58:46+01:00",
                         "hintsUsed": 0,
                         "timeAddsUsed": 0
                     },
                     "bestAttempt": {
-                        "score": 3831,
-                        "time": 6,
+                        "score": 3856,
+                        "time": 4,
                         "correctAnswers": 6,
                         "totalQuestions": 6,
                         "passed": true,
-                        "timestamp": "2025-12-12T20:31:11+01:00",
+                        "timestamp": "2025-12-13T01:58:46+01:00",
                         "hintsUsed": 0,
                         "timeAddsUsed": 0
                     },
@@ -421,17 +445,17 @@
             "categoryHistory": [
                 {
                     "category": 1,
-                    "completed": "2025-12-12T20:21:12+01:00",
+                    "completed": "2025-12-13T01:53:46+01:00",
                     "levelNumber": 1
                 },
                 {
                     "category": 2,
-                    "completed": "2025-12-12T20:21:34+01:00",
+                    "completed": "2025-12-13T01:58:23+01:00",
                     "levelNumber": 2
                 },
                 {
                     "category": 3,
-                    "completed": "2025-12-12T20:31:11+01:00",
+                    "completed": "2025-12-13T01:58:46+01:00",
                     "levelNumber": 3
                 }
             ]
@@ -440,88 +464,49 @@
             "genericAddress": "5DPd2YDQGh5yAF7ndSKP5iyLCvTGbjXkJ67MwVHbgoJLCZ8c",
             "polkadotAddress": "12KvAsUU8UMSbn8Jb5NPDsoV4YSvJ35tNaqr6nGxEtKrNzv1",
             "walletAddress": "5DPd2YDQGh5yAF7ndSKP5iyLCvTGbjXkJ67MwVHbgoJLCZ8c",
-            "playerName": "Player_2",
+            "playerName": "Florenz",
             "nameHistory": [
                 {
-                    "name": "Player_2",
-                    "timestamp": "2025-12-12T20:44:34+01:00",
+                    "name": "Player_1",
+                    "timestamp": "2025-12-13T02:10:31+01:00",
                     "action": "initial"
+                },
+                {
+                    "name": "Edingborough",
+                    "timestamp": "2025-12-13T02:11:18+01:00",
+                    "action": "changed",
+                    "previousName": "Player_1"
+                },
+                {
+                    "name": "Florenz",
+                    "timestamp": "2025-12-13T02:12:20+01:00",
+                    "action": "changed",
+                    "previousName": "Edingborough"
                 }
             ],
-            "registeredAt": "2025-12-12T20:44:34+01:00",
-            "totalScore": 1642,
-            "totalTime": 3,
-            "completedLevels": 1,
+            "registeredAt": "2025-12-13T02:10:31+01:00",
+            "totalScore": 8617,
+            "totalTime": 12,
+            "completedLevels": 3,
             "levels": {
                 "1": {
                     "firstAttempt": {
-                        "score": 1642,
-                        "time": 3,
+                        "score": 1616,
+                        "time": 4,
                         "correctAnswers": 3,
                         "totalQuestions": 3,
                         "passed": true,
-                        "timestamp": "2025-12-12T20:44:54+01:00",
+                        "timestamp": "2025-12-13T02:12:42+01:00",
                         "hintsUsed": 0,
                         "timeAddsUsed": 0
                     },
                     "bestAttempt": {
-                        "score": 1642,
-                        "time": 3,
+                        "score": 1616,
+                        "time": 4,
                         "correctAnswers": 3,
                         "totalQuestions": 3,
                         "passed": true,
-                        "timestamp": "2025-12-12T20:44:54+01:00",
-                        "hintsUsed": 0,
-                        "timeAddsUsed": 0
-                    },
-                    "attempts": 1,
-                    "unlocked": true
-                }
-            },
-            "currentCategory": 1,
-            "categoryHistory": [
-                {
-                    "category": 1,
-                    "completed": "2025-12-12T20:44:54+01:00",
-                    "levelNumber": 1
-                }
-            ]
-        },
-        {
-            "genericAddress": "5DkLzTLACYhkFXKMkrpUNQZw2tcHaDWRLYBCDZ5mxsFSsVjz",
-            "polkadotAddress": "12ge8nbE4KyDh4KsiVsUWZQ5tWbwGX4ZR2ugNr58WxGy3od3",
-            "walletAddress": "5DkLzTLACYhkFXKMkrpUNQZw2tcHaDWRLYBCDZ5mxsFSsVjz",
-            "playerName": "Player_3",
-            "nameHistory": [
-                {
-                    "name": "Player_3",
-                    "timestamp": "2025-12-12T20:47:46+01:00",
-                    "action": "initial"
-                }
-            ],
-            "registeredAt": "2025-12-12T20:47:46+01:00",
-            "totalScore": 4181,
-            "totalTime": 6,
-            "completedLevels": 2,
-            "levels": {
-                "1": {
-                    "firstAttempt": {
-                        "score": 1651,
-                        "time": 2,
-                        "correctAnswers": 3,
-                        "totalQuestions": 3,
-                        "passed": true,
-                        "timestamp": "2025-12-12T20:47:59+01:00",
-                        "hintsUsed": 0,
-                        "timeAddsUsed": 0
-                    },
-                    "bestAttempt": {
-                        "score": 1651,
-                        "time": 2,
-                        "correctAnswers": 3,
-                        "totalQuestions": 3,
-                        "passed": true,
-                        "timestamp": "2025-12-12T20:47:59+01:00",
+                        "timestamp": "2025-12-13T02:12:42+01:00",
                         "hintsUsed": 0,
                         "timeAddsUsed": 0
                     },
@@ -530,22 +515,46 @@
                 },
                 "2": {
                     "firstAttempt": {
-                        "score": 2530,
+                        "score": 3142,
                         "time": 4,
-                        "correctAnswers": 4,
+                        "correctAnswers": 5,
                         "totalQuestions": 5,
                         "passed": true,
-                        "timestamp": "2025-12-12T20:48:15+01:00",
+                        "timestamp": "2025-12-13T02:13:35+01:00",
                         "hintsUsed": 0,
                         "timeAddsUsed": 0
                     },
                     "bestAttempt": {
-                        "score": 2530,
+                        "score": 3142,
                         "time": 4,
-                        "correctAnswers": 4,
+                        "correctAnswers": 5,
                         "totalQuestions": 5,
                         "passed": true,
-                        "timestamp": "2025-12-12T20:48:15+01:00",
+                        "timestamp": "2025-12-13T02:13:35+01:00",
+                        "hintsUsed": 0,
+                        "timeAddsUsed": 0
+                    },
+                    "attempts": 1,
+                    "unlocked": true
+                },
+                "3": {
+                    "firstAttempt": {
+                        "score": 3859,
+                        "time": 4,
+                        "correctAnswers": 6,
+                        "totalQuestions": 6,
+                        "passed": true,
+                        "timestamp": "2025-12-13T02:28:30+01:00",
+                        "hintsUsed": 0,
+                        "timeAddsUsed": 0
+                    },
+                    "bestAttempt": {
+                        "score": 3859,
+                        "time": 4,
+                        "correctAnswers": 6,
+                        "totalQuestions": 6,
+                        "passed": true,
+                        "timestamp": "2025-12-13T02:28:30+01:00",
                         "hintsUsed": 0,
                         "timeAddsUsed": 0
                     },
@@ -553,19 +562,44 @@
                     "unlocked": true
                 }
             },
-            "currentCategory": 2,
+            "currentCategory": 3,
             "categoryHistory": [
                 {
                     "category": 1,
-                    "completed": "2025-12-12T20:47:59+01:00",
+                    "completed": "2025-12-13T02:12:42+01:00",
                     "levelNumber": 1
                 },
                 {
                     "category": 2,
-                    "completed": "2025-12-12T20:48:15+01:00",
+                    "completed": "2025-12-13T02:13:35+01:00",
                     "levelNumber": 2
+                },
+                {
+                    "category": 3,
+                    "completed": "2025-12-13T02:28:30+01:00",
+                    "levelNumber": 3
                 }
             ]
+        },
+        {
+            "genericAddress": "5DkLzTLACYhkFXKMkrpUNQZw2tcHaDWRLYBCDZ5mxsFSsVjz",
+            "polkadotAddress": "12ge8nbE4KyDh4KsiVsUWZQ5tWbwGX4ZR2ugNr58WxGy3od3",
+            "walletAddress": "5DkLzTLACYhkFXKMkrpUNQZw2tcHaDWRLYBCDZ5mxsFSsVjz",
+            "playerName": "Player_1",
+            "nameHistory": [
+                {
+                    "name": "Player_1",
+                    "timestamp": "2025-12-13T02:11:38+01:00",
+                    "action": "initial"
+                }
+            ],
+            "registeredAt": "2025-12-13T02:11:38+01:00",
+            "totalScore": 0,
+            "totalTime": 0,
+            "completedLevels": 0,
+            "levels": [],
+            "currentCategory": 0,
+            "categoryHistory": []
         }
     ]
 }

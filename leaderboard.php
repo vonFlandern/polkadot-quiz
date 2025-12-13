@@ -369,8 +369,8 @@ require_once 'config.php';
 
         /* Category Badge in Leaderboard */
         .leaderboard-badge {
-            width: 24px;
-            height: 24px;
+            width: 54px;
+            height: 54px;
             object-fit: contain;
         }
     </style>
