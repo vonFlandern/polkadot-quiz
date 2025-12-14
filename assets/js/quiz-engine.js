@@ -174,18 +174,21 @@ class QuizEngine {
 
     /**
      * Berechne Punkte für eine Antwort
+     * WICHTIG: Kann negative Werte zurückgeben (bei falscher Antwort + Power-Ups)
+     * Die Minimum-Regel (Score >= 0) wird erst am Level-Ende angewendet!
      */
     calculatePoints(elapsedTimeMs, isCorrect, hintUsed, timeAddUsed) {
-        if (!isCorrect) return 0;
-
         const question = this.getCurrentQuestion();
-        const tQuestionMs = question.tQuestion * 1000;
-        
-        // Basis-Punkte: (Verfügbare Zeit - Verstrichene Zeit) × Punkte pro MS
-        const remainingTimeMs = Math.max(0, tQuestionMs - elapsedTimeMs);
-        let points = Math.round(remainingTimeMs * question.pointsPerMillisecond);
 
-        // Abzüge für Power-Ups
+        // 1. Berechne Basis-Punkte (nur bei richtiger Antwort)
+        let points = 0;
+        if (isCorrect) {
+            const tQuestionMs = question.tQuestion * 1000;
+            const remainingTimeMs = Math.max(0, tQuestionMs - elapsedTimeMs);
+            points = Math.round(remainingTimeMs * question.pointsPerMillisecond);
+        }
+
+        // 2. Ziehe Penalties ab (IMMER, auch bei falschen Antworten!)
         if (hintUsed) {
             points -= question.hintPenalty;
         }
@@ -193,27 +196,42 @@ class QuizEngine {
             points -= question.timeAddPenalty;
         }
 
+        // 3. Return kann negativ sein (z.B. falsche Antwort + TimeAdd = -15)
         return points;
     }
 
     /**
      * Beantworte Frage
+     * @param {number} selectedAnswerIndex - Index der gewählten Antwort
+     * @param {boolean} hintUsed - Wurde ein Hint bei dieser Frage verwendet?
+     * @param {boolean} timeAddUsed - Wurde eine Zeitverlängerung bei dieser Frage verwendet?
      */
-    answerQuestion(selectedAnswerIndex) {
+    answerQuestion(selectedAnswerIndex, hintUsed = false, timeAddUsed = false) {
         const question = this.getCurrentQuestion();
         const elapsedTimeMs = this.timer.getElapsedTime();
         
         this.timer.stop();
 
         const isCorrect = selectedAnswerIndex === question.correct;
-        const isTimeout = elapsedTimeMs >= (question.tQuestion * 1000);
+        // Fix: Use timer.maxTime instead of original tQuestion to account for TimeAdd power-ups
+        const isTimeout = elapsedTimeMs >= this.timer.maxTime;
 
         // Wurde Hint oder TimeAdd bei dieser Frage genutzt?
-        // (Vereinfachung: wir tracken global, könnte pro Frage verfeinert werden)
-        const hintUsedThisQuestion = false; // TODO: Pro-Frage tracking
-        const timeAddUsedThisQuestion = false; // TODO: Pro-Frage tracking
+        // Fix: Receive actual usage from UI instead of hardcoded false
+        const hintUsedThisQuestion = hintUsed;
+        const timeAddUsedThisQuestion = timeAddUsed;
 
         const points = this.calculatePoints(elapsedTimeMs, isCorrect, hintUsedThisQuestion, timeAddUsedThisQuestion);
+
+        // Berechne Basis-Punkte für Breakdown (ohne Penalties)
+        // WICHTIG: Verwende Original-Zeit (tQuestion), nicht verlängerte Zeit (timer.maxTime)!
+        const tQuestionMs = question.tQuestion * 1000;
+        const remainingTimeMs = Math.max(0, tQuestionMs - elapsedTimeMs);
+        const basePoints = isCorrect ? Math.round(remainingTimeMs * question.pointsPerMillisecond) : 0;
+
+        // Berechne Penalties für Breakdown (auch bei falschen Antworten!)
+        const hintPenalty = hintUsedThisQuestion ? question.hintPenalty : 0;
+        const timeAddPenalty = timeAddUsedThisQuestion ? question.timeAddPenalty : 0;
 
         // Update State
         this.levelState.score += points;
@@ -236,7 +254,16 @@ class QuizEngine {
             points: points,
             elapsedTimeMs: elapsedTimeMs,
             correctAnswer: question.correct,
-            explanation: question.explanation
+            explanation: question.explanation,
+
+            // NEU: Detaillierte Aufschlüsselung für Feedback-Screen
+            pointsBreakdown: {
+                basePoints: basePoints,
+                hintPenalty: hintPenalty,
+                timeAddPenalty: timeAddPenalty,
+                hintUsed: hintUsedThisQuestion,
+                timeAddUsed: timeAddUsedThisQuestion
+            }
         };
     }
 

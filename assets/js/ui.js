@@ -745,7 +745,7 @@ class QuizUI {
         const categoryObj = quizEngine.getCategoryById(categoryId);
 
         if (!categoryObj || !categoryObj.designSettings || !categoryObj.designSettings.account) {
-            console.warn(`[UI] Keine Design-Settings für Kategorie ${categoryId} gefunden, verwende Fallback`);
+            console.warn(`[UI] No design settings found for category ${categoryId}, using fallback`);
             return; // Verwende CSS-Fallback-Werte
         }
 
@@ -782,9 +782,9 @@ class QuizUI {
                 root.style.setProperty('--account-body-border', accountDesign.body.colorBorder);
             }
 
-            console.log(`[UI] Account-Design für Kategorie "${categoryObj.catDescription}" angewendet`);
+            console.log(`[UI] Account design applied for category "${categoryObj.catDescription}"`);
         } catch (error) {
-            console.error('[UI] Fehler beim Anwenden des Account-Designs:', error);
+            console.error('[UI] Error applying account design:', error);
         }
     }
 
@@ -888,13 +888,13 @@ class QuizUI {
             if (firstScore !== undefined) {
                 scoreInfo = `<br><small>`;
                 if (levelStats.unlocked || levelStats.firstAttempt?.passed) {
-                    scoreInfo += `✓ Bestanden (1. Versuch) • ${firstScore} Punkte`;
+                    scoreInfo += `✓ Passed (1st attempt) • ${firstScore} Points`;
                 } else {
-                    scoreInfo += `✗ Nicht bestanden (1. Versuch) • ${firstScore} Punkte`;
+                    scoreInfo += `✗ Not passed (1st attempt) • ${firstScore} Points`;
                 }
 
                 if (attempts > 1 && bestScore !== firstScore) {
-                    scoreInfo += `<br>🔄 ${attempts} Versuche • Bester: ${bestScore} Punkte`;
+                    scoreInfo += `<br>🔄 ${attempts} Attempts • Best: ${bestScore} Points`;
                 }
                 scoreInfo += `</small>`;
             }
@@ -907,13 +907,13 @@ class QuizUI {
             levelBtn.disabled = true;
             levelBtn.innerHTML = `
                 <h3>🔒 Level ${levelNum}: ${levelTitle}</h3>
-                <p>${questionCount} Fragen • Schließe Level ${levelNum - 1} ab</p>
+                <p>${questionCount} Questions • Complete Level ${levelNum - 1}</p>
             `;
         } else {
             levelBtn.className = `level-btn ${isLevelUnlocked ? 'level-btn-completed' : ''}`;
             levelBtn.innerHTML = `
                 <h3>${isLevelUnlocked ? '✓' : '○'} Level ${levelNum}: ${levelTitle}</h3>
-                <p>${questionCount} Fragen${scoreInfo}</p>
+                <p>${questionCount} Questions${scoreInfo}</p>
             `;
             levelBtn.addEventListener('click', () => {
                 this.showLevelIntro(levelNum);
@@ -1158,7 +1158,7 @@ class QuizUI {
             console.error('Error loading player:', error);
             document.getElementById('player-info').innerHTML = `
                 <div style="color: #ef4444;">
-                    Fehler beim Laden der Spielerdaten. Bitte neu anmelden.
+                    Error loading player data. Please log in again.
                 </div>
             `;
         }
@@ -1305,10 +1305,10 @@ class QuizUI {
         hintBox.innerHTML = '';
 
         // Update Header
-        document.getElementById('question-number').textContent = 
-            `Frage ${questionNumber}/${totalQuestions}`;
-        document.getElementById('current-score').textContent = 
-            `Punkte: ${quizEngine.levelState.score}`;
+        document.getElementById('question-number').textContent =
+            `Question ${questionNumber}/${totalQuestions}`;
+        document.getElementById('current-score').textContent =
+            `Points: ${quizEngine.levelState.score}`;
 
         // Frage anzeigen
         document.getElementById('question-text').textContent = question.question;
@@ -1380,7 +1380,7 @@ class QuizUI {
         if (result.success) {
             this.currentHintUsedThisQuestion = true;
             const hintBox = document.getElementById('hint-box');
-            hintBox.innerHTML = `<strong>💡 Hinweis:</strong> ${result.hint}`;
+            hintBox.innerHTML = `<strong>💡 Hint:</strong> ${result.hint}`;
             hintBox.style.display = 'block';
             
             document.getElementById('hints-remaining').textContent = result.remaining;
@@ -1433,7 +1433,7 @@ class QuizUI {
             transition: all 0.3s ease;
             pointer-events: none;
         `;
-        feedback.textContent = isError ? message : `⏰ +${message} Sekunden!`;
+        feedback.textContent = isError ? message : `⏰ +${message} Seconds!`;
         
         document.body.appendChild(feedback);
         
@@ -1464,7 +1464,12 @@ class QuizUI {
         document.getElementById('hint-btn').disabled = true;
         document.getElementById('timeadd-btn').disabled = true;
 
-        const result = quizEngine.answerQuestion(answerIndex);
+        // Pass hint/timeAdd usage flags to quiz engine for accurate point calculation
+        const result = quizEngine.answerQuestion(
+            answerIndex,
+            this.currentHintUsedThisQuestion,
+            this.currentTimeAddUsedThisQuestion
+        );
         this.showFeedback(result);
     }
 
@@ -1479,26 +1484,102 @@ class QuizUI {
         const timeEl = document.getElementById('feedback-time');
         const explanationEl = document.getElementById('feedback-explanation');
 
-        if (result.timeout) {
-            feedbackEl.innerHTML = '⏱️ <strong>Zeit abgelaufen!</strong>';
-            feedbackEl.className = 'feedback-message timeout';
-            pointsEl.textContent = '0 Punkte';
-        } else if (result.correct) {
-            feedbackEl.innerHTML = '✅ <strong>Richtig!</strong>';
-            feedbackEl.className = 'feedback-message correct';
-            pointsEl.textContent = `+${result.points} Punkte`;
-        } else {
-            feedbackEl.innerHTML = '❌ <strong>Leider falsch!</strong>';
-            feedbackEl.className = 'feedback-message incorrect';
-            pointsEl.textContent = '0 Punkte';
+        // Entferne alte Breakdown falls vorhanden
+        const oldBreakdown = document.getElementById('points-breakdown');
+        if (oldBreakdown) {
+            oldBreakdown.remove();
         }
 
-        timeEl.textContent = `Zeit: ${(result.elapsedTimeMs / 1000).toFixed(3)}s`;
-        
+        if (result.timeout) {
+            feedbackEl.innerHTML = '⏱️ <strong>Time\'s up!</strong>';
+            feedbackEl.className = 'feedback-message timeout';
+            pointsEl.textContent = '0 Points';
+        } else if (result.correct) {
+            feedbackEl.innerHTML = '✅ <strong>Correct!</strong>';
+            feedbackEl.className = 'feedback-message correct';
+            pointsEl.textContent = `+${result.points} Points`;
+        } else {
+            feedbackEl.innerHTML = '❌ <strong>Unfortunately wrong!</strong>';
+            feedbackEl.className = 'feedback-message incorrect';
+            // Zeige auch negative Punkte korrekt
+            pointsEl.textContent = result.points >= 0 ? `${result.points} Points` : `${result.points} Points`;
+        }
+
+        // Zeige detaillierte Punkt-Aufschlüsselung (bei ALLEN Antworten, falls Power-Ups verwendet wurden)
+        if (result.pointsBreakdown && !result.timeout) {
+            const breakdown = result.pointsBreakdown;
+
+            // Zeige Breakdown wenn: Power-Ups verwendet ODER Basis-Punkte > 0
+            const showBreakdown = breakdown.hintUsed || breakdown.timeAddUsed || breakdown.basePoints > 0;
+
+            if (showBreakdown) {
+                const breakdownEl = document.createElement('div');
+                breakdownEl.id = 'points-breakdown';
+
+                // Unterschiedliche Border-Farbe für korrekt/falsch
+                const borderColor = result.correct ? 'var(--success-color)' : '#ef4444';
+
+                breakdownEl.style.cssText = `
+                    margin: 20px auto;
+                    max-width: 500px;
+                    padding: 15px;
+                    background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(248,250,252,0.9));
+                    border-left: 4px solid ${borderColor};
+                    border-radius: 8px;
+                    font-size: 0.95em;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                `;
+
+                let html = '<div style="font-weight: 600; color: #1f2937; margin-bottom: 10px;">📊 Points Breakdown:</div>';
+                html += '<div style="display: flex; flex-direction: column; gap: 8px;">';
+
+                // Basis-Punkte (kann 0 sein bei falscher Antwort)
+                const baseColor = breakdown.basePoints > 0 ? 'var(--success-color)' : '#6b7280';
+                html += `<div style="display: flex; justify-content: space-between; padding: 6px 0;">
+                    <span>Question Base Points:</span>
+                    <span style="font-weight: 600; color: ${baseColor};">${breakdown.basePoints > 0 ? '+' : ''}${breakdown.basePoints}</span>
+                </div>`;
+
+                // Hint-Penalty (falls verwendet)
+                if (breakdown.hintUsed) {
+                    html += `<div style="display: flex; justify-content: space-between; padding: 6px 0;">
+                        <span>Used Hints (1x):</span>
+                        <span style="font-weight: 600; color: #f97316;">-${breakdown.hintPenalty}</span>
+                    </div>`;
+                }
+
+                // TimeAdd-Penalty (falls verwendet)
+                if (breakdown.timeAddUsed) {
+                    html += `<div style="display: flex; justify-content: space-between; padding: 6px 0;">
+                        <span>Added Time (1x):</span>
+                        <span style="font-weight: 600; color: #f97316;">-${breakdown.timeAddPenalty}</span>
+                    </div>`;
+                }
+
+                // Trennlinie + Finalsumme
+                const resultColor = result.points >= 0 ? 'var(--primary-color)' : '#ef4444';
+                const resultSign = result.points > 0 ? '+' : '';
+                html += `<div style="border-top: 2px solid rgba(0,0,0,0.1); margin-top: 8px; padding-top: 8px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 1.1em;">
+                        <span style="font-weight: 700;">RESULT:</span>
+                        <span style="font-weight: 700; color: ${resultColor};">${resultSign}${result.points} Points</span>
+                    </div>
+                </div>`;
+
+                html += '</div>';
+                breakdownEl.innerHTML = html;
+
+                // Füge nach pointsEl ein
+                pointsEl.parentNode.insertBefore(breakdownEl, pointsEl.nextSibling);
+            }
+        }
+
+        timeEl.textContent = `Time: ${(result.elapsedTimeMs / 1000).toFixed(3)}s`;
+
         const question = quizEngine.getCurrentQuestion();
         const correctAnswerText = question.answers[result.correctAnswer];
         explanationEl.innerHTML = `
-            <p><strong>Richtige Antwort:</strong> ${correctAnswerText}</p>
+            <p><strong>Correct Answer:</strong> ${correctAnswerText}</p>
             <p>${result.explanation}</p>
         `;
 
@@ -1528,10 +1609,10 @@ class QuizUI {
 
         const statusEl = document.getElementById('result-status');
         if (result.passed) {
-            statusEl.innerHTML = '✅ <strong>Level bestanden!</strong>';
+            statusEl.innerHTML = '✅ <strong>Level passed!</strong>';
             statusEl.className = 'result-status passed';
         } else {
-            statusEl.innerHTML = '❌ <strong>Level nicht bestanden</strong>';
+            statusEl.innerHTML = '❌ <strong>Level not passed</strong>';
             statusEl.className = 'result-status failed';
         }
 
@@ -1551,8 +1632,8 @@ class QuizUI {
             const errorDiv = document.createElement('div');
             errorDiv.style.cssText = 'background:#fee2e2;padding:15px;border-left:4px solid #ef4444;margin:20px 0;border-radius:4px;';
             errorDiv.innerHTML = `
-                <strong>⚠️ Fehler beim Speichern</strong><br>
-                <small>Dein Ergebnis konnte nicht gespeichert werden. Bitte versuche es erneut.</small>
+                <strong>⚠️ Error saving</strong><br>
+                <small>Your result could not be saved. Please try again.</small>
             `;
             statusEl.parentNode.insertBefore(errorDiv, statusEl.nextSibling);
         }
@@ -1586,12 +1667,12 @@ class QuizUI {
             
             // Validierung: 3-20 Zeichen
             if (!newName || newName.length < 3) {
-                alert('❌ Der Name muss mindestens 3 Zeichen haben!');
+                alert('❌ Name must be at least 3 characters!');
                 return;
             }
-            
+
             if (newName.length > 20) {
-                alert('❌ Der Name darf maximal 20 Zeichen haben!');
+                alert('❌ Name must not exceed 20 characters!');
                 return;
             }
             
@@ -1615,12 +1696,12 @@ class QuizUI {
                 const checkResult = await checkResponse.json();
                 
                 if (!checkResult.available) {
-                    alert(`❌ Der Name "${newName}" ist bereits vergeben!\n\nBitte wähle einen anderen Namen.`);
+                    alert(`❌ The name "${newName}" is already taken!\n\nPlease choose a different name.`);
                     return;
                 }
             } catch (error) {
                 console.error('Name check failed:', error);
-                alert('⚠️ Konnte Namen-Verfügbarkeit nicht prüfen. Versuche es beim Level-Speichern.');
+                alert('⚠️ Could not check name availability. Try again when saving the level.');
             }
             
             // Speichere Namensänderung
@@ -1648,7 +1729,7 @@ class QuizUI {
                 // Update Label
                 const nameLabel = document.querySelector('label[for="player-name"]');
                 if (nameLabel) {
-                    nameLabel.innerHTML = `<strong style="color: #374151; font-size: 1.3em;">Willkommen zurück, ${newName}!</strong>`;
+                    nameLabel.innerHTML = `<strong style="color: #374151; font-size: 1.3em;">Welcome back, ${newName}!</strong>`;
                 }
                 
                 // Update im Wallet Manager
@@ -1664,7 +1745,7 @@ class QuizUI {
                 
             } catch (error) {
                 console.error('Player name update error:', error);
-                alert(`❌ Fehler beim Speichern: ${error.message}\n\nBitte versuche es erneut.`);
+                alert(`❌ Error saving: ${error.message}\n\nPlease try again.`);
             }
         };
         
