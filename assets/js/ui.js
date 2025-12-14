@@ -174,13 +174,12 @@ class QuizUI {
                         
                         // If known player
                         if (account.existingPlayer) {
+                            // Hide label and input (player is already known)
                             const nameLabel = document.querySelector('label[for="player-name"]');
                             if (nameLabel) {
-                                // Larger text, charcoal gray, no emoji
-                                nameLabel.innerHTML = `<strong style="color: #374151; font-size: 1.3em;">Welcome back, ${account.existingPlayer.playerName}!</strong>`;
+                                nameLabel.style.display = 'none';
                             }
 
-                            // Hide input
                             const nameInput = document.getElementById('player-name');
                             nameInput.style.display = 'none';
                             nameInput.value = account.existingPlayer.playerName;
@@ -191,185 +190,70 @@ class QuizUI {
                                 originalSubmitBtn.remove();
                             }
 
-                            // THREE buttons side by side: Continue to Quiz | Instructions | Change Name
+                            // Single "Continue to Quiz" button (centered, full width)
                             const buttonsDiv = document.createElement('div');
                             buttonsDiv.id = 'action-buttons';
-                            buttonsDiv.style.cssText = 'display: flex; gap: 15px; margin-top: 15px;';
+                            buttonsDiv.style.cssText = 'margin-top: 20px;';
                             buttonsDiv.innerHTML = `
-                                <button id="continue-quiz-btn" type="button" style="flex: 1; padding: 15px; font-size: 16px; font-weight: 600; background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%); border: none; border-radius: 8px; color: white; cursor: pointer;">
+                                <button id="continue-quiz-btn" type="button" style="width: 100%; padding: 15px; font-size: 16px; font-weight: 600; background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%); border: none; border-radius: 8px; color: white; cursor: pointer;">
                                     Continue to Quiz
                                 </button>
-                                <button id="open-anleitung-btn" type="button" style="flex: 1; padding: 15px; font-size: 16px; font-weight: 600; background: #6b7280; border: none; border-radius: 8px; color: white; cursor: pointer;">
-                                    Instructions
-                                </button>
-                                <button id="open-change-name-btn" type="button" style="flex: 1; padding: 15px; font-size: 16px; font-weight: 600; background: #6b7280; border: none; border-radius: 8px; color: white; cursor: pointer;">
-                                    Change Name
-                                </button>
                             `;
-                            
+
                             playerNameInput.appendChild(buttonsDiv);
-                            
-                            // Event Listeners
+
+                            // Event Listener
                             setTimeout(() => {
-                                // "Weiter zum Quiz" Button
                                 document.getElementById('continue-quiz-btn').addEventListener('click', () => {
                                     // WICHTIG: Setze Session-Daten
                                     sessionStorage.setItem('walletAddress', account.genericAddress);
                                     sessionStorage.setItem('playerName', account.existingPlayer.playerName);
                                     sessionStorage.setItem('polkadotAddress', account.polkadotAddress);
-                                    
+
                                     // Zeige Level-Übersicht
                                     this.showLevelOverview();
-                                });
-                                
-                                // "Anleitung" Button
-                                document.getElementById('open-anleitung-btn').addEventListener('click', () => {
-                                    this.showAnleitung();
-                                });
-                                
-                                // "Name ändern" Button öffnet Modal
-                                document.getElementById('open-change-name-btn').addEventListener('click', () => {
-                                    this.openChangeNameModal(account);
                                 });
                             }, 0);
                             
                         } else {
-                            // Neuer Spieler: 3-Button-Layout wie bekannte Spieler
+                            // Neuer Spieler: Kein Name-Input, nur "Continue to Quiz" Button
+                            // Name wird im Level Overview eingetragen
                             const nameLabel = document.querySelector('label[for="player-name"]');
                             if (nameLabel) {
-                                nameLabel.innerHTML = '<strong>Choose your player name:</strong>';
+                                nameLabel.style.display = 'none';
                             }
-                            
+
                             const nameInput = document.getElementById('player-name');
-                            nameInput.style.display = 'block';
-                            nameInput.disabled = false;
-                            
-                            // Lade Namen-Vorschlag
-                            try {
-                                const suggestResponse = await fetch('api/suggest-name.php', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({})
-                                });
-                                
-                                const suggestResult = await suggestResponse.json();
-                                
-                                if (suggestResult.success && suggestResult.suggestedName) {
-                                    nameInput.value = suggestResult.suggestedName;
-                                    nameInput.placeholder = suggestResult.suggestedName;
-                                    
-                                    console.log('✅ Suggested name:', suggestResult.suggestedName);
-                                }
-                            } catch (error) {
-                                console.error('Name suggestion failed:', error);
-                                // Fallback
-                                nameInput.value = '';
-                                nameInput.placeholder = 'e.g. Player_1';
-                            }
-                            
+                            nameInput.style.display = 'none';
+
                             // ENTFERNE originalen Submit-Button komplett
                             const originalSubmitBtn = document.getElementById('continue-to-quiz-btn');
                             if (originalSubmitBtn) {
                                 originalSubmitBtn.remove();
                             }
-                            
-                            // DREI Buttons nebeneinander: Weiter zum Quiz | Anleitung | Name ändern
+
+                            // NUR ein Button: "Continue to Quiz" (identisch zu bekannten Spielern)
                             const buttonsDiv = document.createElement('div');
                             buttonsDiv.id = 'action-buttons';
-                            buttonsDiv.style.cssText = 'display: flex; gap: 15px; margin-top: 15px;';
+                            buttonsDiv.style.cssText = 'margin-top: 20px;';
                             buttonsDiv.innerHTML = `
-                                <button id="continue-quiz-btn" type="button" style="flex: 1; padding: 15px; font-size: 16px; font-weight: 600; background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%); border: none; border-radius: 8px; color: white; cursor: pointer;">
+                                <button id="continue-quiz-btn" type="button" style="width: 100%; padding: 15px; font-size: 16px; font-weight: 600; background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%); border: none; border-radius: 8px; color: white; cursor: pointer;">
                                     Continue to Quiz
                                 </button>
-                                <button id="open-anleitung-btn" type="button" style="flex: 1; padding: 15px; font-size: 16px; font-weight: 600; background: #6b7280; border: none; border-radius: 8px; color: white; cursor: pointer;">
-                                    Instructions
-                                </button>
-                                <button id="open-change-name-btn" type="button" style="flex: 1; padding: 15px; font-size: 16px; font-weight: 600; background: #6b7280; border: none; border-radius: 8px; color: white; cursor: pointer;">
-                                    Change Name
-                                </button>
                             `;
-                            
-                            playerNameInput.appendChild(buttonsDiv);
-                            
-                            // Event Listeners
-                            setTimeout(() => {
-                                // "Weiter zum Quiz" Button - MIT Validierung
-                                document.getElementById('continue-quiz-btn').addEventListener('click', async () => {
-                                    const playerName = nameInput.value.trim();
-                                    
-                                    // Validierung
-                                    if (!playerName || playerName.length < 3) {
-                                        alert('❌ Please enter a player name (at least 3 characters)');
-                                        return;
-                                    }
 
-                                    if (playerName.length > 20) {
-                                        alert('❌ Name must not exceed 20 characters!');
-                                        return;
-                                    }
-                                    
-                                    // Prüfe ob Name verfügbar
-                                    try {
-                                        const checkResponse = await fetch('api/check-name.php', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ 
-                                                playerName: playerName,
-                                                walletAddress: account.genericAddress
-                                            })
-                                        });
-                                        
-                                        const checkResult = await checkResponse.json();
-                                        
-                                        if (!checkResult.available) {
-                                            alert(`❌ The name "${playerName}" is already taken!\n\nPlease choose a different name.`);
-                                            return;
-                                        }
-                                    } catch (error) {
-                                        console.error('Name check failed:', error);
-                                    }
-                                    
-                                    // Registriere Spieler
-                                    try {
-                                        const registerResponse = await fetch('api/register-player.php', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({
-                                                walletAddress: account.genericAddress,
-                                                playerName: playerName
-                                            })
-                                        });
-                                        
-                                        if (!registerResponse.ok) {
-                                            const errorData = await registerResponse.json();
-                                            throw new Error(errorData.error || 'Registration failed');
-                                        }
-                                        
-                                        console.log('✅ Player registered');
-                                        
-                                        // WICHTIG: Setze Session-Daten
-                                        sessionStorage.setItem('walletAddress', account.genericAddress);
-                                        sessionStorage.setItem('playerName', playerName);
-                                        sessionStorage.setItem('polkadotAddress', account.polkadotAddress);
-                                        
-                                        // Zeige Level-Übersicht
-                                        this.showLevelOverview();
-                                        
-                                    } catch (error) {
-                                        console.error('Player registration error:', error);
-                                        alert(`❌ Error saving: ${error.message}\n\nPlease try again.`);
-                                    }
-                                });
-                                
-                                // "Anleitung" Button
-                                document.getElementById('open-anleitung-btn').addEventListener('click', () => {
-                                    this.showAnleitung();
-                                });
-                                
-                                // "Name ändern" Button - für neue Spieler = Input editierbar machen
-                                document.getElementById('open-change-name-btn').addEventListener('click', () => {
-                                    nameInput.focus();
-                                    nameInput.select();
+                            playerNameInput.appendChild(buttonsDiv);
+
+                            // Event Listener OHNE Validierung/Registrierung
+                            setTimeout(() => {
+                                document.getElementById('continue-quiz-btn').addEventListener('click', () => {
+                                    // WICHTIG: Setze Session-Daten OHNE playerName
+                                    sessionStorage.setItem('walletAddress', account.genericAddress);
+                                    sessionStorage.setItem('polkadotAddress', account.polkadotAddress);
+                                    // playerName wird NICHT gesetzt → Level Overview zeigt Name-Eingabe an
+
+                                    // Zeige Level-Übersicht
+                                    this.showLevelOverview();
                                 });
                             }, 0);
                         }
@@ -510,7 +394,7 @@ class QuizUI {
                     ${badgeHTML}
                 </div>
                 <div class="account-info-right">
-                    <div class="player-name-display">${playerName}</div>
+                    <div class="player-name-display">${playerName || walletManager.selectedAccount?.name || 'Guest'}</div>
                     <div class="player-wallet-display">${displayAddress}</div>
                 </div>
                 <div class="account-menu">
@@ -540,8 +424,8 @@ class QuizUI {
         const welcomeContainer = document.getElementById('welcome-section');
         if (!welcomeContainer) return;
 
-        // FALL 1: Neuer Spieler (playerName startet mit "Player_")
-        if (playerName && playerName.startsWith('Player_')) {
+        // FALL 1: Neuer Spieler (playerName ist null oder startet mit "Player_")
+        if (!playerName || playerName.startsWith('Player_')) {
             welcomeContainer.innerHTML = `
                 <div style="text-align: center; margin-bottom: 20px;">
                     <label for="welcome-name-input" style="display: block; margin-bottom: 15px; font-size: 1.1em; font-weight: 600;">
@@ -645,9 +529,19 @@ class QuizUI {
                 // Update Session Storage
                 sessionStorage.setItem('playerName', newName);
 
-                // Update im Wallet Manager
-                if (walletManager.selectedAccount && walletManager.selectedAccount.existingPlayer) {
-                    walletManager.selectedAccount.existingPlayer.playerName = newName;
+                // Update im Wallet Manager (WICHTIG: Auch für neue Spieler setzen!)
+                if (walletManager.selectedAccount) {
+                    if (!walletManager.selectedAccount.existingPlayer) {
+                        // Neuer Spieler: Erstelle existingPlayer-Objekt
+                        walletManager.selectedAccount.existingPlayer = {
+                            playerName: newName,
+                            genericAddress: walletManager.selectedAccount.address,
+                            polkadotAddress: walletManager.selectedAccount.polkadotAddress || walletManager.selectedAccount.address
+                        };
+                    } else {
+                        // Bestehender Spieler: Update Name
+                        walletManager.selectedAccount.existingPlayer.playerName = newName;
+                    }
                 }
 
                 // Reload Level-Übersicht

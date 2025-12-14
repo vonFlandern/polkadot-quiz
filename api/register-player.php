@@ -29,6 +29,7 @@ if (!isset($input['walletAddress']) || !isset($input['playerName'])) {
 
 $walletAddress = sanitizeInput($input['walletAddress']);
 $playerName = sanitizeInput($input['playerName']);
+$walletName = isset($input['walletName']) ? sanitizeInput($input['walletName']) : null;
 
 // Validierungen
 if (!isValidPolkadotAddress($walletAddress)) {
@@ -100,6 +101,7 @@ if ($playerIndex === -1) {
         'genericAddress' => $genericAddress,      // Primary Key
         'polkadotAddress' => $polkadotAddress,    // Für Anzeige
         'walletAddress' => $genericAddress,       // Backward compatibility
+        'walletName' => $walletName,              // NEU: Name aus Wallet-Extension
         'playerName' => $playerName,
         'nameHistory' => [
             [
