@@ -180,7 +180,7 @@ require_once 'config.php';
         }
 
         .leaderboard-table td {
-            padding: 15px;
+            padding: 0px;
             border-bottom: 1px solid var(--border-color);
         }
 
@@ -369,9 +369,10 @@ require_once 'config.php';
 
         /* Category Badge in Leaderboard */
         .leaderboard-badge {
-            width: 54px;
-            height: 54px;
+            width: 78px;
+            height: 78px;
             object-fit: contain;
+            padding-top: .5em;
         }
     </style>
 </head>

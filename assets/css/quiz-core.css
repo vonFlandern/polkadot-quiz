@@ -5,6 +5,8 @@
 
 :root {
     --primary-color: #E6007A;
+    --vonFlandern-color: #2C2C2C;
+    --vonFlandern-gradient: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
     --secondary-color: #000000;
     --accent-color: #552BBF;
     --success-color: #22c55e;
@@ -615,9 +617,13 @@ button.secondary {
     align-items: center;
     gap: 15px;
     padding: 15px 20px;
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+    background: linear-gradient(135deg, #1a1a1a 0%, #1b1d1c 100%);
+    border: 2px solid #ff1212;
+    border-bottom: none;
     margin-bottom: 20px;
     border-radius: 8px;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
 }
 
 /* Badge-Kreis mit Schatten */
@@ -652,12 +658,12 @@ button.secondary {
 .player-name-display {
     font-size: 1.5em;
     font-weight: 700;
-    color: #ffffff;
+    color: #999999;
 }
 
 .player-wallet-display {
     font-size: 1em;
-    color: #ffffff;
+    color: #999999;
 }
 
 /* Menü-Link (Hamburger-Icon) */
@@ -666,7 +672,7 @@ button.secondary {
 }
 
 .account-menu a#account-menu-trigger {
-    color: #ffffff;
+    color: #ff1212;
     text-decoration: none;
     font-size: 1.5em;
     cursor: pointer;

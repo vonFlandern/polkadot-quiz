@@ -63,7 +63,7 @@
     ]
   },
   "level2": {
-    "catId": 2,
+    "catId": 1,
     "levelInfo": "In diesem Level lernst du die Kernkonzepte der Polkadot-Architektur kennen: Relay Chain, Parachains und wie sie zusammenarbeiten.",
     "pdfUrl": "/downloads/level2_polkadot_architecture.pdf",
     "pdfTitle": "Polkadot Architektur - Wissensbasis",
@@ -161,7 +161,7 @@
     ]
   },
   "level3": {
-    "catId": 3,
+    "catId": 1,
     "levelInfo": "Jetzt wird's technisch! Lerne über Staking, Governance und die wirtschaftlichen Mechanismen von Polkadot.",
     "pdfUrl": "/downloads/level3_polkadot_economics.pdf",
     "pdfTitle": "Polkadot Economics & Governance - Wissensbasis",
@@ -273,6 +273,763 @@
         "hintPenalty": 30,
         "timeAddPenalty": 15,
         "timeAddBonus": 20
+      }
+    ]
+  },
+
+  "level4": {
+    "catId": 2,
+    "levelInfo": "Level 4",
+    "pdfUrl": "downloads/level4.pdf",
+    "pdfTitle": "Polkadot Level 4",
+    "questions": [
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "wrong answer 1",
+          "wrong answer 2",
+          "right answer",
+          "wrong answer 3 - Testing long text handling in answers field to see how it behaves in the UI when the text exceeds normal length. This should be truncated or wrapped properly."
+        ],
+        "answerCount": 4,
+        "correct": 2,
+        "hint": "This is a hint for question 1 in level 4. Testing longer hint text to see how it is displayed in the UI and whether it maintains readability and usability for the user.",
+        "explanation": "This is the explanation for question 1 in level 4. It provides detailed information about why the correct answer is right and why the other options are incorrect. This text is intentionally made longer to test how explanations are handled in the UI, ensuring that it remains user-friendly and accessible.",
+        "tQuestion": 30,
+        "pointsPerMillisecond": 0.02,
+        "hintPenalty": 20,
+        "timeAddPenalty": 10,
+        "timeAddBonus": 15
+      },
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "right answer",
+          "wrong answer 1",
+          "wrong answer 2",
+          "wrong answer 3"
+        ],
+        "answerCount": 4,
+        "correct": 0,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 30,
+        "pointsPerMillisecond": 0.02,
+        "hintPenalty": 20,
+        "timeAddPenalty": 10,
+        "timeAddBonus": 15
+      },
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "wrong answer 1",
+          "wrong answer 2",
+          "wrong answer 3",
+          "right answer",
+          "wrong answer 4"
+        ],
+        "answerCount": 5,
+        "correct": 3,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 20,
+        "pointsPerMillisecond": 0.025,
+        "hintPenalty": 15,
+        "timeAddPenalty": 8,
+        "timeAddBonus": 10
+      }
+    ]
+  },
+  "level5": {
+    "catId": 2,
+    "levelInfo": "Level 5",
+    "pdfUrl": "downloads/level5.pdf",
+    "pdfTitle": "Polkadot Level 5",
+    "questions": [
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "wrong answer 1",
+          "wrong answer 2",
+          "right answer",
+          "wrong answer 3"
+        ],
+        "answerCount": 4,
+        "correct": 2,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 30,
+        "pointsPerMillisecond": 0.02,
+        "hintPenalty": 20,
+        "timeAddPenalty": 10,
+        "timeAddBonus": 15
+      },
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "right answer",
+          "wrong answer 1",
+          "wrong answer 2",
+          "wrong answer 3"
+        ],
+        "answerCount": 4,
+        "correct": 0,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 30,
+        "pointsPerMillisecond": 0.02,
+        "hintPenalty": 20,
+        "timeAddPenalty": 10,
+        "timeAddBonus": 15
+      },
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "wrong answer 1",
+          "wrong answer 2",
+          "wrong answer 3",
+          "right answer",
+          "wrong answer 4"
+        ],
+        "answerCount": 5,
+        "correct": 3,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 20,
+        "pointsPerMillisecond": 0.025,
+        "hintPenalty": 15,
+        "timeAddPenalty": 8,
+        "timeAddBonus": 10
+      }
+    ]
+  },
+  "level6": {
+    "catId": 3,
+    "levelInfo": "Level 6",
+    "pdfUrl": "downloads/level6.pdf",
+    "pdfTitle": "Polkadot Level 6",
+    "questions": [
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "wrong answer 1",
+          "wrong answer 2",
+          "right answer",
+          "wrong answer 3"
+        ],
+        "answerCount": 4,
+        "correct": 2,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 30,
+        "pointsPerMillisecond": 0.02,
+        "hintPenalty": 20,
+        "timeAddPenalty": 10,
+        "timeAddBonus": 15
+      },
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "right answer",
+          "wrong answer 1",
+          "wrong answer 2",
+          "wrong answer 3"
+        ],
+        "answerCount": 4,
+        "correct": 0,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 30,
+        "pointsPerMillisecond": 0.02,
+        "hintPenalty": 20,
+        "timeAddPenalty": 10,
+        "timeAddBonus": 15
+      },
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "wrong answer 1",
+          "wrong answer 2",
+          "wrong answer 3",
+          "right answer",
+          "wrong answer 4"
+        ],
+        "answerCount": 5,
+        "correct": 3,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 20,
+        "pointsPerMillisecond": 0.025,
+        "hintPenalty": 15,
+        "timeAddPenalty": 8,
+        "timeAddBonus": 10
+      }
+    ]
+  },
+  "level7": {
+    "catId": 3,
+    "levelInfo": "Level 7",
+    "pdfUrl": "downloads/level7.pdf",
+    "pdfTitle": "Polkadot Level 7",
+    "questions": [
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "wrong answer 1",
+          "wrong answer 2",
+          "right answer",
+          "wrong answer 3"
+        ],
+        "answerCount": 4,
+        "correct": 2,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 30,
+        "pointsPerMillisecond": 0.02,
+        "hintPenalty": 20,
+        "timeAddPenalty": 10,
+        "timeAddBonus": 15
+      },
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "right answer",
+          "wrong answer 1",
+          "wrong answer 2",
+          "wrong answer 3"
+        ],
+        "answerCount": 4,
+        "correct": 0,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 30,
+        "pointsPerMillisecond": 0.02,
+        "hintPenalty": 20,
+        "timeAddPenalty": 10,
+        "timeAddBonus": 15
+      },
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "wrong answer 1",
+          "wrong answer 2",
+          "wrong answer 3",
+          "right answer",
+          "wrong answer 4"
+        ],
+        "answerCount": 5,
+        "correct": 3,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 20,
+        "pointsPerMillisecond": 0.025,
+        "hintPenalty": 15,
+        "timeAddPenalty": 8,
+        "timeAddBonus": 10
+      }
+    ]
+  },
+  "level8": {
+    "catId": 4,
+    "levelInfo": "Level 8",
+    "pdfUrl": "downloads/level8.pdf",
+    "pdfTitle": "Polkadot Level 8",
+    "questions": [
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "wrong answer 1",
+          "wrong answer 2",
+          "right answer",
+          "wrong answer 3"
+        ],
+        "answerCount": 4,
+        "correct": 2,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 30,
+        "pointsPerMillisecond": 0.02,
+        "hintPenalty": 20,
+        "timeAddPenalty": 10,
+        "timeAddBonus": 15
+      },
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "right answer",
+          "wrong answer 1",
+          "wrong answer 2",
+          "wrong answer 3"
+        ],
+        "answerCount": 4,
+        "correct": 0,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 30,
+        "pointsPerMillisecond": 0.02,
+        "hintPenalty": 20,
+        "timeAddPenalty": 10,
+        "timeAddBonus": 15
+      },
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "wrong answer 1",
+          "wrong answer 2",
+          "wrong answer 3",
+          "right answer",
+          "wrong answer 4"
+        ],
+        "answerCount": 5,
+        "correct": 3,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 20,
+        "pointsPerMillisecond": 0.025,
+        "hintPenalty": 15,
+        "timeAddPenalty": 8,
+        "timeAddBonus": 10
+      }
+    ]
+  },
+  "level9": {
+    "catId": 4,
+    "levelInfo": "Level 9",
+    "pdfUrl": "downloads/level9.pdf",
+    "pdfTitle": "Polkadot Level 9",
+    "questions": [
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "wrong answer 1",
+          "wrong answer 2",
+          "right answer",
+          "wrong answer 3"
+        ],
+        "answerCount": 4,
+        "correct": 2,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 30,
+        "pointsPerMillisecond": 0.02,
+        "hintPenalty": 20,
+        "timeAddPenalty": 10,
+        "timeAddBonus": 15
+      },
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "right answer",
+          "wrong answer 1",
+          "wrong answer 2",
+          "wrong answer 3"
+        ],
+        "answerCount": 4,
+        "correct": 0,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 30,
+        "pointsPerMillisecond": 0.02,
+        "hintPenalty": 20,
+        "timeAddPenalty": 10,
+        "timeAddBonus": 15
+      },
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "wrong answer 1",
+          "wrong answer 2",
+          "wrong answer 3",
+          "right answer",
+          "wrong answer 4"
+        ],
+        "answerCount": 5,
+        "correct": 3,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 20,
+        "pointsPerMillisecond": 0.025,
+        "hintPenalty": 15,
+        "timeAddPenalty": 8,
+        "timeAddBonus": 10
+      }
+    ]
+  },
+  "level10": {
+    "catId": 5,
+    "levelInfo": "Level 10",
+    "pdfUrl": "downloads/level10.pdf",
+    "pdfTitle": "Polkadot Level 10",
+    "questions": [
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "wrong answer 1",
+          "wrong answer 2",
+          "right answer",
+          "wrong answer 3"
+        ],
+        "answerCount": 4,
+        "correct": 2,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 30,
+        "pointsPerMillisecond": 0.02,
+        "hintPenalty": 20,
+        "timeAddPenalty": 10,
+        "timeAddBonus": 15
+      },
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "right answer",
+          "wrong answer 1",
+          "wrong answer 2",
+          "wrong answer 3"
+        ],
+        "answerCount": 4,
+        "correct": 0,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 30,
+        "pointsPerMillisecond": 0.02,
+        "hintPenalty": 20,
+        "timeAddPenalty": 10,
+        "timeAddBonus": 15
+      },
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "wrong answer 1",
+          "wrong answer 2",
+          "wrong answer 3",
+          "right answer",
+          "wrong answer 4"
+        ],
+        "answerCount": 5,
+        "correct": 3,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 20,
+        "pointsPerMillisecond": 0.025,
+        "hintPenalty": 15,
+        "timeAddPenalty": 8,
+        "timeAddBonus": 10
+      }
+    ]
+  },
+  "level11": {
+    "catId": 6,
+    "levelInfo": "Level 11",
+    "pdfUrl": "downloads/level11.pdf",
+    "pdfTitle": "Polkadot Level 11",
+    "questions": [
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "wrong answer 1",
+          "wrong answer 2",
+          "right answer",
+          "wrong answer 3"
+        ],
+        "answerCount": 4,
+        "correct": 2,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 30,
+        "pointsPerMillisecond": 0.02,
+        "hintPenalty": 20,
+        "timeAddPenalty": 10,
+        "timeAddBonus": 15
+      },
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "right answer",
+          "wrong answer 1",
+          "wrong answer 2",
+          "wrong answer 3"
+        ],
+        "answerCount": 4,
+        "correct": 0,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 30,
+        "pointsPerMillisecond": 0.02,
+        "hintPenalty": 20,
+        "timeAddPenalty": 10,
+        "timeAddBonus": 15
+      },
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "wrong answer 1",
+          "wrong answer 2",
+          "wrong answer 3",
+          "right answer",
+          "wrong answer 4"
+        ],
+        "answerCount": 5,
+        "correct": 3,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 20,
+        "pointsPerMillisecond": 0.025,
+        "hintPenalty": 15,
+        "timeAddPenalty": 8,
+        "timeAddBonus": 10
+      }
+    ]
+  },
+  "level12": {
+    "catId": 6,
+    "levelInfo": "Level 12",
+    "pdfUrl": "downloads/level12.pdf",
+    "pdfTitle": "Polkadot Level 12",
+    "questions": [
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "wrong answer 1",
+          "wrong answer 2",
+          "right answer",
+          "wrong answer 3"
+        ],
+        "answerCount": 4,
+        "correct": 2,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 30,
+        "pointsPerMillisecond": 0.02,
+        "hintPenalty": 20,
+        "timeAddPenalty": 10,
+        "timeAddBonus": 15
+      },
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "right answer",
+          "wrong answer 1",
+          "wrong answer 2",
+          "wrong answer 3"
+        ],
+        "answerCount": 4,
+        "correct": 0,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 30,
+        "pointsPerMillisecond": 0.02,
+        "hintPenalty": 20,
+        "timeAddPenalty": 10,
+        "timeAddBonus": 15
+      },
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "wrong answer 1",
+          "wrong answer 2",
+          "wrong answer 3",
+          "right answer",
+          "wrong answer 4"
+        ],
+        "answerCount": 5,
+        "correct": 3,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 20,
+        "pointsPerMillisecond": 0.025,
+        "hintPenalty": 15,
+        "timeAddPenalty": 8,
+        "timeAddBonus": 10
+      }
+    ]
+  },
+  "level13": {
+    "catId": 7,
+    "levelInfo": "Level 13",
+    "pdfUrl": "downloads/level13.pdf",
+    "pdfTitle": "Polkadot Level 13",
+    "questions": [
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "wrong answer 1",
+          "wrong answer 2",
+          "right answer",
+          "wrong answer 3"
+        ],
+        "answerCount": 4,
+        "correct": 2,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 30,
+        "pointsPerMillisecond": 0.02,
+        "hintPenalty": 20,
+        "timeAddPenalty": 10,
+        "timeAddBonus": 15
+      },
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "right answer",
+          "wrong answer 1",
+          "wrong answer 2",
+          "wrong answer 3"
+        ],
+        "answerCount": 4,
+        "correct": 0,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 30,
+        "pointsPerMillisecond": 0.02,
+        "hintPenalty": 20,
+        "timeAddPenalty": 10,
+        "timeAddBonus": 15
+      },
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "wrong answer 1",
+          "wrong answer 2",
+          "wrong answer 3",
+          "right answer",
+          "wrong answer 4"
+        ],
+        "answerCount": 5,
+        "correct": 3,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 20,
+        "pointsPerMillisecond": 0.025,
+        "hintPenalty": 15,
+        "timeAddPenalty": 8,
+        "timeAddBonus": 10
+      }
+    ]
+  },
+  "level14": {
+    "catId": 7,
+    "levelInfo": "Level 14",
+    "pdfUrl": "downloads/level14.pdf",
+    "pdfTitle": "Polkadot Level 14",
+    "questions": [
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "wrong answer 1",
+          "wrong answer 2",
+          "right answer",
+          "wrong answer 3"
+        ],
+        "answerCount": 4,
+        "correct": 2,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 30,
+        "pointsPerMillisecond": 0.02,
+        "hintPenalty": 20,
+        "timeAddPenalty": 10,
+        "timeAddBonus": 15
+      },
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "right answer",
+          "wrong answer 1",
+          "wrong answer 2",
+          "wrong answer 3"
+        ],
+        "answerCount": 4,
+        "correct": 0,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 30,
+        "pointsPerMillisecond": 0.02,
+        "hintPenalty": 20,
+        "timeAddPenalty": 10,
+        "timeAddBonus": 15
+      },
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "wrong answer 1",
+          "wrong answer 2",
+          "wrong answer 3",
+          "right answer",
+          "wrong answer 4"
+        ],
+        "answerCount": 5,
+        "correct": 3,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 20,
+        "pointsPerMillisecond": 0.025,
+        "hintPenalty": 15,
+        "timeAddPenalty": 8,
+        "timeAddBonus": 10
+      }
+    ]
+  },
+  "level15": {
+    "catId": 8,
+    "levelInfo": "Level 15",
+    "pdfUrl": "downloads/level15.pdf",
+    "pdfTitle": "Polkadot Level 15",
+    "questions": [
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "wrong answer 1",
+          "wrong answer 2",
+          "right answer",
+          "wrong answer 3"
+        ],
+        "answerCount": 4,
+        "correct": 2,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 30,
+        "pointsPerMillisecond": 0.02,
+        "hintPenalty": 20,
+        "timeAddPenalty": 10,
+        "timeAddBonus": 15
+      },
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "right answer",
+          "wrong answer 1",
+          "wrong answer 2",
+          "wrong answer 3"
+        ],
+        "answerCount": 4,
+        "correct": 0,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 30,
+        "pointsPerMillisecond": 0.02,
+        "hintPenalty": 20,
+        "timeAddPenalty": 10,
+        "timeAddBonus": 15
+      },
+      {
+        "question": "What is the right answer?",
+        "answers": [
+          "wrong answer 1",
+          "wrong answer 2",
+          "wrong answer 3",
+          "right answer",
+          "wrong answer 4"
+        ],
+        "answerCount": 5,
+        "correct": 3,
+        "hint": "Choose the \"right answer\"",
+        "explanation": "Only one answer is correct here.",
+        "tQuestion": 20,
+        "pointsPerMillisecond": 0.025,
+        "hintPenalty": 15,
+        "timeAddPenalty": 8,
+        "timeAddBonus": 10
       }
     ]
   }

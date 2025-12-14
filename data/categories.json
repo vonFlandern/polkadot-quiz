@@ -4,49 +4,233 @@
       "catId": 1,
       "catDescription": "Shiro",
       "catColor": "#ffffff",
-      "catSymbol": "shiro.png"
+      "catSymbol": "shiro.png",
+          "designSettings": {
+                "account": {
+                      "header": {
+                            "colorLeft": "#fefefe",
+                            "colorRight": "#d5d5d5",
+                            "colorBorder": "#ffffff"
+                      },
+                      "headerText": {
+                            "colorName": "#222222",
+                            "colorWallet": "#E6097A"
+                      },
+                      "headerBadge": {
+                            "colorBackground": "#FFFFFF"
+                      },
+                      "headerMenu": {
+                            "colorHamburger": "#222222"
+                      },
+                      "body": {
+                            "colorBackground": "#FFFFFF",
+                            "colorBorder": "#ffffff"
+                      }
+                }
+          }
     },
     {
       "catId": 2,
       "catDescription": "Kiiro",
       "catColor": "#ffcc00",
-      "catSymbol": "kiiro.png"
+      "catSymbol": "kiiro.png",
+          "designSettings": {
+                "account": {
+                      "header": {
+                            "colorLeft": "#ffcc00",
+                            "colorRight": "#cfa500",
+                            "colorBorder": "#ffcc00"
+                      },
+                      "headerText": {
+                            "colorName": "#222222",
+                            "colorWallet": "#E6097A"
+                      },
+                      "headerBadge": {
+                            "colorBackground": "#FFFFFF"
+                      },
+                      "headerMenu": {
+                            "colorHamburger": "#222222"
+                      },
+                      "body": {
+                            "colorBackground": "#FFF9E1",
+                            "colorBorder": "#ffcc00"
+                      }
+                }
+          }
     },
     {
       "catId": 3,
       "catDescription": "Daidai",
       "catColor": "#e67300",
-      "catSymbol": "daidai.png"
+      "catSymbol": "daidai.png",
+          "designSettings": {
+                "account": {
+                      "header": {
+                            "colorLeft": "#e67300",
+                            "colorRight": "#b75c00",
+                            "colorBorder": "#e67300"
+                      },
+                      "headerText": {
+                            "colorName": "#222222",
+                            "colorWallet": "#E6097A"
+                      },
+                      "headerBadge": {
+                            "colorBackground": "#FFFFFF"
+                      },
+                      "headerMenu": {
+                            "colorHamburger": "#222222"
+                      },
+                      "body": {
+                            "colorBackground": "#FCEEE1",
+                            "colorBorder": "#e67300"
+                      }
+                }
+          }
     },
     {
       "catId": 4,
       "catDescription": "Midori",
       "catColor": "#00802b",
-      "catSymbol": "midori.png"
+      "catSymbol": "midori.png",
+          "designSettings": {
+                "account": {
+                      "header": {
+                            "colorLeft": "#00802b",
+                            "colorRight": "#026323",
+                            "colorBorder": "#0047b3"
+                      },
+                      "headerText": {
+                            "colorName": "#222222",
+                            "colorWallet": "#E6097A"
+                      },
+                      "headerBadge": {
+                            "colorBackground": "#FFFFFF"
+                      },
+                      "headerMenu": {
+                            "colorHamburger": "#222222"
+                      },
+                      "body": {
+                            "colorBackground": "#E3EFE4",
+                            "colorBorder": "#0047b3"
+                      }
+                }
+          }
     },
     {
       "catId": 5,
       "catDescription": "Ao",
       "catColor": "#0047b3",
-      "catSymbol": "ao.png"
+      "catSymbol": "ao.png",
+          "designSettings": {
+                "account": {
+                      "header": {
+                            "colorLeft": "#0047b3",
+                            "colorRight": "#003688",
+                            "colorBorder": "#0047b3"
+                      },
+                      "headerText": {
+                            "colorName": "#ffffff",
+                            "colorWallet": "#E6097A"
+                      },
+                      "headerBadge": {
+                            "colorBackground": "#ffffff"
+                      },
+                      "headerMenu": {
+                            "colorHamburger": "#ffffff"
+                      },
+                      "body": {
+                            "colorBackground": "#E3E9F5",
+                            "colorBorder": "#0047b3"
+                      }
+                }
+          }
     },
     {
       "catId": 6,
       "catDescription": "Chairo",
       "catColor": "#5c3317",
-      "catSymbol": "chairo.png"
+      "catSymbol": "chairo.png",
+          "designSettings": {
+                "account": {
+                      "header": {
+                            "colorLeft": "#5c3317",
+                            "colorRight": "#4d2a12",
+                            "colorBorder": "#5c3317"
+                      },
+                      "headerText": {
+                            "colorName": "#ffffff",
+                            "colorWallet": "#E6097A"
+                      },
+                      "headerBadge": {
+                            "colorBackground": "#ffffff"
+                      },
+                      "headerMenu": {
+                            "colorHamburger": "#ffffff"
+                      },
+                      "body": {
+                            "colorBackground": "#ECE6E2",
+                            "colorBorder": "#5c3317"
+                      }
+                }
+          }
     },
     {
       "catId": 7,
       "catDescription": "Sempai",
       "catColor": "#1a1a1a",
-      "catSymbol": "sempai.png"
+      "catSymbol": "sempai.png",
+          "designSettings": {
+                "account": {
+                      "header": {
+                            "colorLeft": "#1a1a1a",
+                            "colorRight": "#1b1d1c",
+                            "colorBorder": "#1a1a1a"
+                      },
+                      "headerText": {
+                            "colorName": "#ffffff",
+                            "colorWallet": "#E6097A"
+                      },
+                      "headerBadge": {
+                            "colorBackground": "#ffffff"
+                      },
+                      "headerMenu": {
+                            "colorHamburger": "#ffffff"
+                      },
+                      "body": {
+                            "colorBackground": "#E3E3E3",
+                            "colorBorder": "#1a1a1a"
+                      }
+                }
+          }
     },
     {
       "catId": 8,
       "catDescription": "Sensai",
       "catColor": "#000000",
-      "catSymbol": "sensai.png"
+      "catSymbol": "sensai.png",
+          "designSettings": {
+                "account": {
+                      "header": {
+                            "colorLeft": "#1a1a1a",
+                            "colorRight": "#1b1d1c",
+                            "colorBorder": "#ff1212"
+                      },
+                      "headerText": {
+                            "colorName": "#999999",
+                            "colorWallet": "#999999"
+                      },
+                      "headerBadge": {
+                            "colorBackground": "#ffffff"
+                      },
+                      "headerMenu": {
+                            "colorHamburger": "#ff1212"
+                      },
+                      "body": {
+                            "colorBackground": "#E3E3E3",
+                            "colorBorder": "#ff1212"
+                      }
+                }
+          }
     }
   ]
 }
