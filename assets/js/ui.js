@@ -734,6 +734,63 @@ class QuizUI {
     }
 
     /**
+     * Wende kategorie-spezifisches Design auf Account-Bereich an
+     * Setzt CSS-Variablen basierend auf der aktuellen Spieler-Kategorie
+     * @param {Object} playerData - Spielerdaten mit currentCategory
+     */
+    applyAccountDesign(playerData) {
+        // Ermittle aktuelle Kategorie (Fallback: Shiro für neue Spieler)
+        const currentCategory = playerData.player?.currentCategory || 0;
+        const categoryId = currentCategory > 0 ? currentCategory : 1;
+
+        // Lade Kategorie-Objekt
+        const categoryObj = quizEngine.getCategoryById(categoryId);
+
+        if (!categoryObj || !categoryObj.designSettings || !categoryObj.designSettings.account) {
+            console.warn(`[UI] Keine Design-Settings für Kategorie ${categoryId} gefunden, verwende Fallback`);
+            return; // Verwende CSS-Fallback-Werte
+        }
+
+        const accountDesign = categoryObj.designSettings.account;
+        const root = document.documentElement;
+
+        try {
+            // Header-Design
+            if (accountDesign.header) {
+                root.style.setProperty('--account-header-color-left', accountDesign.header.colorLeft);
+                root.style.setProperty('--account-header-color-right', accountDesign.header.colorRight);
+                root.style.setProperty('--account-header-border', accountDesign.header.colorBorder);
+            }
+
+            // Header-Text
+            if (accountDesign.headerText) {
+                root.style.setProperty('--account-text-name', accountDesign.headerText.colorName);
+                root.style.setProperty('--account-text-wallet', accountDesign.headerText.colorWallet);
+            }
+
+            // Badge-Hintergrund
+            if (accountDesign.headerBadge) {
+                root.style.setProperty('--account-badge-background', accountDesign.headerBadge.colorBackground);
+            }
+
+            // Hamburger-Menü
+            if (accountDesign.headerMenu) {
+                root.style.setProperty('--account-menu-hamburger', accountDesign.headerMenu.colorHamburger);
+            }
+
+            // Body-Design (vorbereitet für zukünftige Erweiterung)
+            if (accountDesign.body) {
+                root.style.setProperty('--account-body-background', accountDesign.body.colorBackground);
+                root.style.setProperty('--account-body-border', accountDesign.body.colorBorder);
+            }
+
+            console.log(`[UI] Account-Design für Kategorie "${categoryObj.catDescription}" angewendet`);
+        } catch (error) {
+            console.error('[UI] Fehler beim Anwenden des Account-Designs:', error);
+        }
+    }
+
+    /**
      * Initialisiere Account-Menü (Hamburger-Dropdown)
      */
     initAccountMenu() {
@@ -1071,6 +1128,10 @@ class QuizUI {
             // Lade Leaderboard für Rang
             const leaderboardData = await quizEngine.loadLeaderboard(100);
             const leaderboard = leaderboardData?.leaderboard || [];
+
+            // === WICHTIG: Design ZUERST anwenden, DANN rendern ===
+            // CSS-Variablen müssen gesetzt sein, bevor HTML eingefügt wird
+            this.applyAccountDesign(playerData);
 
             // Player-Info mit Badge rendern (Account-Container)
             this.renderPlayerInfo(playerData, playerName, walletAddress);

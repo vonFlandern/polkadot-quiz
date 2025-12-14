@@ -15,6 +15,19 @@
     --bg-color: #ffffff;
     --text-color: #1f2937;
     --border-color: #e5e7eb;
+
+    /* === Account-Bereich Kategorie-Variablen === */
+    /* Diese werden dynamisch von JavaScript gesetzt (IDEE 3) */
+    /* Fallback-Werte = Sensai (aktuelle Farben, catId 8) */
+    --account-header-color-left: #1a1a1a;
+    --account-header-color-right: #1b1d1c;
+    --account-header-border: #ff1212;
+    --account-text-name: #999999;
+    --account-text-wallet: #999999;
+    --account-badge-background: #ffffff;
+    --account-menu-hamburger: #ff1212;
+    --account-body-background: #E3E3E3;
+    --account-body-border: #ff1212;
 }
 
 * {
@@ -617,8 +630,8 @@ button.secondary {
     align-items: center;
     gap: 15px;
     padding: 15px 20px;
-    background: linear-gradient(135deg, #1a1a1a 0%, #1b1d1c 100%);
-    border: 2px solid #ff1212;
+    background: linear-gradient(135deg, var(--account-header-color-left) 0%, var(--account-header-color-right) 100%);
+    border: 2px solid var(--account-header-border);
     border-bottom: none;
     margin-bottom: 20px;
     border-radius: 8px;
@@ -631,7 +644,7 @@ button.secondary {
     width: 80px;
     height: 80px;
     border-radius: 50%;
-    background: #ffffff;
+    background: var(--account-badge-background);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     display: flex;
     justify-content: center;
@@ -658,12 +671,12 @@ button.secondary {
 .player-name-display {
     font-size: 1.5em;
     font-weight: 700;
-    color: #999999;
+    color: var(--account-text-name);
 }
 
 .player-wallet-display {
     font-size: 1em;
-    color: #999999;
+    color: var(--account-text-wallet);
 }
 
 /* Menü-Link (Hamburger-Icon) */
@@ -672,7 +685,7 @@ button.secondary {
 }
 
 .account-menu a#account-menu-trigger {
-    color: #ff1212;
+    color: var(--account-menu-hamburger);
     text-decoration: none;
     font-size: 1.5em;
     cursor: pointer;
