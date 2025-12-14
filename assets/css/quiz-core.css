@@ -633,7 +633,7 @@ button.secondary {
     background: linear-gradient(135deg, var(--account-header-color-left) 0%, var(--account-header-color-right) 100%);
     border: 2px solid var(--account-header-border);
     border-bottom: none;
-    margin-bottom: 20px;
+    margin-bottom: 0px;  /* Kein Margin - Body-Section schließt direkt an */
     border-radius: 8px;
     border-bottom-left-radius: 0px;
     border-bottom-right-radius: 0px;
@@ -760,6 +760,32 @@ button.secondary {
     .player-wallet-display {
         font-size: 0.75em;
     }
+}
+
+/* ========================================
+   ACCOUNT BODY-BEREICHE (IDEE 3)
+   ======================================== */
+
+/* Account Body-Bereiche (Welcome + Rank Info) */
+.account-body-section {
+    margin: 20px 0;
+    padding: 20px;
+    background: var(--account-body-background);
+    border: 2px solid var(--account-body-border);
+    border-radius: 8px;
+    border-top-left-radius: 0px;   /* Verbindet visuell mit Header */
+    border-top-right-radius: 0px;
+}
+
+/* Erste Section (direkt unter Header) - schließt nahtlos an */
+.account-body-section:first-of-type {
+    margin-top: -20px;  /* Schließt an Header an */
+}
+
+/* Text-Styling innerhalb der Body-Sections */
+.account-body-section h3,
+.account-body-section strong {
+    color: var(--text-color);  /* Bleibt lesbar in allen Kategorien */
 }
 
 /* ========================================

@@ -543,8 +543,8 @@ class QuizUI {
         // FALL 1: Neuer Spieler (playerName startet mit "Player_")
         if (playerName && playerName.startsWith('Player_')) {
             welcomeContainer.innerHTML = `
-                <div style="text-align: center; margin: 20px 0; padding: 20px; background: white; border-radius: 8px; border: 2px solid var(--border-color);">
-                    <label for="welcome-name-input" style="display: block; margin-bottom: 10px; font-size: 1.1em; font-weight: 600; color: var(--text-color);">
+                <div class="account-body-section" style="text-align: center;">
+                    <label for="welcome-name-input" style="display: block; margin-bottom: 15px; font-size: 1.1em; font-weight: 600;">
                         Willkommen! Bitte gib deinen Spielernamen ein:
                     </label>
                     <input
@@ -552,9 +552,9 @@ class QuizUI {
                         id="welcome-name-input"
                         placeholder="Dein Name"
                         maxlength="20"
-                        style="width: 100%; max-width: 400px; padding: 12px; font-size: 16px; border: 2px solid var(--border-color); border-radius: 8px; margin-bottom: 15px;"
+                        style="width: 100%; max-width: 300px; padding: 12px; font-size: 1em; border: 2px solid var(--border-color); border-radius: 6px; margin-bottom: 15px;"
                     />
-                    <button id="welcome-save-name-btn" style="padding: 12px 24px; font-size: 16px;">
+                    <button id="welcome-save-name-btn" style="padding: 12px 30px; background: var(--primary-color); color: white; border: none; border-radius: 6px; font-size: 1em; font-weight: 600; cursor: pointer;">
                         Namen speichern
                     </button>
                     <p style="margin-top: 10px; font-size: 0.9em; color: #6b7280;">
@@ -577,7 +577,7 @@ class QuizUI {
             : `Willkommen, ${playerName}!`;
 
         welcomeContainer.innerHTML = `
-            <div style="text-align: center; margin: 20px 0; font-size: 1.3em; font-weight: 600; color: var(--text-color);">
+            <div class="account-body-section" style="text-align: center; font-size: 1.3em; font-weight: 600;">
                 ${greeting}
             </div>
         `;
@@ -702,7 +702,7 @@ class QuizUI {
         const formattedScore = new Intl.NumberFormat('de-DE').format(playerRank.totalScore || 0);
 
         rankContainer.innerHTML = `
-            <div style="margin: 20px 0; padding: 15px; background: white; border-radius: 8px; border: 2px solid var(--primary-color);">
+            <div class="account-body-section">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                     <div>
                         <strong style="color: var(--primary-color); font-size: 1.1em;">
@@ -713,8 +713,8 @@ class QuizUI {
                         </strong>
                     </div>
                     <div style="text-align: right;">
-                        <div style="font-size: 1.2em; font-weight: bold; color: var(--primary-color);">${formattedScore} Punkte</div>
-                        <div style="font-size: 0.85em; color: #6b7280;">Leaderboard-Score</div>
+                        <div style="font-size: 1.5em; font-weight: bold; color: var(--primary-color);">${formattedScore} Punkte</div>
+                        <div style="font-size: 0.9em; color: var(--text-color); margin-top: 5px;">Leaderboard-Score</div>
                     </div>
                 </div>
             </div>
