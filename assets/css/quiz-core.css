@@ -772,6 +772,7 @@ button.secondary {
     padding: 20px;
     background: var(--account-body-background);
     border: 2px solid var(--account-body-border);
+    border-top: none;  /* Kein Top-Border - nahtloser Übergang zum Header */
     border-radius: 8px;
     border-top-left-radius: 0px;   /* Verbindet visuell mit Header */
     border-top-right-radius: 0px;
