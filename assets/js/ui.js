@@ -79,16 +79,16 @@ class QuizUI {
 
         connectBtn.addEventListener('click', async () => {
             try {
-                // Zeige Status-Div erst jetzt
+                // Show status div now
                 statusDiv.style.display = 'block';
-                statusDiv.innerHTML = '<p>Verbinde mit Wallet...</p>';
-                
+                statusDiv.innerHTML = '<p>Connecting to wallet...</p>';
+
                 const accounts = await walletManager.connect();
-                
-                statusDiv.innerHTML = '<p class="success">✅ Wallet verbunden! Wähle einen Account:</p>';
-                
-                // Zeige Accounts mit konvertierten Adressen
-                accountsDiv.innerHTML = '<p>🔄 Lade Accounts...</p>';
+
+                statusDiv.innerHTML = '<p class="success">✅ Wallet connected! Choose an account:</p>';
+
+                // Show accounts with converted addresses
+                accountsDiv.innerHTML = '<p>🔄 Loading accounts...</p>';
                 
                 // Für jeden Account: Prüfe ob bekannt und konvertiere für Anzeige
                 const accountsWithInfo = await Promise.all(
@@ -148,7 +148,7 @@ class QuizUI {
                     const shortAddress = account.polkadotAddress.substring(0, 12) + '...';
                     
                     accountBtn.innerHTML = `
-                        <strong>${account.name || 'Unbenannt'}</strong><br>
+                        <strong>${account.name || 'Unnamed'}</strong><br>
                         <small style="color: var(--primary-color);">${shortAddress}</small>
                     `;
                     
@@ -172,38 +172,38 @@ class QuizUI {
                         const oldButtons = document.getElementById('action-buttons');
                         if (oldButtons) oldButtons.remove();
                         
-                        // Wenn bekannter Spieler
+                        // If known player
                         if (account.existingPlayer) {
                             const nameLabel = document.querySelector('label[for="player-name"]');
                             if (nameLabel) {
-                                // Größerer Text, Anthrazit, kein Emoji
-                                nameLabel.innerHTML = `<strong style="color: #374151; font-size: 1.3em;">Willkommen zurück, ${account.existingPlayer.playerName}!</strong>`;
+                                // Larger text, charcoal gray, no emoji
+                                nameLabel.innerHTML = `<strong style="color: #374151; font-size: 1.3em;">Welcome back, ${account.existingPlayer.playerName}!</strong>`;
                             }
-                            
-                            // Verstecke Input
+
+                            // Hide input
                             const nameInput = document.getElementById('player-name');
                             nameInput.style.display = 'none';
                             nameInput.value = account.existingPlayer.playerName;
-                            
-                            // ENTFERNE originalen Submit-Button komplett
+
+                            // REMOVE original submit button completely
                             const originalSubmitBtn = document.getElementById('continue-to-quiz-btn');
                             if (originalSubmitBtn) {
                                 originalSubmitBtn.remove();
                             }
-                            
-                            // DREI Buttons nebeneinander: Weiter zum Quiz | Anleitung | Name ändern
+
+                            // THREE buttons side by side: Continue to Quiz | Instructions | Change Name
                             const buttonsDiv = document.createElement('div');
                             buttonsDiv.id = 'action-buttons';
                             buttonsDiv.style.cssText = 'display: flex; gap: 15px; margin-top: 15px;';
                             buttonsDiv.innerHTML = `
                                 <button id="continue-quiz-btn" type="button" style="flex: 1; padding: 15px; font-size: 16px; font-weight: 600; background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%); border: none; border-radius: 8px; color: white; cursor: pointer;">
-                                    Weiter zum Quiz
+                                    Continue to Quiz
                                 </button>
                                 <button id="open-anleitung-btn" type="button" style="flex: 1; padding: 15px; font-size: 16px; font-weight: 600; background: #6b7280; border: none; border-radius: 8px; color: white; cursor: pointer;">
-                                    Anleitung
+                                    Instructions
                                 </button>
                                 <button id="open-change-name-btn" type="button" style="flex: 1; padding: 15px; font-size: 16px; font-weight: 600; background: #6b7280; border: none; border-radius: 8px; color: white; cursor: pointer;">
-                                    Name ändern
+                                    Change Name
                                 </button>
                             `;
                             
@@ -237,7 +237,7 @@ class QuizUI {
                             // Neuer Spieler: 3-Button-Layout wie bekannte Spieler
                             const nameLabel = document.querySelector('label[for="player-name"]');
                             if (nameLabel) {
-                                nameLabel.innerHTML = '<strong>Wähle deinen Spielernamen:</strong>';
+                                nameLabel.innerHTML = '<strong>Choose your player name:</strong>';
                             }
                             
                             const nameInput = document.getElementById('player-name');
@@ -264,7 +264,7 @@ class QuizUI {
                                 console.error('Name suggestion failed:', error);
                                 // Fallback
                                 nameInput.value = '';
-                                nameInput.placeholder = 'z.B. Player_1';
+                                nameInput.placeholder = 'e.g. Player_1';
                             }
                             
                             // ENTFERNE originalen Submit-Button komplett
@@ -279,13 +279,13 @@ class QuizUI {
                             buttonsDiv.style.cssText = 'display: flex; gap: 15px; margin-top: 15px;';
                             buttonsDiv.innerHTML = `
                                 <button id="continue-quiz-btn" type="button" style="flex: 1; padding: 15px; font-size: 16px; font-weight: 600; background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%); border: none; border-radius: 8px; color: white; cursor: pointer;">
-                                    Weiter zum Quiz
+                                    Continue to Quiz
                                 </button>
                                 <button id="open-anleitung-btn" type="button" style="flex: 1; padding: 15px; font-size: 16px; font-weight: 600; background: #6b7280; border: none; border-radius: 8px; color: white; cursor: pointer;">
-                                    Anleitung
+                                    Instructions
                                 </button>
                                 <button id="open-change-name-btn" type="button" style="flex: 1; padding: 15px; font-size: 16px; font-weight: 600; background: #6b7280; border: none; border-radius: 8px; color: white; cursor: pointer;">
-                                    Name ändern
+                                    Change Name
                                 </button>
                             `;
                             
@@ -299,12 +299,12 @@ class QuizUI {
                                     
                                     // Validierung
                                     if (!playerName || playerName.length < 3) {
-                                        alert('❌ Bitte gib einen Spielernamen ein (mindestens 3 Zeichen)');
+                                        alert('❌ Please enter a player name (at least 3 characters)');
                                         return;
                                     }
-                                    
+
                                     if (playerName.length > 20) {
-                                        alert('❌ Der Name darf maximal 20 Zeichen haben!');
+                                        alert('❌ Name must not exceed 20 characters!');
                                         return;
                                     }
                                     
@@ -322,7 +322,7 @@ class QuizUI {
                                         const checkResult = await checkResponse.json();
                                         
                                         if (!checkResult.available) {
-                                            alert(`❌ Der Name "${playerName}" ist bereits vergeben!\n\nBitte wähle einen anderen Namen.`);
+                                            alert(`❌ The name "${playerName}" is already taken!\n\nPlease choose a different name.`);
                                             return;
                                         }
                                     } catch (error) {
@@ -357,7 +357,7 @@ class QuizUI {
                                         
                                     } catch (error) {
                                         console.error('Player registration error:', error);
-                                        alert(`❌ Fehler beim Speichern: ${error.message}\n\nBitte versuche es erneut.`);
+                                        alert(`❌ Error saving: ${error.message}\n\nPlease try again.`);
                                     }
                                 });
                                 
@@ -387,23 +387,23 @@ class QuizUI {
             
             // Validierung: 3-20 Zeichen
             if (!playerName) {
-                alert('❌ Bitte gib einen Spielernamen ein');
+                alert('❌ Please enter a player name');
                 return;
             }
-            
+
             if (playerName.length < 3) {
-                alert('❌ Der Name muss mindestens 3 Zeichen haben!');
+                alert('❌ Name must be at least 3 characters!');
                 return;
             }
-            
+
             if (playerName.length > 20) {
-                alert('❌ Der Name darf maximal 20 Zeichen haben!');
+                alert('❌ Name must not exceed 20 characters!');
                 return;
             }
-            
+
             const selectedAccount = walletManager.getSelectedAccount();
             if (!selectedAccount) {
-                alert('❌ Bitte wähle einen Account aus');
+                alert('❌ Please select an account');
                 return;
             }
             
@@ -433,7 +433,7 @@ class QuizUI {
                     const checkResult = await checkResponse.json();
                     
                     if (!checkResult.available) {
-                        alert(`❌ Der Name "${playerName}" ist bereits vergeben!\n\nBitte wähle einen anderen Namen.`);
+                        alert(`❌ The name "${playerName}" is already taken!\n\nPlease choose a different name.`);
                         return;
                     }
                 } catch (error) {
@@ -475,7 +475,7 @@ class QuizUI {
                 
             } catch (error) {
                 console.error('Player registration error:', error);
-                alert(`❌ Fehler beim Speichern: ${error.message}\n\nBitte versuche es erneut.`);
+                alert(`❌ Error saving: ${error.message}\n\nPlease try again.`);
             }
         });
     }
@@ -516,9 +516,9 @@ class QuizUI {
                 <div class="account-menu">
                     <a href="#" id="account-menu-trigger">☰</a>
                     <div id="account-menu-dropdown" class="menu-dropdown" style="display: none;">
-                        <a href="#" id="menu-logout">Abmelden</a>
-                        <a href="#" id="menu-change-name">Spielername ändern</a>
-                        <a href="#" id="menu-anleitung">Spielanleitung</a>
+                        <a href="#" id="menu-logout">Log Out</a>
+                        <a href="#" id="menu-change-name">Change Name</a>
+                        <a href="#" id="menu-anleitung">Instructions</a>
                     </div>
                 </div>
             </div>
@@ -545,20 +545,20 @@ class QuizUI {
             welcomeContainer.innerHTML = `
                 <div style="text-align: center; margin-bottom: 20px;">
                     <label for="welcome-name-input" style="display: block; margin-bottom: 15px; font-size: 1.1em; font-weight: 600;">
-                        Willkommen! Bitte gib deinen Spielernamen ein:
+                        Welcome! Please enter your player name:
                     </label>
                     <input
                         type="text"
                         id="welcome-name-input"
-                        placeholder="Dein Name"
+                        placeholder="Your name"
                         maxlength="20"
                         style="width: 100%; max-width: 300px; padding: 12px; font-size: 1em; border: 2px solid var(--border-color); border-radius: 6px; margin-bottom: 15px;"
                     />
                     <button id="welcome-save-name-btn" style="padding: 12px 30px; background: var(--primary-color); color: white; border: none; border-radius: 6px; font-size: 1em; font-weight: 600; cursor: pointer;">
-                        Namen speichern
+                        Save Name
                     </button>
                     <p style="margin-top: 10px; font-size: 0.9em; color: #6b7280;">
-                        3-20 Zeichen, muss eindeutig sein
+                        3-20 characters, must be unique
                     </p>
                 </div>
             `;
@@ -573,8 +573,8 @@ class QuizUI {
         const isSensei = categoryObj && categoryObj.catId === 8;
 
         const greeting = isSensei
-            ? `Willkommen, Sensei ${playerName}!`
-            : `Willkommen, ${playerName}!`;
+            ? `Welcome, Sensei ${playerName}!`
+            : `Welcome, ${playerName}!`;
 
         welcomeContainer.innerHTML = `
             <div style="text-align: center; font-size: 1.3em; font-weight: 600; margin-bottom: 20px;">
@@ -597,12 +597,12 @@ class QuizUI {
 
             // Validierung
             if (!newName || newName.length < 3) {
-                alert('❌ Der Name muss mindestens 3 Zeichen haben!');
+                alert('❌ Name must be at least 3 characters!');
                 return;
             }
 
             if (newName.length > 20) {
-                alert('❌ Der Name darf maximal 20 Zeichen haben!');
+                alert('❌ Name must not exceed 20 characters!');
                 return;
             }
 
@@ -621,7 +621,7 @@ class QuizUI {
                 const checkResult = await checkResponse.json();
 
                 if (!checkResult.available) {
-                    alert(`❌ Der Name "${newName}" ist bereits vergeben!\n\nBitte wähle einen anderen Namen.`);
+                    alert(`❌ The name "${newName}" is already taken!\n\nPlease choose a different name.`);
                     return;
                 }
 
@@ -655,7 +655,7 @@ class QuizUI {
 
             } catch (error) {
                 console.error('Name save error:', error);
-                alert(`❌ Fehler beim Speichern: ${error.message}\n\nBitte versuche es erneut.`);
+                alert(`❌ Error saving: ${error.message}\n\nPlease try again.`);
             }
         };
 
@@ -699,21 +699,21 @@ class QuizUI {
         else if (rank === 2) rankEmoji = '🥈 ';
         else if (rank === 3) rankEmoji = '🥉 ';
 
-        const formattedScore = new Intl.NumberFormat('de-DE').format(playerRank.totalScore || 0);
+        const formattedScore = new Intl.NumberFormat('en-US').format(playerRank.totalScore || 0);
 
         rankContainer.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding-top: 15px; border-top: 1px solid rgba(0,0,0,0.1);">
                 <div>
                     <strong style="color: var(--primary-color); font-size: 1.1em;">
-                        ${rankEmoji}Du bist aktuell auf Platz ${rank} im
+                        ${rankEmoji}You are currently ranked ${rank} on the
                         <a href="leaderboard.php" target="_blank" style="color: var(--primary-color); text-decoration: underline; font-weight: 600;">
                             Leaderboard
                         </a>
                     </strong>
                 </div>
                 <div style="text-align: right;">
-                    <div style="font-size: 1.5em; font-weight: bold; color: var(--primary-color);">${formattedScore} Punkte</div>
-                    <div style="font-size: 0.9em; color: var(--text-color); margin-top: 5px;">Leaderboard-Score</div>
+                    <div style="font-size: 1.5em; font-weight: bold; color: var(--primary-color);">${formattedScore} Points</div>
+                    <div style="font-size: 0.9em; color: var(--text-color); margin-top: 5px;">Leaderboard Score</div>
                 </div>
             </div>
         `;
@@ -1181,27 +1181,13 @@ class QuizUI {
      * Extrahiere Level-Titel aus Level-Daten
      */
     getLevelTitle(levelNumber, levelData) {
-        // Versuche aus der ersten Frage zu extrahieren (falls vorhanden)
-        // Oder nutze generische Titel
-        const titles = {
-            1: 'Polkadot Basics',
-            2: 'Polkadot Architektur',
-            3: 'Economics & Governance',
-            4: 'Entwicklung & Tools',
-            5: 'Substrate Framework',
-            6: 'Runtime & Pallets',
-            7: 'Consensus & Finality',
-            8: 'Cross-Chain Communication',
-            9: 'Governance Deep Dive',
-            10: 'Staking & Nomination',
-            11: 'Parachain Development',
-            12: 'Smart Contracts',
-            13: 'OpenGov',
-            14: 'Security & Audits',
-            15: 'Ecosystem & Use Cases'
-        };
-        
-        return titles[levelNumber] || `Level ${levelNumber}`;
+        // Prüfe zuerst ob levelTitle in levelData vorhanden ist
+        if (levelData && levelData.levelTitle) {
+            return levelData.levelTitle;
+        }
+
+        // Fallback zu generischem Titel
+        return `Level ${levelNumber}`;
     }
 
     /**

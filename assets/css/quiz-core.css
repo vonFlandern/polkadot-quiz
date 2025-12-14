@@ -565,6 +565,9 @@ button.secondary {
     overflow: hidden;
     transition: max-height 0.4s ease, padding 0.4s ease;
     padding: 15px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 15px;
 }
 
 .category-container.collapsed .category-content {
@@ -574,10 +577,6 @@ button.secondary {
 
 /* Level-Buttons innerhalb Categories */
 .category-content .level-btn {
-    margin-bottom: 10px;
-}
-
-.category-content .level-btn:last-child {
     margin-bottom: 0;
 }
 

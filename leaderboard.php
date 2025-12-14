@@ -7,7 +7,7 @@
 require_once 'config.php';
 ?>
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -381,39 +381,39 @@ require_once 'config.php';
         <!-- Header -->
         <div class="leaderboard-header">
             <h1>🏆 Leaderboard</h1>
-            <p>Die besten Polkadot-Quiz Spieler</p>
+            <p>The best Polkadot Quiz players</p>
         </div>
 
         <!-- Controls -->
         <div class="leaderboard-controls">
             <div class="search-container">
-                <input type="text" id="player-search-input" placeholder="Spielername suchen...">
-                <button id="player-search-btn">Suchen</button>
-                <button id="show-all-btn" style="display: none;">Alle anzeigen</button>
+                <input type="text" id="player-search-input" placeholder="Search player name...">
+                <button id="player-search-btn">Search</button>
+                <button id="show-all-btn" style="display: none;">Show All</button>
             </div>
             <div class="refresh-info">
-                <span id="total-players-display">Lädt...</span>
+                <span id="total-players-display">Loading...</span>
             </div>
         </div>
 
         <!-- Content -->
         <div class="leaderboard-content">
             <div id="loading" class="loading">
-                <p>⏳ Lade Leaderboard...</p>
+                <p>⏳ Loading Leaderboard...</p>
             </div>
 
             <div id="leaderboard-table" style="display: none;">
                 <table class="leaderboard-table">
                     <thead>
                         <tr>
-                            <th class="center">Rang</th>
-                            <th>Spieler</th>
+                            <th class="center">Rank</th>
+                            <th>Player</th>
                             <th class="center hide-mobile">Belt</th>
-                            <th class="right">Punkte</th>
+                            <th class="right">Points</th>
                             <th class="center">Level</th>
-                            <th class="center hide-mobile">Fragen</th>
+                            <th class="center hide-mobile">Questions</th>
                             <th class="center hide-mobile">%</th>
-                            <th class="center hide-mobile">Zeit</th>
+                            <th class="center hide-mobile">Time</th>
                             <th class="center hide-mobile">Time+</th>
                             <th class="center hide-mobile">Hints</th>
                         </tr>
@@ -425,24 +425,24 @@ require_once 'config.php';
             </div>
 
             <div id="empty-state" class="empty-state" style="display: none;">
-                <h3>Noch keine Spieler</h3>
-                <p>Sei der Erste und starte das Quiz!</p>
+                <h3>No players yet</h3>
+                <p>Be the first and start the quiz!</p>
             </div>
         </div>
 
         <!-- Quiz Link -->
         <div class="quiz-link">
-            <a href="index.php">🎮 Zum Quiz</a>
+            <a href="index.php">🎮 To Quiz</a>
         </div>
 
         <!-- Footer -->
         <div class="leaderboard-footer">
             <p>Polkadot Quiz by <a href="https://vonflandern.org" target="_blank">vonFlandern</a></p>
             <p style="margin-top: 10px; font-size: 0.85em;" id="last-update">
-                Lädt...
+                Loading...
             </p>
             <p style="margin-top: 5px; font-size: 0.85em;">
-                Nur First-Attempt Scores zählen fürs Ranking
+                Only first-attempt scores count for ranking
             </p>
         </div>
     </div>
@@ -529,7 +529,7 @@ require_once 'config.php';
 
                 } catch (error) {
                     console.error('Failed to load leaderboard:', error);
-                    alert('❌ Fehler beim Laden des Leaderboards');
+                    alert('❌ Error loading leaderboard');
                 }
             },
 
@@ -715,8 +715,8 @@ require_once 'config.php';
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="9" style="text-align: center; padding: 60px 20px; color: #6b7280;">
-                            <h3 style="color: var(--text-color); margin-bottom: 10px;">Keine Treffer</h3>
-                            <p>Kein Spieler mit dem Namen "<strong>${this.escapeHtml(searchTerm)}</strong>" gefunden.</p>
+                            <h3 style="color: var(--text-color); margin-bottom: 10px;">No Results</h3>
+                            <p>No player found with the name "<strong>${this.escapeHtml(searchTerm)}</strong>".</p>
                         </td>
                     </tr>
                 `;
@@ -743,18 +743,18 @@ require_once 'config.php';
 
                 const totalPlayers = this.data.total;
                 
-                // Zeige Spieleranzahl oben rechts
-                const pluralText = totalPlayers === 1 ? 'Spieler' : 'Spieler';
+                // Show player count at top right
+                const pluralText = totalPlayers === 1 ? 'Player' : 'Players';
                 document.getElementById('total-players-display').textContent = `${this.formatNumber(totalPlayers)} ${pluralText}`;
             },
 
             /**
-             * Update Last Update Zeit
+             * Update Last Update Time
              */
             updateLastUpdate() {
                 const now = new Date();
-                const timeStr = now.toLocaleTimeString('de-DE');
-                document.getElementById('last-update').textContent = `Zuletzt aktualisiert: ${timeStr}`;
+                const timeStr = now.toLocaleTimeString('en-US');
+                document.getElementById('last-update').textContent = `Last updated: ${timeStr}`;
             },
 
             /**

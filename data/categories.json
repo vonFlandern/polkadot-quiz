@@ -8,23 +8,23 @@
           "designSettings": {
                 "account": {
                       "header": {
-                            "colorLeft": "#fefefe",
-                            "colorRight": "#d5d5d5",
-                            "colorBorder": "#ffffff"
+                            "colorLeft": "#d5d5d5",
+                            "colorRight": "#fefefe",
+                            "colorBorder": "#d5d5d5"
                       },
                       "headerText": {
                             "colorName": "#222222",
                             "colorWallet": "#E6097A"
                       },
                       "headerBadge": {
-                            "colorBackground": "#FFFFFF"
+                            "colorBackground": "#ffffff"
                       },
                       "headerMenu": {
                             "colorHamburger": "#222222"
                       },
                       "body": {
                             "colorBackground": "#FFFFFF",
-                            "colorBorder": "#ffffff"
+                            "colorBorder": "#d5d5d5"
                       }
                 }
           }
@@ -37,23 +37,23 @@
           "designSettings": {
                 "account": {
                       "header": {
-                            "colorLeft": "#ffcc00",
-                            "colorRight": "#cfa500",
-                            "colorBorder": "#ffcc00"
+                            "colorLeft": "#cfa500",
+                            "colorRight": "#ffcc00",
+                            "colorBorder": "#cfa500"
                       },
                       "headerText": {
-                            "colorName": "#222222",
-                            "colorWallet": "#E6097A"
+                            "colorName": "#FFF9E1",
+                            "colorWallet": "#FFF9E1"
                       },
                       "headerBadge": {
                             "colorBackground": "#FFFFFF"
                       },
                       "headerMenu": {
-                            "colorHamburger": "#222222"
+                            "colorHamburger": "#FFF9E1"
                       },
                       "body": {
                             "colorBackground": "#FFF9E1",
-                            "colorBorder": "#ffcc00"
+                            "colorBorder": "#cfa500"
                       }
                 }
           }
@@ -66,23 +66,23 @@
           "designSettings": {
                 "account": {
                       "header": {
-                            "colorLeft": "#e67300",
-                            "colorRight": "#b75c00",
-                            "colorBorder": "#e67300"
+                            "colorLeft": "#b75c00",
+                            "colorRight": "#e67300",
+                            "colorBorder": "#b75c00"
                       },
                       "headerText": {
-                            "colorName": "#222222",
-                            "colorWallet": "#E6097A"
+                            "colorName": "#FCEEE1",
+                            "colorWallet": "#FCEEE1"
                       },
                       "headerBadge": {
                             "colorBackground": "#FFFFFF"
                       },
                       "headerMenu": {
-                            "colorHamburger": "#222222"
+                            "colorHamburger": "#FCEEE1"
                       },
                       "body": {
                             "colorBackground": "#FCEEE1",
-                            "colorBorder": "#e67300"
+                            "colorBorder": "#b75c00"
                       }
                 }
           }
@@ -95,23 +95,23 @@
           "designSettings": {
                 "account": {
                       "header": {
-                            "colorLeft": "#00802b",
-                            "colorRight": "#026323",
-                            "colorBorder": "#0047b3"
+                            "colorLeft": "#026323",
+                            "colorRight": "#00802b",
+                            "colorBorder": "#026323"
                       },
                       "headerText": {
-                            "colorName": "#222222",
-                            "colorWallet": "#E6097A"
+                            "colorName": "#E3EFE4",
+                            "colorWallet": "#E3EFE4"
                       },
                       "headerBadge": {
                             "colorBackground": "#FFFFFF"
                       },
                       "headerMenu": {
-                            "colorHamburger": "#222222"
+                            "colorHamburger": "#E3EFE4"
                       },
                       "body": {
                             "colorBackground": "#E3EFE4",
-                            "colorBorder": "#0047b3"
+                            "colorBorder": "#026323"
                       }
                 }
           }
@@ -124,23 +124,23 @@
           "designSettings": {
                 "account": {
                       "header": {
-                            "colorLeft": "#0047b3",
-                            "colorRight": "#003688",
-                            "colorBorder": "#0047b3"
+                            "colorLeft": "#003688",
+                            "colorRight": "#0047b3",
+                            "colorBorder": "#003688"
                       },
                       "headerText": {
-                            "colorName": "#ffffff",
-                            "colorWallet": "#E6097A"
+                            "colorName": "#E3E9F5",
+                            "colorWallet": "#E3E9F5"
                       },
                       "headerBadge": {
                             "colorBackground": "#ffffff"
                       },
                       "headerMenu": {
-                            "colorHamburger": "#ffffff"
+                            "colorHamburger": "#E3E9F5"
                       },
                       "body": {
                             "colorBackground": "#E3E9F5",
-                            "colorBorder": "#0047b3"
+                            "colorBorder": "#003688"
                       }
                 }
           }
@@ -153,23 +153,23 @@
           "designSettings": {
                 "account": {
                       "header": {
-                            "colorLeft": "#5c3317",
-                            "colorRight": "#4d2a12",
-                            "colorBorder": "#5c3317"
+                            "colorLeft": "#4d2a12",
+                            "colorRight": "#5c3317",
+                            "colorBorder": "#4d2a12"
                       },
                       "headerText": {
-                            "colorName": "#ffffff",
-                            "colorWallet": "#E6097A"
+                            "colorName": "#ECE6E2",
+                            "colorWallet": "#ECE6E2"
                       },
                       "headerBadge": {
                             "colorBackground": "#ffffff"
                       },
                       "headerMenu": {
-                            "colorHamburger": "#ffffff"
+                            "colorHamburger": "#ECE6E2"
                       },
                       "body": {
                             "colorBackground": "#ECE6E2",
-                            "colorBorder": "#5c3317"
+                            "colorBorder": "#4d2a12"
                       }
                 }
           }
@@ -183,18 +183,18 @@
                 "account": {
                       "header": {
                             "colorLeft": "#1a1a1a",
-                            "colorRight": "#1b1d1c",
+                            "colorRight": "#222222",
                             "colorBorder": "#1a1a1a"
                       },
                       "headerText": {
-                            "colorName": "#ffffff",
-                            "colorWallet": "#E6097A"
+                            "colorName": "#E3E3E3",
+                            "colorWallet": "#E3E3E3"
                       },
                       "headerBadge": {
                             "colorBackground": "#ffffff"
                       },
                       "headerMenu": {
-                            "colorHamburger": "#ffffff"
+                            "colorHamburger": "#E3E3E3"
                       },
                       "body": {
                             "colorBackground": "#E3E3E3",
@@ -213,11 +213,11 @@
                       "header": {
                             "colorLeft": "#1a1a1a",
                             "colorRight": "#1b1d1c",
-                            "colorBorder": "#ff1212"
+                            "colorBorder": "#1a1a1a"
                       },
                       "headerText": {
-                            "colorName": "#999999",
-                            "colorWallet": "#999999"
+                            "colorName": "#E3E3E3",
+                            "colorWallet": "#E3E3E3"
                       },
                       "headerBadge": {
                             "colorBackground": "#ffffff"
@@ -227,7 +227,7 @@
                       },
                       "body": {
                             "colorBackground": "#E3E3E3",
-                            "colorBorder": "#ff1212"
+                            "colorBorder": "#1a1a1a"
                       }
                 }
           }
