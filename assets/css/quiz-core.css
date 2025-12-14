@@ -768,18 +768,13 @@ button.secondary {
 
 /* Account Body-Bereiche (Welcome + Rank Info) */
 .account-body-section {
-    margin: 20px 0;
+    margin: 0 0 20px 0;
     padding: 20px;
     background: var(--account-body-background);
     border: 2px solid var(--account-body-border);
     border-radius: 8px;
     border-top-left-radius: 0px;   /* Verbindet visuell mit Header */
     border-top-right-radius: 0px;
-}
-
-/* Erste Section (direkt unter Header) - schließt nahtlos an */
-.account-body-section:first-of-type {
-    margin-top: -20px;  /* Schließt an Header an */
 }
 
 /* Text-Styling innerhalb der Body-Sections */
