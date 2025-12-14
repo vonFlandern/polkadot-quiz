@@ -94,11 +94,14 @@
                 <!-- vonFlandern Account (Badge + Info + Menü) -->
                 <div id="player-account-info"></div>
 
-                <!-- Begrüßung / Spielernamen-Eingabe -->
-                <div id="welcome-section"></div>
+                <!-- Account Info Body (Begrüßung + Leaderboard) -->
+                <div id="account-info-body" class="account-body-section">
+                    <!-- Begrüßung / Spielernamen-Eingabe -->
+                    <div id="welcome-section"></div>
 
-                <!-- Leaderboard-Info -->
-                <div id="player-rank-info"></div>
+                    <!-- Leaderboard-Info -->
+                    <div id="player-rank-info"></div>
+                </div>
 
                 <!-- Level-Übersicht -->
                 <h2>Level-Übersicht</h2>

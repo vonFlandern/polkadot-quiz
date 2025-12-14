@@ -543,7 +543,7 @@ class QuizUI {
         // FALL 1: Neuer Spieler (playerName startet mit "Player_")
         if (playerName && playerName.startsWith('Player_')) {
             welcomeContainer.innerHTML = `
-                <div class="account-body-section" style="text-align: center;">
+                <div style="text-align: center; margin-bottom: 20px;">
                     <label for="welcome-name-input" style="display: block; margin-bottom: 15px; font-size: 1.1em; font-weight: 600;">
                         Willkommen! Bitte gib deinen Spielernamen ein:
                     </label>
@@ -577,7 +577,7 @@ class QuizUI {
             : `Willkommen, ${playerName}!`;
 
         welcomeContainer.innerHTML = `
-            <div class="account-body-section" style="text-align: center; font-size: 1.3em; font-weight: 600;">
+            <div style="text-align: center; font-size: 1.3em; font-weight: 600; margin-bottom: 20px;">
                 ${greeting}
             </div>
         `;
@@ -702,20 +702,18 @@ class QuizUI {
         const formattedScore = new Intl.NumberFormat('de-DE').format(playerRank.totalScore || 0);
 
         rankContainer.innerHTML = `
-            <div class="account-body-section">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                    <div>
-                        <strong style="color: var(--primary-color); font-size: 1.1em;">
-                            ${rankEmoji}Du bist aktuell auf Platz ${rank} im
-                            <a href="leaderboard.php" target="_blank" style="color: var(--primary-color); text-decoration: underline; font-weight: 600;">
-                                Leaderboard
-                            </a>
-                        </strong>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="font-size: 1.5em; font-weight: bold; color: var(--primary-color);">${formattedScore} Punkte</div>
-                        <div style="font-size: 0.9em; color: var(--text-color); margin-top: 5px;">Leaderboard-Score</div>
-                    </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding-top: 15px; border-top: 1px solid rgba(0,0,0,0.1);">
+                <div>
+                    <strong style="color: var(--primary-color); font-size: 1.1em;">
+                        ${rankEmoji}Du bist aktuell auf Platz ${rank} im
+                        <a href="leaderboard.php" target="_blank" style="color: var(--primary-color); text-decoration: underline; font-weight: 600;">
+                            Leaderboard
+                        </a>
+                    </strong>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 1.5em; font-weight: bold; color: var(--primary-color);">${formattedScore} Punkte</div>
+                    <div style="font-size: 0.9em; color: var(--text-color); margin-top: 5px;">Leaderboard-Score</div>
                 </div>
             </div>
         `;

@@ -731,9 +731,9 @@ button.secondary {
     background: rgba(0, 0, 0, 0.05);
 }
 
-/* Rank Info Container */
+/* Rank Info Container (jetzt innerhalb von account-body-section) */
 #player-rank-info {
-    margin-bottom: 20px;
+    margin: 0;
 }
 
 /* Responsive - vonFlandern Account */
@@ -792,9 +792,9 @@ button.secondary {
    WELCOME SECTION
    ======================================== */
 
-/* Welcome Section Container */
+/* Welcome Section Container (jetzt innerhalb von account-body-section) */
 #welcome-section {
-    margin: 20px 0;
+    margin: 0;
 }
 
 /* Welcome Name Input */
