@@ -164,9 +164,7 @@ $player = [
 {
   "gameSettings": {
     "totalLevels": 15,
-    "minCorrectPercentage": 0.7,
-    "hintCountPerLevel": 3,
-    "timeAddCountPerLevel": 2
+    "minCorrectPercentage": 0.7
   },
   "branding": { "title", "logo", "colors" },
   "integration": { "allowIframe", "corsOrigins" }
@@ -178,12 +176,18 @@ Structured as `level1`, `level2`, etc. Each level contains:
 ```json
 {
   "level1": {
+    "catId": 1,
+    "levelTitle": "Level Title",
     "levelInfo": "Description...",
     "pdfUrl": "/downloads/level1.pdf",
+    "pdfTitle": "PDF Title",
+    "hintCount": 3,              // Hints available for this level
+    "timeAddCount": 2,           // Time additions available for this level
     "questions": [
       {
         "question": "...",
         "answers": ["A", "B", "C", "D"],
+        "answerCount": 4,
         "correct": 0,
         "hint": "...",
         "explanation": "...",
@@ -199,6 +203,7 @@ Structured as `level1`, `level2`, etc. Each level contains:
 ```
 
 **Variable Question Counts**: Each level can have 3-20 questions (determined by array length).
+**Level-specific Power-ups**: `hintCount` and `timeAddCount` can differ per level.
 
 #### `data/players.json`
 ```json

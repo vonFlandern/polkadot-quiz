@@ -107,8 +107,8 @@ class QuizEngine {
             correctAnswers: 0,
             hintsUsed: 0,
             timeAddsUsed: 0,
-            hintsRemaining: this.config.gameSettings.hintCountPerLevel,
-            timeAddsRemaining: this.config.gameSettings.timeAddCountPerLevel,
+            hintsRemaining: this.currentLevel.hintCount,
+            timeAddsRemaining: this.currentLevel.timeAddCount,
             questionScores: []
         };
 
@@ -176,9 +176,9 @@ class QuizEngine {
      * Berechne Punkte für eine Antwort
      *
      * WICHTIG: Verwendet maximale Level-Zeit für faire Berechnung:
-     * maxTime = tQuestion + (timeAddBonus × timeAddCountPerLevel)
+     * maxTime = tQuestion + (timeAddBonus × timeAddCount)
      *
-     * Beispiel: tQuestion=30s, timeAddBonus=20s, timeAddCountPerLevel=2
+     * Beispiel: tQuestion=30s, timeAddBonus=20s, timeAddCount=2
      *   → maxTime = 30 + (20 × 2) = 70 Sekunden für jede Frage!
      *
      * Penalties werden nur bei tatsächlicher Nutzung abgezogen.
@@ -193,7 +193,7 @@ class QuizEngine {
         if (isCorrect) {
             // FIX v2.0: Verwende maximale Level-Zeit (tQuestion + alle TimeAdds)
             const maxTimeMs = (question.tQuestion +
-                              (question.timeAddBonus * this.config.gameSettings.timeAddCountPerLevel)) * 1000;
+                              (question.timeAddBonus * this.currentLevel.timeAddCount)) * 1000;
             const remainingTimeMs = Math.max(0, maxTimeMs - elapsedTimeMs);
             points = Math.round(remainingTimeMs * question.pointsPerMillisecond);
         }
@@ -236,7 +236,7 @@ class QuizEngine {
         // Berechne Basis-Punkte für Breakdown (ohne Penalties)
         // FIX v2.0: Verwende GLEICHE Logik wie Punkteberechnung (maximale Level-Zeit)
         const maxTimeMs = (question.tQuestion +
-                          (question.timeAddBonus * this.config.gameSettings.timeAddCountPerLevel)) * 1000;
+                          (question.timeAddBonus * this.currentLevel.timeAddCount)) * 1000;
         const remainingTimeMs = Math.max(0, maxTimeMs - elapsedTimeMs);
         const basePoints = isCorrect ? Math.round(remainingTimeMs * question.pointsPerMillisecond) : 0;
 

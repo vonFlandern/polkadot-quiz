@@ -1228,7 +1228,7 @@ class QuizUI {
 
         // Hint Button
         const hintBtn = document.getElementById('hint-btn');
-        hintBtn.disabled = quizEngine.levelState.hintsRemaining === 0;
+        hintBtn.disabled = quizEngine.levelState.hintsRemaining === 0 || this.currentHintUsedThisQuestion;
         hintBtn.onclick = () => this.showHint();
 
         // TimeAdd Button
@@ -1278,7 +1278,8 @@ class QuizUI {
             hintBox.style.display = 'block';
             
             document.getElementById('hints-remaining').textContent = result.remaining;
-            document.getElementById('hint-btn').disabled = result.remaining === 0;
+            // Button deaktivieren (kein weiterer Hint für diese Frage)
+            document.getElementById('hint-btn').disabled = true;
         } else {
             alert(result.message);
         }
