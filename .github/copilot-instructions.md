@@ -132,19 +132,50 @@ const levelKey = levelNum.toString();
 const stats = playerLevels[levelNum] || playerLevels[levelKey];
 ```
 
-### Name Uniqueness
-- Case-insensitive checks via [api/check-name.php](api/check-name.php)
-- Exception: Same wallet can update their own name
-- History tracked in `nameHistory` array
+### Name Validation Pipeline
+**Complete validation in [config.php](config.php) via `checkPlayerNameAvailability()` + `isPlayerNameAllowed()`**:
+
+1. **Character Set Restriction** - Latin alphabet only + German umlauts:
+   ```php
+   preg_match('/^[a-zA-Z0-9äöüÄÖÜß\s\-_\.]+$/u', $name)
+   ```
+   **Reason**: Prevent Arabic/Chinese characters for leaderboard readability
+
+2. **Profanity Filter** ([data/profanity-words.json](data/profanity-words.json)):
+   - **Wordlists**: 67 German + 75 English words from LDNOOBW (List of Dirty, Naughty, Obscene, and Otherwise Bad Words)
+   - **Whitelist**: `['assassin', 'assemble', 'assessment', 'cockpit', 'scunthorpe', 'penistone', 'sussex', 'essex']` - prevents false positives
+   - **Leetspeak Detection**: Converts patterns like `a$$` → `ass`, `h3ll` → `hell`, `@dmin` → `admin`
+     - Map: `a→[a4@], e→[e3], i→[i1!], o→[o0], s→[s5$], t→[t7+], l→[l1], g→[g9], b→[b8]`
+   - **Check order**: Whitelist first (bypass), direct match, then leetspeak patterns
+
+3. **Length Validation** - 3-20 characters
+
+4. **Uniqueness Check**:
+   - Case-insensitive checks via [api/check-name.php](api/check-name.php)
+   - Exception: Same wallet can update their own name
+   - History tracked in `nameHistory` array
+
+**Usage**:
+```php
+// In register-player.php and save-score.php
+$validation = checkPlayerNameAvailability($playerName, $walletAddress);
+if (!$validation['available']) {
+    errorResponse($validation['reason']);
+}
+```
 
 ## File Structure
 - [index.php](index.php) - Main entry point
 - [config.php](config.php) - Shared utilities (ALWAYS use these functions)
+  - `loadJSON()/saveJSON()` - File locking for concurrent writes
+  - `isPlayerNameAllowed()` - Profanity filter & character validation (~70 lines)
+  - `checkPlayerNameAvailability()` - Complete name validation pipeline
 - [SS58AddressConverter.php](SS58AddressConverter.php) - Address format conversion (GMP + Sodium)
 - [SS58AddressConverterFallback.php](SS58AddressConverterFallback.php) - Pure PHP fallback
-- **[data/](data/)** - `config.json`, `questions.json`, `categories.json`, `players.json`
+- **[data/](data/)** - `config.json`, `questions.json`, `categories.json`, `players.json`, `profanity-words.json`
   - ⚠️ **NOT in Git repository** (`.gitignore`) - Only available in local development
   - `players.json` is auto-generated on first registration
+  - `profanity-words.json` contains LDNOOBW wordlists (German/English) + whitelist
   - When analyzing GitHub repo, these files won't be visible
 
 ## Language Preference

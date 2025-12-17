@@ -119,6 +119,8 @@ All endpoints in `api/` directory, respond with JSON:
 - `loadJSON($filename)` - Read from `data/` directory
 - `saveJSON($filename, $data)` - Write with file locking (LOCK_EX)
 - `isValidPolkadotAddress($address)` - Regex validation
+- `isPlayerNameAllowed($name)` - Profanity filter & character set validation
+- `checkPlayerNameAvailability($name, $walletAddress)` - Complete name validation pipeline
 - `jsonResponse()` / `errorResponse()` - Standardized API responses
 - CORS headers for API access
 
@@ -204,6 +206,23 @@ Structured as `level1`, `level2`, etc. Each level contains:
 
 **Variable Question Counts**: Each level can have 3-20 questions (determined by array length).
 **Level-specific Settings**: `hintCount`, `timeAddCount`, and `minCorrect` (absolute number of required correct answers) can differ per level.
+
+#### `data/profanity-words.json`
+```json
+{
+  "de": ["word1", "word2"],  // German profanity list (LDNOOBW)
+  "en": ["word1", "word2"],  // English profanity list (LDNOOBW)
+  "whitelist": ["assassin", "cockpit"]  // False positive exceptions
+}
+```
+
+**Purpose**: Wordlists for player name filtering to prevent inappropriate names.
+**Source**: LDNOOBW (List of Dirty, Naughty, Obscene, and Otherwise Bad Words)
+**Features**: 
+- 67 German + 75 English profanity words
+- Leetspeak detection (e.g., "a$$" → "ass", "h3ll" → "hell")
+- Whitelist for legitimate words (e.g., "assessment", "scunthorpe")
+- Used by `isPlayerNameAllowed()` in config.php
 
 #### `data/players.json`
 ```json
@@ -334,14 +353,62 @@ const highestUnlockedLevel = Math.max(...unlockedLevels, 0);
 
 **Player Name Constraints**:
 - 3-20 characters
+- Latin character set only: `[a-zA-Z0-9äöüÄÖÜß\s\-_\.]`
+- No profanity (German/English via LDNOOBW wordlists)
 - Case-insensitive uniqueness check
 - Exceptions: Same wallet can update own name
 - Name history tracked in `nameHistory` array
 
 **Validation Flow**:
-1. Frontend checks via `api/check-name.php`
-2. Backend enforces in both `register-player.php` and `save-score.php`
-3. All name changes logged with timestamp
+1. Character set validation (Latin alphabet + German umlauts)
+2. Profanity filter check:
+   - Direct word matching (case-insensitive)
+   - Leetspeak pattern detection (e.g., "a$$" → "ass", "h3ll" → "hell")
+   - Whitelist bypass for false positives (e.g., "assessment", "cockpit")
+3. Length validation (3-20 characters)
+4. Uniqueness check (case-insensitive, except for same wallet)
+5. Frontend checks via `api/check-name.php`
+6. Backend enforces in both `register-player.php` and `save-score.php`
+7. All name changes logged with timestamp
+
+**Profanity Filter Implementation** (`config.php`):
+```php
+function isPlayerNameAllowed($name) {
+    // 1. Character set restriction (Latin + German)
+    if (!preg_match('/^[a-zA-Z0-9äöüÄÖÜß\s\-_\.]+$/u', $name)) {
+        return ['allowed' => false, 'reason' => 'Invalid characters'];
+    }
+    
+    // 2. Load profanity lists from JSON
+    $wordlists = loadJSON('profanity-words.json');
+    $profanityWords = array_merge($wordlists['de'], $wordlists['en']);
+    $whitelist = $wordlists['whitelist'];
+    
+    // 3. Check whitelist first
+    foreach ($whitelist as $whitelisted) {
+        if (stripos($name, $whitelisted) !== false) {
+            return ['allowed' => true];
+        }
+    }
+    
+    // 4. Direct profanity check
+    foreach ($profanityWords as $badWord) {
+        if (stripos($name, $badWord) !== false) {
+            return ['allowed' => false, 'reason' => 'Inappropriate content'];
+        }
+    }
+    
+    // 5. Leetspeak pattern check (a→4@, e→3, i→1!, o→0, s→5$, etc.)
+    // Convert name to lowercase and apply leetspeak reversal
+    // Check again against profanity list
+    
+    return ['allowed' => true];
+}
+```
+
+**Leetspeak Map**:
+- `a` → `[a4@]`, `e` → `[e3]`, `i` → `[i1!]`, `o` → `[o0]`
+- `s` → `[s5$]`, `t` → `[t7+]`, `l` → `[l1]`, `g` → `[g9]`, `b` → `[b8]`
 
 ---
 
@@ -525,7 +592,8 @@ Quiz/
 ├── data/                      # JSON data storage
 │   ├── config.json            # Game settings
 │   ├── questions.json         # All levels and questions
-│   └── players.json           # Player scores & progress
+│   ├── players.json           # Player scores & progress
+│   └── profanity-words.json   # Profanity filter wordlists
 │
 ├── downloads/                 # Level PDFs
 │   └── level1_polkadot_basics.pdf

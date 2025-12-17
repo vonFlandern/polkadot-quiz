@@ -102,13 +102,90 @@ function errorResponse($message, $statusCode = 400) {
 }
 
 /**
+ * Prüfe ob Spielername erlaubt ist (Profanity-Filter)
+ * @param string $playerName Der zu prüfende Name
+ * @return array ['allowed' => bool, 'error' => string|null]
+ */
+function isPlayerNameAllowed($playerName) {
+    // 1. Zeichensatz-Validierung: Nur lateinische Zeichen + Umlaute
+    if (!preg_match('/^[a-zA-Z0-9äöüÄÖÜß\s\-_\.]+$/u', $playerName)) {
+        return ['allowed' => false, 'error' => 'Nur lateinische Zeichen erlaubt'];
+    }
+    
+    // 2. Profanity-Filter laden
+    $profanityData = loadJSON('profanity-words.json');
+    if (!$profanityData) {
+        // Keine Liste = erlaubt (fail-open)
+        return ['allowed' => true, 'error' => null];
+    }
+    
+    $nameLower = mb_strtolower($playerName, 'UTF-8');
+    $whitelist = $profanityData['whitelist'] ?? [];
+    
+    // 3. Whitelist-Check (False-Positives erlauben)
+    foreach ($whitelist as $allowed) {
+        if (stripos($nameLower, mb_strtolower($allowed, 'UTF-8')) !== false) {
+            return ['allowed' => true, 'error' => null];
+        }
+    }
+    
+    // 4. Prüfe gegen Deutsch & Englisch Listen
+    $allWords = array_merge($profanityData['de'] ?? [], $profanityData['en'] ?? []);
+    
+    foreach ($allWords as $badWord) {
+        $badWordLower = mb_strtolower($badWord, 'UTF-8');
+        
+        // Direkte Übereinstimmung
+        if (stripos($nameLower, $badWordLower) !== false) {
+            return ['allowed' => false, 'error' => 'Bitte wähle einen anderen Namen'];
+        }
+        
+        // Leetspeak-Erkennung für englische Wörter (einfach)
+        $leetspeakMap = [
+            'a' => '[a4@]',
+            'e' => '[e3]',
+            'i' => '[i1!]',
+            'o' => '[o0]',
+            's' => '[s5$]',
+            't' => '[t7+]',
+            'l' => '[l1]',
+            'g' => '[g9]',
+            'b' => '[b8]'
+        ];
+        
+        // Erstelle Leetspeak-Regex-Pattern
+        $pattern = '';
+        foreach (str_split($badWordLower) as $char) {
+            if (isset($leetspeakMap[$char])) {
+                $pattern .= $leetspeakMap[$char];
+            } else {
+                $pattern .= preg_quote($char, '/');
+            }
+        }
+        
+        // Prüfe mit Leetspeak-Pattern
+        if (preg_match('/' . $pattern . '/i', $nameLower)) {
+            return ['allowed' => false, 'error' => 'Bitte wähle einen anderen Namen'];
+        }
+    }
+    
+    return ['allowed' => true, 'error' => null];
+}
+
+/**
  * Prüfe ob Spielername verfügbar ist
  * @param string $playerName Der zu prüfende Name
  * @param string|null $walletAddress Optional: Wallet-Adresse des Spielers (eigener Name erlaubt)
  * @return array ['available' => bool, 'error' => string|null]
  */
 function checkPlayerNameAvailability($playerName, $walletAddress = null) {
-    // Validierung: 3-20 Zeichen
+    // 1. Profanity-Filter (Zeichensatz + verbotene Wörter)
+    $allowedCheck = isPlayerNameAllowed($playerName);
+    if (!$allowedCheck['allowed']) {
+        return ['available' => false, 'error' => $allowedCheck['error']];
+    }
+    
+    // 2. Längenvalidierung: 3-20 Zeichen
     if (strlen($playerName) < 3) {
         return ['available' => false, 'error' => 'Name muss mindestens 3 Zeichen haben'];
     }
