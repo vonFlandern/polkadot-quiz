@@ -133,7 +133,9 @@ if ($playerIndex === -1) {
         'totalScore' => 0,
         'totalTime' => 0,
         'completedLevels' => 0,
-        'levels' => []
+        'levels' => [],
+        'currentCategory' => 0,        // NEU: Category-Tracking
+        'categoryHistory' => []        // NEU: Category-Tracking
     ];
     $playersData['players'][] = $newPlayer;
     $playerIndex = count($playersData['players']) - 1;
@@ -266,6 +268,14 @@ if ($levelData['passed']) {
     $catId = isset($questionsData[$levelKeyForQuestions]['catId'])
         ? $questionsData[$levelKeyForQuestions]['catId']
         : null;
+
+    // Sicherstellen, dass currentCategory existiert (für alte Player)
+    if (!isset($player['currentCategory'])) {
+        $player['currentCategory'] = 0;
+    }
+    if (!isset($player['categoryHistory'])) {
+        $player['categoryHistory'] = [];
+    }
 
     if ($catId !== null && $catId > $player['currentCategory']) {
         // Prüfe ob ALLE Level dieser Kategorie bestanden sind

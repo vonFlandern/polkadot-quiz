@@ -174,7 +174,15 @@ class QuizEngine {
 
     /**
      * Berechne Punkte für eine Antwort
-     * WICHTIG: Kann negative Werte zurückgeben (bei falscher Antwort + Power-Ups)
+     *
+     * WICHTIG: Verwendet maximale Level-Zeit für faire Berechnung:
+     * maxTime = tQuestion + (timeAddBonus × timeAddCountPerLevel)
+     *
+     * Beispiel: tQuestion=30s, timeAddBonus=20s, timeAddCountPerLevel=2
+     *   → maxTime = 30 + (20 × 2) = 70 Sekunden für jede Frage!
+     *
+     * Penalties werden nur bei tatsächlicher Nutzung abgezogen.
+     * Kann negative Werte zurückgeben (bei falscher Antwort + Power-Ups).
      * Die Minimum-Regel (Score >= 0) wird erst am Level-Ende angewendet!
      */
     calculatePoints(elapsedTimeMs, isCorrect, hintUsed, timeAddUsed) {
@@ -183,8 +191,10 @@ class QuizEngine {
         // 1. Berechne Basis-Punkte (nur bei richtiger Antwort)
         let points = 0;
         if (isCorrect) {
-            const tQuestionMs = question.tQuestion * 1000;
-            const remainingTimeMs = Math.max(0, tQuestionMs - elapsedTimeMs);
+            // FIX v2.0: Verwende maximale Level-Zeit (tQuestion + alle TimeAdds)
+            const maxTimeMs = (question.tQuestion +
+                              (question.timeAddBonus * this.config.gameSettings.timeAddCountPerLevel)) * 1000;
+            const remainingTimeMs = Math.max(0, maxTimeMs - elapsedTimeMs);
             points = Math.round(remainingTimeMs * question.pointsPerMillisecond);
         }
 
@@ -224,9 +234,10 @@ class QuizEngine {
         const points = this.calculatePoints(elapsedTimeMs, isCorrect, hintUsedThisQuestion, timeAddUsedThisQuestion);
 
         // Berechne Basis-Punkte für Breakdown (ohne Penalties)
-        // WICHTIG: Verwende Original-Zeit (tQuestion), nicht verlängerte Zeit (timer.maxTime)!
-        const tQuestionMs = question.tQuestion * 1000;
-        const remainingTimeMs = Math.max(0, tQuestionMs - elapsedTimeMs);
+        // FIX v2.0: Verwende GLEICHE Logik wie Punkteberechnung (maximale Level-Zeit)
+        const maxTimeMs = (question.tQuestion +
+                          (question.timeAddBonus * this.config.gameSettings.timeAddCountPerLevel)) * 1000;
+        const remainingTimeMs = Math.max(0, maxTimeMs - elapsedTimeMs);
         const basePoints = isCorrect ? Math.round(remainingTimeMs * question.pointsPerMillisecond) : 0;
 
         // Berechne Penalties für Breakdown (auch bei falschen Antworten!)
