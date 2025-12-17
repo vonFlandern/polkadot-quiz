@@ -1095,6 +1095,9 @@ class QuizUI {
         document.getElementById('level-intro-title').textContent = `Level ${levelNumber}`;
         document.getElementById('level-intro-info').textContent = level.levelInfo;
         document.getElementById('level-questions-count').textContent = level.questions.length;
+        document.getElementById('level-min-correct').textContent = level.minCorrect;
+        document.getElementById('level-hints-count').textContent = level.hintCount;
+        document.getElementById('level-timeadds-count').textContent = level.timeAddCount;
 
         // PDF-Download anzeigen wenn verfügbar
         const pdfDownloadDiv = document.getElementById('level-pdf-download');
@@ -1497,7 +1500,7 @@ class QuizUI {
         const result = quizEngine.calculateLevelResult();
 
         document.getElementById('result-correct').textContent = 
-            `${result.correctAnswers}/${result.totalQuestions} (${result.percentage}%)`;
+            `${result.correctAnswers}/${result.totalQuestions}`;
         document.getElementById('result-score').textContent = result.score;
         document.getElementById('result-time').textContent = 
             `${Math.floor(result.time / 60)}:${String(result.time % 60).padStart(2, '0')}`;

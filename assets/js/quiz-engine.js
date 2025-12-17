@@ -299,9 +299,8 @@ class QuizEngine {
     calculateLevelResult() {
         const totalQuestions = this.currentLevel.questions.length;
         const correctAnswers = this.levelState.correctAnswers;
-        const percentage = correctAnswers / totalQuestions;
-        const minPercentage = this.config.gameSettings.minCorrectPercentage;
-        const passed = percentage >= minPercentage;
+        const minCorrect = this.currentLevel.minCorrect;
+        const passed = correctAnswers >= minCorrect;
 
         // Minimum-Regel: Score kann nicht negativ sein
         let finalScore = this.levelState.score;
@@ -317,7 +316,6 @@ class QuizEngine {
             time: Math.round(totalTimeMs / 1000), // in Sekunden
             correctAnswers: correctAnswers,
             totalQuestions: totalQuestions,
-            percentage: Math.round(percentage * 100),
             passed: passed,
             hintsUsed: this.levelState.hintsUsed,
             timeAddsUsed: this.levelState.timeAddsUsed,

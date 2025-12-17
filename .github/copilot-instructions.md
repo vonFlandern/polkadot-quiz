@@ -111,6 +111,7 @@ async connect() {
      "pdfTitle": "PDF Title",
      "hintCount": 3,
      "timeAddCount": 2,
+     "minCorrect": 2,
      "questions": [...]
    }
    ```
