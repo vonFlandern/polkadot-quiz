@@ -62,37 +62,27 @@ try {
     // Kein Problem: Nutze Generic für beide
 }
 
+// Prüfe Verfügbarkeit mit gemeinsamer Funktion
+$availabilityCheck = checkPlayerNameAvailability($playerName, $genericAddress);
+if (!$availabilityCheck['available']) {
+    errorResponse($availabilityCheck['error']);
+}
+
 // Players laden
 $playersData = loadJSON('players.json');
 if (!$playersData) {
     $playersData = ['players' => []];
 }
 
-// Prüfe ob Name bereits vergeben ist (case-insensitive)
+// Suche Spieler anhand genericAddress (Primary Key)
 $playerIndex = -1;
-$nameAlreadyTaken = false;
-
 foreach ($playersData['players'] as $index => $p) {
-    // Suche nach genericAddress (Primary Key)
     $storedGeneric = isset($p['genericAddress']) ? $p['genericAddress'] : $p['walletAddress'];
     
     if ($storedGeneric === $genericAddress) {
         $playerIndex = $index;
+        break;
     }
-    
-    // Prüfe Namen (case-insensitive)
-    if (strcasecmp($p['playerName'], $playerName) === 0) {
-        // Ist es der eigene Name?
-        if ($storedGeneric !== $genericAddress) {
-            // Jemand anders hat diesen Namen!
-            $nameAlreadyTaken = true;
-        }
-    }
-}
-
-// Name bereits vergeben?
-if ($nameAlreadyTaken) {
-    errorResponse('Player name already taken. Please choose another name.');
 }
 
 // Neuer Spieler?

@@ -21,61 +21,11 @@ if (!isset($input['playerName'])) {
 $playerName = sanitizeInput($input['playerName']);
 $walletAddress = isset($input['walletAddress']) ? sanitizeInput($input['walletAddress']) : null;
 
-// Validierung: 3-20 Zeichen
-if (strlen($playerName) < 3) {
-    jsonResponse([
-        'available' => false,
-        'error' => 'Name muss mindestens 3 Zeichen haben'
-    ]);
-}
+// Prüfe Verfügbarkeit mit gemeinsamer Funktion
+$result = checkPlayerNameAvailability($playerName, $walletAddress);
 
-if (strlen($playerName) > 20) {
-    jsonResponse([
-        'available' => false,
-        'error' => 'Name darf maximal 20 Zeichen haben'
-    ]);
-}
-
-
-
-// Players laden
-$playersData = loadJSON('players.json');
-if (!$playersData || !isset($playersData['players'])) {
-    // Keine Spieler = Name verfügbar
-    jsonResponse([
-        'available' => true,
-        'playerName' => $playerName
-    ]);
-}
-
-// Prüfe ob Name bereits vergeben ist
-$nameExists = false;
-foreach ($playersData['players'] as $player) {
-    // Case-insensitive Vergleich
-    if (strcasecmp($player['playerName'], $playerName) === 0) {
-        // Falls walletAddress gegeben: Ist es der eigene Name?
-        if ($walletAddress) {
-            $playerGeneric = isset($player['genericAddress']) ? $player['genericAddress'] : $player['walletAddress'];
-            
-            if ($playerGeneric === $walletAddress) {
-                // Eigener Name = OK
-                continue;
-            }
-        }
-        
-        $nameExists = true;
-        break;
-    }
-}
-
-if ($nameExists) {
-    jsonResponse([
-        'available' => false,
-        'error' => 'Name bereits vergeben'
-    ]);
-} else {
-    jsonResponse([
-        'available' => true,
-        'playerName' => $playerName
-    ]);
-}
+jsonResponse([
+    'available' => $result['available'],
+    'error' => $result['error'],
+    'playerName' => $playerName
+]);

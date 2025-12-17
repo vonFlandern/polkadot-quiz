@@ -100,3 +100,47 @@ function jsonResponse($data, $statusCode = 200) {
 function errorResponse($message, $statusCode = 400) {
     jsonResponse(['error' => $message], $statusCode);
 }
+
+/**
+ * Prüfe ob Spielername verfügbar ist
+ * @param string $playerName Der zu prüfende Name
+ * @param string|null $walletAddress Optional: Wallet-Adresse des Spielers (eigener Name erlaubt)
+ * @return array ['available' => bool, 'error' => string|null]
+ */
+function checkPlayerNameAvailability($playerName, $walletAddress = null) {
+    // Validierung: 3-20 Zeichen
+    if (strlen($playerName) < 3) {
+        return ['available' => false, 'error' => 'Name muss mindestens 3 Zeichen haben'];
+    }
+    
+    if (strlen($playerName) > 20) {
+        return ['available' => false, 'error' => 'Name darf maximal 20 Zeichen haben'];
+    }
+    
+    // Players laden
+    $playersData = loadJSON('players.json');
+    if (!$playersData || !isset($playersData['players'])) {
+        // Keine Spieler = Name verfügbar
+        return ['available' => true, 'error' => null];
+    }
+    
+    // Prüfe ob Name bereits vergeben ist (case-insensitive)
+    foreach ($playersData['players'] as $player) {
+        if (strcasecmp($player['playerName'], $playerName) === 0) {
+            // Falls walletAddress gegeben: Ist es der eigene Name?
+            if ($walletAddress) {
+                $playerGeneric = isset($player['genericAddress']) ? $player['genericAddress'] : $player['walletAddress'];
+                
+                if ($playerGeneric === $walletAddress) {
+                    // Eigener Name = OK
+                    continue;
+                }
+            }
+            
+            // Name bereits vergeben
+            return ['available' => false, 'error' => 'Name bereits vergeben'];
+        }
+    }
+    
+    return ['available' => true, 'error' => null];
+}
