@@ -162,13 +162,13 @@ $player = [
 #### `data/config.json`
 ```json
 {
-  "gameSettings": {
-    "totalLevels": 15
-  },
+  "gameSettings": {},
   "branding": { "title", "logo", "colors" },
   "integration": { "allowIframe", "corsOrigins" }
 }
 ```
+
+**Note**: Level count is automatically determined from `questions.json` via `Object.keys(questions).length`.
 
 #### `data/questions.json`
 Structured as `level1`, `level2`, etc. Each level contains:

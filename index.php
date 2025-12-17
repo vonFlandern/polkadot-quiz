@@ -60,7 +60,7 @@
                     <p>Answer questions about Polkadot and collect points. The faster you answer, the more points you get!</p>
 
                     <h4>📊 Levels</h4>
-                    <p>The quiz consists of 15 levels with increasing difficulty. To unlock a level, you must pass the previous level.</p>
+                    <p>The quiz consists of <span id="total-levels-count">15</span> levels with increasing difficulty. To unlock a level, you must pass the previous level.</p>
 
                     <h4>⏱️ Point System</h4>
                     <ul>
@@ -72,8 +72,8 @@
                     <h4>💡 Power-Ups</h4>
                     <p>In each level, you have access to helpful tools:</p>
                     <ul>
-                        <li><strong>Hints (3x):</strong> Show a hint for the current question (costs points)</li>
-                        <li><strong>Time Extension (2x):</strong> Get additional time (costs points)</li>
+                        <li><strong>Hints:</strong> Show a hint for the current question (costs points)</li>
+                        <li><strong>Time Extension:</strong> Get additional time (costs points)</li>
                     </ul>
 
                     <h4>📄 Preparation</h4>

@@ -34,6 +34,9 @@ class QuizEngine {
             const questionsResponse = await fetch('data/questions.json');
             this.questions = await questionsResponse.json();
 
+            // Berechne totalLevels automatisch aus questions.json
+            this.totalLevels = Object.keys(this.questions).length;
+
             // NEU: Lade Categories
             await this.loadCategories();
 

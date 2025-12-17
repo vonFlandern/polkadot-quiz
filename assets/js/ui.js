@@ -41,6 +41,12 @@ class QuizUI {
     showAnleitung() {
         this.showScreen('anleitung');
 
+        // Zeige dynamische Levelanzahl
+        const totalLevelsEl = document.getElementById('total-levels-count');
+        if (totalLevelsEl && quizEngine.totalLevels) {
+            totalLevelsEl.textContent = quizEngine.totalLevels;
+        }
+
         // Event Listener für Zurück-Button
         const backBtn = document.getElementById('back-from-anleitung-btn');
         if (backBtn && !backBtn.hasAttribute('data-listener-added')) {
@@ -266,102 +272,8 @@ class QuizUI {
             }
         });
 
-        continueBtn.addEventListener('click', async () => {
-            const playerName = document.getElementById('player-name').value.trim();
-            
-            // Validierung: 3-20 Zeichen
-            if (!playerName) {
-                alert('❌ Please enter a player name');
-                return;
-            }
-
-            if (playerName.length < 3) {
-                alert('❌ Name must be at least 3 characters!');
-                return;
-            }
-
-            if (playerName.length > 20) {
-                alert('❌ Name must not exceed 20 characters!');
-                return;
-            }
-
-            const selectedAccount = walletManager.getSelectedAccount();
-            if (!selectedAccount) {
-                alert('❌ Please select an account');
-                return;
-            }
-            
-            // Prüfe ob Name bereits vergeben ist
-            // Für wiederkehrende Spieler: nur wenn Name geändert wurde
-            let needsCheck = false;
-            
-            if (!selectedAccount.existingPlayer) {
-                // Neuer Spieler: Immer prüfen
-                needsCheck = true;
-            } else if (selectedAccount.existingPlayer.playerName !== playerName) {
-                // Wiederkehrend + Name geändert: Prüfen
-                needsCheck = true;
-            }
-            
-            if (needsCheck) {
-                try {
-                    const checkResponse = await fetch('api/check-name.php', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            playerName: playerName,
-                            walletAddress: selectedAccount.address  // Generic address
-                        })
-                    });
-                    
-                    const checkResult = await checkResponse.json();
-                    
-                    if (!checkResult.available) {
-                        alert(`❌ The name "${playerName}" is already taken!\n\nPlease choose a different name.`);
-                        return;
-                    }
-                } catch (error) {
-                    console.error('Name check failed:', error);
-                    // Bei Fehler trotzdem fortfahren
-                }
-            }
-            
-            // WICHTIG: Registriere/Update Spieler SOFORT
-            try {
-                const registerResponse = await fetch('api/register-player.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        walletAddress: selectedAccount.address,  // Generic address
-                        playerName: playerName
-                    })
-                });
-                
-                if (!registerResponse.ok) {
-                    const errorData = await registerResponse.json();
-                    throw new Error(errorData.error || 'Registration failed');
-                }
-                
-                const registerResult = await registerResponse.json();
-                
-                console.log('✅ Player registered/updated:', registerResult);
-                
-                // Update Session Storage
-                sessionStorage.setItem('playerName', playerName);
-                sessionStorage.setItem('walletAddress', selectedAccount.address);
-                
-                console.log('✅ Account selected:', {
-                    name: selectedAccount.name,
-                    address: selectedAccount.address
-                });
-                
-                this.showLevelOverview();
-                
-            } catch (error) {
-                console.error('Player registration error:', error);
-                alert(`❌ Error saving: ${error.message}\n\nPlease try again.`);
-            }
-        });
+        // Note: continueBtn wird in Account-Click-Handlern entfernt und durch continue-quiz-btn ersetzt
+        // Der ursprüngliche Event-Handler ist nicht mehr erforderlich
     }
 
     /**
@@ -1037,16 +949,12 @@ class QuizUI {
             // Leaderboard-Info separat rendern (mit Link statt Button)
             this.renderLeaderboardInfo(leaderboard, playerName, walletAddress);
 
-            // Config & Questions laden
-            const configResponse = await fetch('data/config.json');
-            const config = await configResponse.json();
-            const totalLevels = config.gameSettings?.totalLevels || 15;
-
+            // Questions laden (totalLevels wird aus quizEngine geholt)
             const questionsResponse = await fetch('data/questions.json');
             const questions = await questionsResponse.json();
 
             // Level nach Kategorien gruppiert rendern
-            this.renderLevelsByCategory(playerData, totalLevels, questions);
+            this.renderLevelsByCategory(playerData, quizEngine.totalLevels, questions);
 
         } catch (error) {
             console.error('Error loading player:', error);

@@ -116,8 +116,7 @@ async connect() {
    }
    ```
 2. Add PDF to [downloads/](downloads/)
-3. Update `totalLevels` in [data/config.json](data/config.json)
-4. Test: Complete previous level, verify new level unlocks
+3. Test: Complete previous level, verify new level unlocks (level count is auto-detected)
 
 ### Debugging API Issues
 - PHP errors: XAMPP Control Panel → Logs
