@@ -75,11 +75,15 @@ if (!$player) {
     ]);
 }
 
-// Spieler gefunden - Return mit beiden Adressen
+// On-Chain-Daten inkludieren falls vorhanden
+$onChainData = isset($player['onChainData']) ? $player['onChainData'] : null;
+
+// Spieler gefunden - Return mit beiden Adressen und On-Chain-Daten
 jsonResponse([
     'found' => true,
     'returning' => true,  // Wiederkehrender Spieler!
     'player' => $player,
     'genericAddress' => $genericAddress,
-    'polkadotAddress' => $polkadotAddress
+    'polkadotAddress' => $polkadotAddress,
+    'onChainData' => $onChainData
 ]);

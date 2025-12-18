@@ -12,6 +12,43 @@ class QuizUI {
     }
 
     /**
+     * Räumt alte Cache-Einträge auf (einmalig pro Session)
+     * Entfernt Session Storage Keys mit altem Format: onchain_data_*
+     */
+    cleanupLegacyCache() {
+        // Prüfe ob bereits durchgeführt
+        if (sessionStorage.getItem('cacheCleanupDone')) {
+            return;
+        }
+
+        let cleanedCount = 0;
+        const keysToRemove = [];
+
+        // Finde alle Keys mit altem Format (ohne Netzwerk-Präfix)
+        for (let i = 0; i < sessionStorage.length; i++) {
+            const key = sessionStorage.key(i);
+            if (key && key.match(/^onchain_data_[^_]/)) {
+                // Altes Format: onchain_data_5Dyv...
+                // Neues Format: onchain_polkadot_5Dyv...
+                keysToRemove.push(key);
+            }
+        }
+
+        // Entferne gefundene Keys
+        keysToRemove.forEach(key => {
+            sessionStorage.removeItem(key);
+            cleanedCount++;
+        });
+
+        // Setze Flag
+        sessionStorage.setItem('cacheCleanupDone', 'true');
+
+        if (cleanedCount > 0) {
+            console.log(`🧹 Cleaned up ${cleanedCount} legacy cache entries`);
+        }
+    }
+
+    /**
      * Zeige spezifischen Screen
      */
     showScreen(screenName) {
@@ -76,6 +113,9 @@ class QuizUI {
 
         console.log('🔧 Initializing event listeners (first time only)');
         this.eventListenersInitialized = true;
+
+        // Auto-Cleanup alter Cache-Einträge (einmalig pro Session)
+        this.cleanupLegacyCache();
 
         const connectBtn = document.getElementById('connect-wallet-btn');
         const statusDiv = document.getElementById('wallet-status');
@@ -210,11 +250,16 @@ class QuizUI {
 
                             // Event Listener
                             setTimeout(() => {
-                                document.getElementById('continue-quiz-btn').addEventListener('click', () => {
+                                document.getElementById('continue-quiz-btn').addEventListener('click', async () => {
                                     // WICHTIG: Setze Session-Daten
                                     sessionStorage.setItem('walletAddress', account.genericAddress);
                                     sessionStorage.setItem('playerName', account.existingPlayer.playerName);
                                     sessionStorage.setItem('polkadotAddress', account.polkadotAddress);
+
+                                    // Pre-Load On-Chain-Daten (Fire-and-Forget, blockiert nicht)
+                                    this.loadOnChainData(account.genericAddress, false, 'polkadot').catch(err => {
+                                        console.warn('On-chain data pre-loading failed:', err);
+                                    });
 
                                     // Zeige Level-Übersicht
                                     this.showLevelOverview();
@@ -252,11 +297,16 @@ class QuizUI {
 
                             // Event Listener OHNE Validierung/Registrierung
                             setTimeout(() => {
-                                document.getElementById('continue-quiz-btn').addEventListener('click', () => {
+                                document.getElementById('continue-quiz-btn').addEventListener('click', async () => {
                                     // WICHTIG: Setze Session-Daten OHNE playerName
                                     sessionStorage.setItem('walletAddress', account.genericAddress);
                                     sessionStorage.setItem('polkadotAddress', account.polkadotAddress);
                                     // playerName wird NICHT gesetzt → Level Overview zeigt Name-Eingabe an
+
+                                    // Pre-Load On-Chain-Daten (Fire-and-Forget, blockiert nicht)
+                                    this.loadOnChainData(account.genericAddress, false, 'polkadot').catch(err => {
+                                        console.warn('On-chain data pre-loading failed:', err);
+                                    });
 
                                     // Zeige Level-Übersicht
                                     this.showLevelOverview();
@@ -314,6 +364,7 @@ class QuizUI {
                     <div id="account-menu-dropdown" class="menu-dropdown" style="display: none;">
                         <a href="#" id="menu-logout">Log Out</a>
                         <a href="#" id="menu-change-name">Change Name</a>
+                        <a href="#" id="menu-account-overview">Account Overview</a>
                         <a href="#" id="menu-anleitung">Instructions</a>
                     </div>
                 </div>
@@ -630,6 +681,12 @@ class QuizUI {
             this.openChangeNameModal(account);
         });
 
+        document.getElementById('menu-account-overview').addEventListener('click', (e) => {
+            e.preventDefault();
+            menuDropdown.style.display = 'none';
+            this.showAccountOverview();
+        });
+
         document.getElementById('menu-anleitung').addEventListener('click', (e) => {
             e.preventDefault();
             menuDropdown.style.display = 'none';
@@ -926,6 +983,18 @@ class QuizUI {
         const walletAddress = sessionStorage.getItem('walletAddress');
         const playerName = sessionStorage.getItem('playerName');
 
+        // Background-Refresh für On-Chain-Daten starten (nur einmal)
+        if (onChainService.isConnected && !onChainService.refreshTimerId) {
+            onChainService.startAutoRefresh(() => {
+                const address = sessionStorage.getItem('walletAddress');
+                if (address) {
+                    this.loadOnChainData(address, true, 'polkadot').catch(err => {
+                        console.warn('Background refresh failed:', err);
+                    });
+                }
+            });
+        }
+
         try {
             const playerData = await quizEngine.loadPlayer(walletAddress);
 
@@ -969,8 +1038,13 @@ class QuizUI {
     /**
      * Logout
      */
-    logout() {
-        // Lösche Session Storage
+    async logout() {
+        // OnChain-Service disconnecten und Background-Refresh stoppen
+        if (onChainService && onChainService.isConnected) {
+            await onChainService.disconnect();
+        }
+
+        // Lösche Session Storage (inkl. On-Chain-Daten)
         sessionStorage.clear();
         walletManager.selectedAccount = null;
         walletManager.extension = null;
@@ -1601,6 +1675,872 @@ class QuizUI {
                 cleanup();
             }
         });
+    }
+
+    /**
+     * Zeigt Account Overview Screen mit On-Chain-Daten
+     */
+    async showAccountOverview() {
+        this.showScreen('account-overview');
+
+        const walletAddress = sessionStorage.getItem('walletAddress');
+        const playerName = sessionStorage.getItem('playerName');
+        const polkadotAddress = sessionStorage.getItem('polkadotAddress');
+        const network = 'polkadot'; // Aktuell nur Polkadot
+
+        if (!walletAddress) {
+            console.error('No wallet address in session');
+            return;
+        }
+
+        try {
+            // Player-Daten laden für Header
+            const playerData = await quizEngine.loadPlayer(walletAddress);
+
+            // Design anwenden
+            this.applyAccountDesign(playerData);
+
+            // Header rendern (gleiche Struktur wie Level Overview)
+            const displayAddress = polkadotAddress ? 
+                `${polkadotAddress.substring(0, 6)}...${polkadotAddress.substring(polkadotAddress.length - 6)}` : 
+                walletAddress.substring(0, 12);
+
+            const categoryObj = this.getPlayerBadge(playerData);
+            const badgeHTML = categoryObj
+                ? `<img src="assets/img/categories/${categoryObj.catSymbol}"
+                       alt="${categoryObj.catDescription}"
+                       class="category-avatar-badge"
+                       title="${categoryObj.catDescription}">`
+                : '';
+
+            document.getElementById('account-overview-header').innerHTML = `
+                <div class="vonflandern-account">
+                    <div class="account-badge-circle">
+                        ${badgeHTML}
+                    </div>
+                    <div class="account-info-right">
+                        <div class="player-name-display">${playerName || 'Guest'}</div>
+                        <div class="player-wallet-display">${displayAddress}</div>
+                    </div>
+                    <div class="account-menu">
+                        <a href="#" id="account-menu-trigger-overview">☰</a>
+                        <div id="account-menu-dropdown-overview" class="menu-dropdown" style="display: none;">
+                            <a href="#" id="menu-logout-overview">Log Out</a>
+                            <a href="#" id="menu-change-name-overview">Change Name</a>
+                            <a href="#" id="menu-back-level">Back to Levels</a>
+                            <a href="#" id="menu-anleitung-overview">Instructions</a>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Hamburger-Menü Event-Listener für Overview-Screen
+            const menuTrigger = document.getElementById('account-menu-trigger-overview');
+            const menuDropdown = document.getElementById('account-menu-dropdown-overview');
+
+            menuTrigger?.addEventListener('click', (e) => {
+                e.preventDefault();
+                const isVisible = menuDropdown.style.display === 'block';
+                menuDropdown.style.display = isVisible ? 'none' : 'block';
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.account-menu') && menuDropdown) {
+                    menuDropdown.style.display = 'none';
+                }
+            });
+
+            document.getElementById('menu-logout-overview')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.logout();
+            });
+
+            document.getElementById('menu-change-name-overview')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                menuDropdown.style.display = 'none';
+                this.openChangeNameModal(walletManager.selectedAccount);
+            });
+
+            document.getElementById('menu-back-level')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                menuDropdown.style.display = 'none';
+                this.showLevelOverview();
+            });
+
+            document.getElementById('menu-anleitung-overview')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                menuDropdown.style.display = 'none';
+                this.showAnleitung();
+            });
+
+            // Network Selector initialisieren
+            await this.initializeNetworkSelector(walletAddress);
+
+            // Loading-Overlay anzeigen
+            document.getElementById('onchain-loading-overlay').style.display = 'flex';
+
+            // On-Chain-Daten laden
+            const onChainData = await this.loadOnChainData(walletAddress, false, network);
+
+            // Loading-Overlay verstecken
+            document.getElementById('onchain-loading-overlay').style.display = 'none';
+
+            // Daten rendern
+            this.renderOnChainData(onChainData, network);
+            
+            // Address Display initialisieren
+            this.initializeAddressDisplay();
+
+            // Back-Button Event-Listener
+            const backBtn = document.getElementById('back-from-account-overview-btn');
+            if (backBtn && !backBtn.hasAttribute('data-listener-added')) {
+                backBtn.setAttribute('data-listener-added', 'true');
+                backBtn.addEventListener('click', () => {
+                    this.showLevelOverview();
+                });
+            }
+
+            // Refresh-Button Event-Listener
+            const refreshBtn = document.getElementById('refresh-onchain-btn');
+            if (refreshBtn && !refreshBtn.hasAttribute('data-listener-added')) {
+                refreshBtn.setAttribute('data-listener-added', 'true');
+                refreshBtn.addEventListener('click', async () => {
+                    try {
+                        // Loading-Overlay anzeigen
+                        document.getElementById('onchain-loading-overlay').style.display = 'flex';
+
+                        // Force-Refresh
+                        const freshData = await this.loadOnChainData(walletAddress, true, network);
+
+                        // Loading-Overlay verstecken
+                        document.getElementById('onchain-loading-overlay').style.display = 'none';
+
+                        // Neu rendern
+                        this.renderOnChainData(freshData, network);
+
+                        console.log('✅ On-chain data refreshed');
+                    } catch (error) {
+                        document.getElementById('onchain-loading-overlay').style.display = 'none';
+                        console.error('Failed to refresh on-chain data:', error);
+                        alert('Failed to refresh data. Please try again.');
+                    }
+                });
+            }
+
+        } catch (error) {
+            console.error('Failed to show account overview:', error);
+            document.getElementById('onchain-loading-overlay').style.display = 'none';
+            document.getElementById('onchain-data-body').innerHTML = `
+                <div class="error-message">
+                    <p>❌ Failed to load on-chain data</p>
+                    <p>${error.message}</p>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Rendert On-Chain-Daten in die UI
+     * @param {Object} data - On-Chain-Daten
+     * @param {string} network - Netzwerk (polkadot, kusama, westend)
+     */
+    renderOnChainData(data, network = 'polkadot') {
+        const isStale = data.isStale || false;
+
+        // Warning Banner
+        const warningBanner = document.getElementById('onchain-warning');
+        if (warningBanner) {
+            warningBanner.style.display = isStale ? 'block' : 'none';
+        }
+
+        // Last Update
+        const lastUpdateEl = document.getElementById('onchain-last-update');
+        if (lastUpdateEl && data.lastUpdate) {
+            const date = new Date(data.lastUpdate);
+            lastUpdateEl.textContent = `Last updated: ${date.toLocaleString()}`;
+        }
+
+        // Unit basierend auf Netzwerk
+        const unit = network === 'polkadot' ? 'DOT' : network === 'kusama' ? 'KSM' : 'WND';
+        const decimals = 10; // Alle Polkadot-Chains nutzen 10 decimals
+
+        // === Account Section ===
+        const accountSection = document.getElementById('account-section');
+        const identity = data.account?.identity || {};
+        const flags = data.account?.flags || {};
+
+        const identityDisplay = identity.hasIdentity
+            ? `<strong>${identity.display}</strong>`
+            : '<em>No on-chain identity set</em>';
+
+        const flagsList = [];
+        if (flags.isCouncil) flagsList.push('🏛️ Council Member');
+        if (flags.isSociety) flagsList.push('🎭 Society Member');
+        if (flags.isTechCommittee) flagsList.push('🔧 Tech Committee');
+
+        // Fülle Address Display
+        const genericAddr = document.querySelector('.generic-addr');
+        const networkAddr = document.querySelector('.network-addr');
+        const networkLabel = document.querySelector('.network-label');
+        
+        if (data.addresses) {
+            if (genericAddr) genericAddr.textContent = data.addresses.generic || 'N/A';
+            if (networkAddr) networkAddr.textContent = data.addresses.networkSpecific || 'N/A';
+            if (networkLabel) networkLabel.textContent = `${network.charAt(0).toUpperCase() + network.slice(1)}:`;
+        }
+
+        accountSection.innerHTML = `
+            <div class="data-row">
+                <span class="data-label">Account ID:</span>
+                <span class="data-value">${data.account?.accountId || 'N/A'}</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Identity:</span>
+                <span class="data-value">${identityDisplay}</span>
+            </div>
+            ${identity.web ? `<div class="data-row"><span class="data-label">Website:</span><span class="data-value"><a href="${identity.web}" target="_blank">${identity.web}</a></span></div>` : ''}
+            ${identity.email ? `<div class="data-row"><span class="data-label">Email:</span><span class="data-value">${identity.email}</span></div>` : ''}
+            ${identity.twitter ? `<div class="data-row"><span class="data-label">Twitter:</span><span class="data-value">${identity.twitter}</span></div>` : ''}
+            ${flagsList.length > 0 ? `<div class="data-row"><span class="data-label">Roles:</span><span class="data-value">${flagsList.join(', ')}</span></div>` : ''}
+        `;
+
+        // === Balances Section ===
+        const balancesSection = document.getElementById('balances-section');
+        const balances = data.balances || {};
+
+        balancesSection.innerHTML = `
+            <div class="data-row">
+                <span class="data-label">Transferable:</span>
+                <span class="data-value">${onChainService.formatBalance(balances.free || '0', decimals, unit)}</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Reserved:</span>
+                <span class="data-value">${onChainService.formatBalance(balances.reserved || '0', decimals, unit)}</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Frozen:</span>
+                <span class="data-value">${onChainService.formatBalance(balances.frozen || '0', decimals, unit)}</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label"><strong>Total:</strong></span>
+                <span class="data-value"><strong>${onChainService.formatBalance(balances.total || '0', decimals, unit)}</strong></span>
+            </div>
+        `;
+
+        // === Staking Section ===
+        const staking = data.staking || {};
+        const stakingWrapper = document.getElementById('staking-section-wrapper');
+        const stakingSection = document.getElementById('staking-section');
+
+        if (staking.hasStaking && staking.active !== '0') {
+            stakingWrapper.style.display = 'block';
+            stakingSection.innerHTML = `
+                <div class="data-row">
+                    <span class="data-label">Active Stake:</span>
+                    <span class="data-value">${onChainService.formatBalance(staking.active || '0', decimals, unit)}</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Total Bonded:</span>
+                    <span class="data-value">${onChainService.formatBalance(staking.total || '0', decimals, unit)}</span>
+                </div>
+                ${staking.rewardDestination ? `<div class="data-row"><span class="data-label">Reward Destination:</span><span class="data-value">${staking.rewardDestination}</span></div>` : ''}
+                ${staking.unlocking && staking.unlocking.length > 0 ? `<div class="data-row"><span class="data-label">Unlocking:</span><span class="data-value">${staking.unlocking.length} chunks</span></div>` : ''}
+            `;
+        } else {
+            stakingWrapper.style.display = 'none';
+        }
+
+        // === Governance Section ===
+        const governanceSection = document.getElementById('governance-section');
+        const governance = data.governance || {};
+
+        governanceSection.innerHTML = `
+            <div class="data-row">
+                <span class="data-label">Voting Balance:</span>
+                <span class="data-value">${onChainService.formatBalance(governance.votingBalance || '0', decimals, unit)}</span>
+            </div>
+        `;
+    }
+
+    /**
+     * Initialisiert Network Selector mit Registry-Daten
+     * @param {string} walletAddress - Wallet Address für RPC-Reconnect
+     */
+    async initializeNetworkSelector(walletAddress) {
+        const selector = document.getElementById('network-selector');
+        const showMoreBtn = document.getElementById('show-more-networks-btn');
+        
+        if (!selector) return;
+
+        // Registry laden
+        await onChainService.loadNetworkRegistry();
+        const registry = onChainService.networkRegistry;
+
+        // Top 5 Netzwerke (nach Priority sortiert)
+        const topNetworks = registry.slice(0, 5);
+        const remainingNetworks = registry.slice(5);
+
+        // Fülle Dropdown mit Top 5
+        selector.innerHTML = topNetworks.map(net => 
+            `<option value="${net.network}">${net.displayName} (${net.symbol})</option>`
+        ).join('');
+
+        // "Show More" Button anzeigen wenn es mehr Netzwerke gibt
+        if (remainingNetworks.length > 0 && showMoreBtn) {
+            showMoreBtn.style.display = 'inline-block';
+            showMoreBtn.onclick = () => {
+                // Füge restliche Netzwerke hinzu
+                selector.innerHTML = registry.map(net => 
+                    `<option value="${net.network}">${net.displayName} (${net.symbol})</option>`
+                ).join('');
+                showMoreBtn.style.display = 'none';
+            };
+        }
+
+        // Event Listener für Netzwerk-Wechsel
+        selector.onchange = async (e) => {
+            const newNetwork = e.target.value;
+            console.log(`🔄 Switching network to: ${newNetwork}`);
+
+            try {
+                // Loading-Overlay anzeigen
+                document.getElementById('onchain-loading-overlay').style.display = 'flex';
+
+                // Alte Verbindung trennen
+                if (onChainService.isConnected) {
+                    await onChainService.disconnect();
+                }
+
+                // Neue Verbindung herstellen
+                await onChainService.connect(newNetwork);
+
+                // Daten neu laden
+                const freshData = await this.loadOnChainData(walletAddress, true, newNetwork);
+
+                // Loading-Overlay verstecken
+                document.getElementById('onchain-loading-overlay').style.display = 'none';
+
+                // UI neu rendern
+                this.renderOnChainData(freshData, newNetwork);
+
+                console.log(`✅ Switched to ${newNetwork}`);
+            } catch (error) {
+                console.error('❌ Network switch failed:', error);
+                document.getElementById('onchain-loading-overlay').style.display = 'none';
+                alert(`Failed to switch network: ${error.message}`);
+                // Zurück zu vorheriger Auswahl
+                selector.value = onChainService.currentNetwork || 'polkadot';
+            }
+        };
+    }
+
+    /**
+     * Initialisiert Address Display mit Copy-Funktion und Toggle
+     */
+    initializeAddressDisplay() {
+        // Toggle Button
+        const toggleBtn = document.getElementById('addr-format-toggle');
+        const genericRow = document.querySelector('.generic-address-row');
+        const networkRow = document.querySelector('.network-address-row');
+
+        if (toggleBtn) {
+            // Lade gespeicherte Präferenz
+            const savedFormat = localStorage.getItem('addressDisplayFormat') || 'both';
+            this.applyAddressDisplayFormat(savedFormat);
+
+            toggleBtn.onclick = () => {
+                const currentFormat = localStorage.getItem('addressDisplayFormat') || 'both';
+                const newFormat = currentFormat === 'both' ? 'generic' : 
+                                  currentFormat === 'generic' ? 'network' : 'both';
+                
+                localStorage.setItem('addressDisplayFormat', newFormat);
+                this.applyAddressDisplayFormat(newFormat);
+            };
+        }
+
+        // Copy Buttons
+        document.querySelectorAll('.copy-btn').forEach(btn => {
+            btn.onclick = async () => {
+                const copyType = btn.getAttribute('data-copy');
+                const addressElement = copyType === 'generic' 
+                    ? document.querySelector('.generic-addr')
+                    : document.querySelector('.network-addr');
+                
+                const address = addressElement?.textContent;
+                
+                if (address) {
+                    try {
+                        await navigator.clipboard.writeText(address);
+                        
+                        // Toast-Benachrichtigung
+                        this.showToast('📋 Address copied to clipboard!');
+                        
+                        // Visuelles Feedback am Button
+                        btn.textContent = '✅';
+                        setTimeout(() => btn.textContent = '📋', 1500);
+                    } catch (error) {
+                        console.error('Copy failed:', error);
+                        this.showToast('❌ Failed to copy address', true);
+                    }
+                }
+            };
+        });
+    }
+
+    /**
+     * Wendet Address Display Format an
+     * @param {string} format - 'both', 'generic', oder 'network'
+     */
+    applyAddressDisplayFormat(format) {
+        const toggleBtn = document.getElementById('addr-format-toggle');
+        const genericRow = document.querySelector('.generic-address-row');
+        const networkRow = document.querySelector('.network-address-row');
+
+        if (format === 'generic') {
+            genericRow.style.display = 'flex';
+            networkRow.style.display = 'none';
+            toggleBtn.textContent = 'Show Network';
+        } else if (format === 'network') {
+            genericRow.style.display = 'none';
+            networkRow.style.display = 'flex';
+            toggleBtn.textContent = 'Show Both';
+        } else { // both
+            genericRow.style.display = 'flex';
+            networkRow.style.display = 'flex';
+            toggleBtn.textContent = 'Show Generic';
+        }
+    }
+
+    /**
+     * Zeigt Toast-Benachrichtigung
+     * @param {string} message - Nachricht
+     * @param {boolean} isError - Ist Fehlermeldung
+     */
+    showToast(message, isError = false) {
+        // Prüfe ob Toast-Container existiert
+        let toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toast-container';
+            toastContainer.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 10000;';
+            document.body.appendChild(toastContainer);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `toast ${isError ? 'toast-error' : 'toast-success'}`;
+        toast.textContent = message;
+        toast.style.cssText = `
+            background: ${isError ? '#fee' : '#efe'};
+            color: ${isError ? '#c00' : '#060'};
+            padding: 12px 20px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border: 2px solid ${isError ? '#fcc' : '#cfc'};
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            animation: slideIn 0.3s ease-out;
+        `;
+
+        toastContainer.appendChild(toast);
+
+        // Entferne nach 3 Sekunden
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease-out';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    /**
+     * Initialisiert Network Selector Dropdown mit Registry-Daten
+     * @param {string} walletAddress - Wallet-Adresse für Data-Loading
+     */
+    async initializeNetworkSelector(walletAddress) {
+        const selector = document.getElementById('network-selector');
+        if (!selector) return;
+
+        // Registry laden
+        await onChainService.loadNetworkRegistry();
+        const registry = onChainService.networkRegistry;
+
+        // Top 5 Netzwerke initial anzeigen
+        const topNetworks = registry.slice(0, 5);
+        
+        selector.innerHTML = '';
+        topNetworks.forEach(net => {
+            const option = document.createElement('option');
+            option.value = net.network;
+            option.textContent = `${net.displayName} (${net.symbol})`;
+            if (net.network === 'polkadot') option.selected = true;
+            selector.appendChild(option);
+        });
+
+        // "Show More" Option (wenn mehr als 5 Netzwerke)
+        if (registry.length > 5) {
+            const showMoreOption = document.createElement('option');
+            showMoreOption.value = '__showmore__';
+            showMoreOption.textContent = '--- Show More Networks ---';
+            selector.appendChild(showMoreOption);
+        }
+
+        // Event Listener für Netzwerk-Wechsel
+        selector.onchange = async (e) => {
+            const selectedNetwork = e.target.value;
+
+            // "Show More" geklickt?
+            if (selectedNetwork === '__showmore__') {
+                // Lade alle Netzwerke
+                selector.innerHTML = '';
+                registry.forEach(net => {
+                    const option = document.createElement('option');
+                    option.value = net.network;
+                    option.textContent = `${net.displayName} (${net.symbol})`;
+                    selector.appendChild(option);
+                });
+                selector.value = onChainService.currentNetwork || 'polkadot';
+                return;
+            }
+
+            // Netzwerk-Wechsel
+            try {
+                console.log('🔄 Switching network to:', selectedNetwork);
+                
+                // Loading-Overlay anzeigen
+                document.getElementById('onchain-loading-overlay').style.display = 'flex';
+
+                // Alte Verbindung trennen
+                await onChainService.disconnect();
+
+                // Neue Verbindung aufbauen
+                await onChainService.connect(selectedNetwork);
+
+                // Daten neu laden
+                const freshData = await this.loadOnChainData(walletAddress, true, selectedNetwork);
+
+                // Loading-Overlay verstecken
+                document.getElementById('onchain-loading-overlay').style.display = 'none';
+
+                // UI neu rendern
+                this.renderOnChainData(freshData, selectedNetwork);
+                
+                console.log('✅ Network switched successfully');
+            } catch (error) {
+                console.error('❌ Network switch failed:', error);
+                document.getElementById('onchain-loading-overlay').style.display = 'none';
+                alert(`Failed to switch network: ${error.message}`);
+                
+                // Zurück zum vorherigen Netzwerk
+                selector.value = onChainService.currentNetwork || 'polkadot';
+            }
+        };
+    }
+
+    /**
+     * Initialisiert Address Display mit Copy-Funktion und Toggle
+     */
+    initializeAddressDisplay() {
+        // Copy-to-Clipboard für beide Adressen
+        document.querySelectorAll('.copy-btn').forEach(btn => {
+            btn.onclick = () => {
+                const copyType = btn.getAttribute('data-copy');
+                const addressElement = copyType === 'generic' 
+                    ? document.querySelector('.generic-addr')
+                    : document.querySelector('.network-addr');
+                
+                if (addressElement) {
+                    const address = addressElement.textContent;
+                    navigator.clipboard.writeText(address).then(() => {
+                        // Toast-Feedback
+                        this.showToast('Address copied to clipboard!');
+                        
+                        // Button-Feedback
+                        const originalText = btn.textContent;
+                        btn.textContent = '✓';
+                        btn.style.background = '#2196F3';
+                        setTimeout(() => {
+                            btn.textContent = originalText;
+                            btn.style.background = '';
+                        }, 1000);
+                    }).catch(err => {
+                        console.error('Copy failed:', err);
+                        alert('Failed to copy address');
+                    });
+                }
+            };
+        });
+
+        // Toggle Button für Address Format
+        const toggleBtn = document.getElementById('addr-format-toggle');
+        const genericRow = document.querySelector('.generic-address-row');
+        const networkRow = document.querySelector('.network-address-row');
+        
+        if (toggleBtn && genericRow && networkRow) {
+            // Lade gespeicherte Präferenz
+            const savedFormat = localStorage.getItem('addressDisplayFormat') || 'both';
+            
+            const applyFormat = (format) => {
+                switch(format) {
+                    case 'generic':
+                        genericRow.style.display = 'flex';
+                        networkRow.style.display = 'none';
+                        toggleBtn.textContent = 'Show Network';
+                        break;
+                    case 'network':
+                        genericRow.style.display = 'none';
+                        networkRow.style.display = 'flex';
+                        toggleBtn.textContent = 'Show Both';
+                        break;
+                    case 'both':
+                    default:
+                        genericRow.style.display = 'flex';
+                        networkRow.style.display = 'flex';
+                        toggleBtn.textContent = 'Show Generic';
+                        break;
+                }
+                localStorage.setItem('addressDisplayFormat', format);
+            };
+            
+            applyFormat(savedFormat);
+            
+            toggleBtn.onclick = () => {
+                const currentFormat = localStorage.getItem('addressDisplayFormat') || 'both';
+                const nextFormat = currentFormat === 'both' ? 'generic' 
+                                 : currentFormat === 'generic' ? 'network' 
+                                 : 'both';
+                applyFormat(nextFormat);
+            };
+        }
+    }
+
+    /**
+     * Zeigt Toast-Nachricht
+     * @param {string} message - Nachricht
+     */
+    showToast(message) {
+        // Erstelle Toast-Element falls nicht vorhanden
+        let toast = document.getElementById('toast-notification');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'toast-notification';
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 30px;
+                right: 30px;
+                background: #333;
+                color: white;
+                padding: 15px 25px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 10000;
+                animation: slideIn 0.3s ease-out;
+            `;
+            document.body.appendChild(toast);
+        }
+
+        toast.textContent = message;
+        toast.style.display = 'block';
+
+        // Auto-Hide nach 2 Sekunden
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease-out';
+            setTimeout(() => {
+                toast.style.display = 'none';
+                toast.style.animation = '';
+            }, 300);
+        }, 2000);
+    }
+
+    /**
+     * Zeigt Error Overlay für Address Conversion Fehler
+     * @param {string} errorMessage - Fehlermeldung
+     * @param {string} address - Betroffene Adresse
+     * @param {string} network - Netzwerk
+     */
+    showAddressConversionError(errorMessage, address, network) {
+        const overlay = document.getElementById('onchain-loading-overlay');
+        if (!overlay) return;
+
+        overlay.className = 'error-state';
+        overlay.style.display = 'flex';
+        overlay.innerHTML = `
+            <div class="error-content">
+                <div class="error-icon">⚠️</div>
+                <h3>Address Conversion Failed</h3>
+                <p>${errorMessage}</p>
+                <p class="error-details">
+                    <strong>Address:</strong> ${address.substring(0, 12)}...${address.substring(address.length - 6)}<br>
+                    <strong>Network:</strong> ${network}
+                </p>
+                <div class="error-actions">
+                    <button id="error-retry-btn" class="btn-primary">Try Again</button>
+                    <button id="error-disconnect-btn" class="btn-secondary">Disconnect Wallet</button>
+                </div>
+            </div>
+        `;
+
+        // Retry Button
+        document.getElementById('error-retry-btn')?.addEventListener('click', async () => {
+            overlay.className = '';
+            overlay.innerHTML = `
+                <div class="spinner">🔄</div>
+                <p>Loading blockchain data...</p>
+            `;
+            
+            try {
+                const freshData = await this.loadOnChainData(address, true, network);
+                overlay.style.display = 'none';
+                this.renderOnChainData(freshData, network);
+            } catch (error) {
+                this.showAddressConversionError(error.message, address, network);
+            }
+        });
+
+        // Disconnect Button
+        document.getElementById('error-disconnect-btn')?.addEventListener('click', () => {
+            walletManager.disconnect();
+            this.showWalletConnect();
+        });
+    }
+
+    /**
+     * Lädt On-Chain-Daten für eine Adresse
+     * @param {string} address - Generic Address
+     * @param {boolean} forceRefresh - Ignoriert Cache und lädt neu
+     * @param {string} network - Netzwerk (default: polkadot)
+     * @returns {Promise<Object>} On-Chain-Daten
+     */
+    async loadOnChainData(address, forceRefresh = false, network = 'polkadot') {
+        try {
+            console.log(`🔄 Loading on-chain data for ${address.substring(0, 12)}... (forceRefresh: ${forceRefresh}, network: ${network})`);
+
+            // Session Storage Key mit Netzwerk-Präfix
+            const cacheKey = `onchain_${network}_${address}`;
+            
+            // Prüfe Cache falls kein Force-Refresh
+            if (!forceRefresh) {
+                const cached = sessionStorage.getItem(cacheKey);
+                if (cached) {
+                    const cachedData = JSON.parse(cached);
+                    
+                    // Prüfe ob gecachtes Netzwerk mit angefordertem übereinstimmt
+                    const cachedNetwork = cachedData.network || 'polkadot';
+                    if (cachedNetwork !== network) {
+                        console.log(`🔄 Network changed from ${cachedNetwork} to ${network}, forcing refresh`);
+                        forceRefresh = true;
+                    } else if (!onChainService.needsRefresh(cachedData.lastUpdate)) {
+                        console.log('✅ Using cached on-chain data (still fresh)');
+                        return cachedData;
+                    } else {
+                        console.log('⏱️ Cached data is stale, refreshing...');
+                    }
+                }
+            }
+
+            // Versuche von Backend zu laden (gecachte Daten)
+            let backendData = null;
+            try {
+                const playerResponse = await fetch('api/get-player.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ walletAddress: address })
+                });
+                const playerResult = await playerResponse.json();
+                
+                if (playerResult.onChainData && playerResult.onChainData[network]) {
+                    backendData = playerResult.onChainData[network];
+                    console.log('📦 Found on-chain data in backend');
+                    
+                    // Prüfe ob Backend-Daten fresh genug sind
+                    if (!forceRefresh && !onChainService.needsRefresh(backendData.lastUpdate)) {
+                        console.log('✅ Backend data is fresh, using it');
+                        sessionStorage.setItem(cacheKey, JSON.stringify(backendData));
+                        return backendData;
+                    }
+                }
+            } catch (error) {
+                console.warn('Could not load backend data:', error);
+            }
+
+            // Live RPC-Call nötig
+            console.log('📡 Fetching fresh on-chain data from RPC...');
+            
+            try {
+                // Verbinde falls nötig
+                if (!onChainService.isConnected) {
+                    await onChainService.connect(network);
+                }
+
+                // Daten abrufen
+                const onChainData = await onChainService.fetchAllOnChainData(address);
+                
+                // Füge Netzwerk-Info hinzu
+                onChainData.network = network;
+
+                // In Backend speichern
+                try {
+                    const saveResponse = await fetch('api/save-onchain-data.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            walletAddress: address,
+                            network: network,
+                            onChainData: onChainData
+                        })
+                    });
+                    
+                    if (!saveResponse.ok) {
+                        const errorText = await saveResponse.text();
+                        console.error('❌ Backend save failed:', saveResponse.status, errorText);
+                    } else {
+                        const saveResult = await saveResponse.json();
+                        if (saveResult.success) {
+                            console.log('✅ On-chain data saved to backend');
+                        } else {
+                            console.warn('⚠️ Failed to save on-chain data:', saveResult.message || saveResult);
+                        }
+                    }
+                } catch (saveError) {
+                    console.error('❌ Error saving on-chain data:', saveError);
+                }
+
+                // In Session Storage speichern
+                sessionStorage.setItem(cacheKey, JSON.stringify(onChainData));
+
+                console.log('✅ Fresh on-chain data loaded successfully');
+                return onChainData;
+
+            } catch (rpcError) {
+                console.error('❌ RPC fetch failed:', rpcError);
+                
+                // Prüfe ob es ein Address Conversion Error ist
+                if (rpcError.message && (rpcError.message.includes('convert') || rpcError.message.includes('invalid'))) {
+                    // Zeige Error Overlay
+                    this.showAddressConversionError(rpcError.message, address, network);
+                    throw rpcError; // Re-throw damit showAccountOverview nicht weiter ausführt
+                }
+                
+                // Fallback zu gecachten Daten (Backend oder Session)
+                if (backendData) {
+                    console.log('⚠️ Using stale backend data as fallback');
+                    sessionStorage.setItem(cacheKey, JSON.stringify(backendData));
+                    backendData.isStale = true;
+                    return backendData;
+                }
+                
+                const cached = sessionStorage.getItem(cacheKey);
+                if (cached) {
+                    const cachedData = JSON.parse(cached);
+                    console.log('⚠️ Using stale session cache as fallback');
+                    cachedData.isStale = true;
+                    return cachedData;
+                }
+                
+                // Kein Fallback verfügbar
+                throw new Error('No on-chain data available (RPC failed, no cache)');
+            }
+
+        } catch (error) {
+            console.error('❌ Failed to load on-chain data:', error);
+            throw error;
+        }
     }
 }
 

@@ -811,3 +811,435 @@ button.secondary {
 #player-rank-info a:hover {
     color: var(--accent-color) !important;
 }
+
+/* ========================================
+   ACCOUNT OVERVIEW SCREEN
+   ======================================== */
+
+.account-overview-screen {
+    padding: 20px;
+}
+
+/* Network Selector Container */
+.network-selector-container {
+    margin: 20px 0;
+    padding: 15px;
+    background: var(--account-body-background);
+    border: 2px solid var(--account-body-border);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.network-selector-container label {
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+#network-selector {
+    padding: 8px 12px;
+    font-size: 14px;
+    border: 2px solid #d1d5db;
+    border-radius: 6px;
+    background: white;
+    color: var(--text-color);
+    flex: 1;
+    max-width: 300px;
+}
+
+#network-selector:disabled {
+    background: #f3f4f6;
+    color: #9ca3af;
+    cursor: not-allowed;
+}
+
+/* Loading Overlay */
+#onchain-loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    border-radius: 8px;
+}
+
+#onchain-loading-overlay .spinner {
+    font-size: 48px;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+#onchain-loading-overlay p {
+    margin-top: 10px;
+    font-size: 16px;
+    color: var(--text-color);
+    font-weight: 600;
+}
+
+/* On-Chain Data Body */
+#onchain-data-body {
+    position: relative;
+    margin: 0 0 20px 0;
+    padding: 20px;
+    background: var(--account-body-background);
+    border: 2px solid var(--account-body-border);
+    border-radius: 8px;
+}
+
+/* Warning Banner */
+.onchain-warning {
+    background: #fef3c7;
+    border: 2px solid #f59e0b;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    color: #92400e;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* On-Chain Sections */
+.onchain-section {
+    margin-bottom: 30px;
+}
+
+.onchain-section:last-child {
+    margin-bottom: 0;
+}
+
+.onchain-section h3 {
+    margin: 0 0 15px 0;
+    color: var(--text-color);
+    font-size: 18px;
+    border-bottom: 2px solid var(--account-body-border);
+    padding-bottom: 8px;
+}
+
+/* Data Rows */
+.data-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.data-row:last-child {
+    border-bottom: none;
+}
+
+.data-label {
+    font-weight: 600;
+    color: #6b7280;
+    flex: 0 0 40%;
+}
+
+.data-value {
+    text-align: right;
+    color: var(--text-color);
+    flex: 1;
+    word-break: break-all;
+}
+
+.data-value a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.data-value a:hover {
+    text-decoration: underline;
+}
+
+/* Footer with Refresh Button */
+.onchain-footer {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 2px solid var(--account-body-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+#refresh-onchain-btn {
+    padding: 10px 20px;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+#refresh-onchain-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(230, 0, 122, 0.3);
+}
+
+#onchain-last-update {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+/* Responsive Design für Account Overview */
+@media (max-width: 768px) {
+    .network-selector-container {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    #network-selector {
+        max-width: 100%;
+    }
+
+    .data-row {
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .data-label {
+        flex: auto;
+    }
+
+    .data-value {
+        text-align: left;
+    }
+
+    .onchain-footer {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    #refresh-onchain-btn {
+        width: 100%;
+    }
+
+    .address-display-section {
+        margin-top: 10px;
+    }
+
+    .address-row {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .generic-addr, .network-addr {
+        font-size: 11px;
+        word-break: break-all;
+    }
+}
+
+/* ========== Address Display Section ========== */
+.address-display-section {
+    background: #f9f9f9;
+    border: 2px solid #ddd;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.address-toggle-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.address-toggle-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #333;
+}
+
+.address-toggle-btn {
+    background: #e6007a;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.2s;
+}
+
+.address-toggle-btn:hover {
+    background: #c5006b;
+}
+
+.address-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.addr-label {
+    font-weight: bold;
+    min-width: 140px;
+    color: #555;
+}
+
+.generic-addr, .network-addr {
+    flex: 1;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    background: #f5f5f5;
+    padding: 8px 12px;
+    border-radius: 6px;
+    word-break: break-all;
+    color: #333;
+}
+
+.copy-btn {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s;
+    min-width: 40px;
+}
+
+.copy-btn:hover {
+    background: #45a049;
+    transform: scale(1.1);
+}
+
+.copy-btn:active {
+    transform: scale(0.95);
+}
+
+/* Show More Networks Button */
+#show-more-networks-btn {
+    margin-left: 10px;
+    padding: 6px 12px;
+    background: #e6007a;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.2s;
+}
+
+#show-more-networks-btn:hover {
+    background: #c5006b;
+}
+
+/* ========== Error State für Loading Overlay ========== */
+#onchain-loading-overlay.error-state {
+    background: rgba(255, 240, 240, 0.98);
+    border: 3px solid #f44336;
+}
+
+.error-content {
+    text-align: center;
+    max-width: 500px;
+}
+
+.error-icon {
+    font-size: 64px;
+    margin-bottom: 15px;
+}
+
+.error-content h3 {
+    color: #d32f2f;
+    margin-bottom: 10px;
+}
+
+.error-content p {
+    color: #555;
+    line-height: 1.6;
+    margin-bottom: 10px;
+}
+
+.error-details {
+    background: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #ffcdd2;
+    margin: 20px 0;
+    text-align: left;
+    font-size: 13px;
+}
+
+.error-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.btn-primary {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+.btn-primary:hover {
+    background: #45a049;
+}
+
+.btn-secondary {
+    background: #757575;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.btn-secondary:hover {
+    background: #616161;
+}
+
+/* ========== Toast Animationen ========== */
+@keyframes slideIn {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+}

@@ -9,7 +9,13 @@
     <link rel="stylesheet" href="assets/css/quiz-core.css">
     <link rel="stylesheet" href="assets/css/quiz-standalone.css">
     
-    <!-- Polkadot.js Extension API -->
+    <!-- Polkadot.js Core Libraries (müssen ZUERST geladen werden) -->
+    <script src="https://unpkg.com/@polkadot/util@12.3.2/bundle-polkadot-util.js"></script>
+    <script src="https://unpkg.com/@polkadot/util-crypto@12.3.2/bundle-polkadot-util-crypto.js"></script>
+    <script src="https://unpkg.com/@polkadot/types@10.9.1/bundle-polkadot-types.js"></script>
+    <script src="https://unpkg.com/@polkadot/api@10.9.1/bundle-polkadot-api.js"></script>
+    
+    <!-- Polkadot.js Extension API (benötigt die obigen Dependencies) -->
     <script src="https://unpkg.com/@polkadot/extension-dapp@0.46.1/bundle-polkadot-extension-dapp.js"></script>
 </head>
 <body>
@@ -195,6 +201,87 @@
 
         </div>
 
+        <!-- Account Overview Screen -->
+        <div id="account-overview-screen" class="screen account-overview-screen" style="display: none;">
+            <!-- Account Header (gleiche Struktur wie Level Overview) -->
+            <div id="account-overview-header"></div>
+
+            <!-- Network Selector -->
+            <div class="network-selector-container">
+                <label for="network-selector">Network:</label>
+                <select id="network-selector">
+                    <!-- Wird dynamisch aus Registry gefüllt -->
+                </select>
+                <button id="show-more-networks-btn" style="display: none;">Show More Networks...</button>
+            </div>
+            
+            <!-- Address Display Section -->
+            <div class="address-display-section">
+                <div class="address-toggle-header">
+                    <h3>Your Addresses</h3>
+                    <button id="addr-format-toggle" class="address-toggle-btn" title="Toggle between address formats">
+                        Show Generic
+                    </button>
+                </div>
+                <div class="address-row generic-address-row">
+                    <span class="addr-label">Generic (Universal):</span>
+                    <code class="generic-addr"></code>
+                    <button class="copy-btn" data-copy="generic" title="Copy to clipboard">📋</button>
+                </div>
+                <div class="address-row network-address-row">
+                    <span class="addr-label network-label">Network:</span>
+                    <code class="network-addr"></code>
+                    <button class="copy-btn" data-copy="network" title="Copy to clipboard">📋</button>
+                </div>
+            </div>
+
+            <!-- Loading Overlay -->
+            <div id="onchain-loading-overlay" style="display: none;">
+                <div class="spinner">🔄</div>
+                <p>Loading blockchain data...</p>
+            </div>
+
+            <!-- On-Chain Data Body -->
+            <div id="onchain-data-body" class="account-body-section">
+                <!-- Warning Banner (conditional) -->
+                <div id="onchain-warning" class="onchain-warning" style="display: none;">
+                    ⚠️ Live data unavailable, showing cached data
+                </div>
+
+                <!-- Account Info Section -->
+                <div class="onchain-section">
+                    <h3>📋 Account Information</h3>
+                    <div id="account-section"></div>
+                </div>
+
+                <!-- Balances Section -->
+                <div class="onchain-section">
+                    <h3>💰 Balances</h3>
+                    <div id="balances-section"></div>
+                </div>
+
+                <!-- Staking Section -->
+                <div class="onchain-section" id="staking-section-wrapper" style="display: none;">
+                    <h3>🔒 Staking</h3>
+                    <div id="staking-section"></div>
+                </div>
+
+                <!-- Governance Section -->
+                <div class="onchain-section">
+                    <h3>🗳️ Governance</h3>
+                    <div id="governance-section"></div>
+                </div>
+
+                <!-- Footer with Refresh and Last Update -->
+                <div class="onchain-footer">
+                    <button id="refresh-onchain-btn">🔄 Refresh Data</button>
+                    <small id="onchain-last-update">Last updated: --</small>
+                </div>
+            </div>
+
+            <button id="back-from-account-overview-btn" style="margin-top: 20px;">Back to Level Overview</button>
+        </div>
+
         <!-- Modal for Name Change -->
         <div id="change-name-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center;">
             <div style="background: white; padding: 30px; border-radius: 12px; max-width: 400px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
@@ -221,6 +308,7 @@
     <!-- Scripts -->
     <script src="assets/js/wallet.js"></script>
     <script src="assets/js/timer.js"></script>
+    <script src="assets/js/onchain-service.js"></script>
     <script src="assets/js/quiz-engine.js"></script>
     <script src="assets/js/ui.js"></script>
 
