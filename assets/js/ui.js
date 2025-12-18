@@ -16,20 +16,22 @@ class QuizUI {
      * Entfernt Session Storage Keys mit altem Format: onchain_data_*
      */
     cleanupLegacyCache() {
-        // Prüfe ob bereits durchgeführt
-        if (sessionStorage.getItem('cacheCleanupDone')) {
+        // Prüfe ob bereits durchgeführt (Version 2 für Multi-Chain)
+        if (sessionStorage.getItem('cacheCleanupDone_v2')) {
             return;
         }
 
         let cleanedCount = 0;
         const keysToRemove = [];
 
-        // Finde alle Keys mit altem Format (ohne Netzwerk-Präfix)
+        // Finde alle Keys mit altem Format
         for (let i = 0; i < sessionStorage.length; i++) {
             const key = sessionStorage.key(i);
-            if (key && key.match(/^onchain_data_[^_]/)) {
-                // Altes Format: onchain_data_5Dyv...
-                // Neues Format: onchain_polkadot_5Dyv...
+            if (key && (
+                key.match(/^onchain_data_[^_]/) ||  // Uralt: onchain_data_5Dyv...
+                key.match(/^onchain_(polkadot|kusama|westend)_[^_]/)  // Alt: onchain_polkadot_5Dyv...
+            )) {
+                // Neues Format: onchain_aggregate_polkadot_5Dyv...
                 keysToRemove.push(key);
             }
         }
@@ -40,11 +42,14 @@ class QuizUI {
             cleanedCount++;
         });
 
-        // Setze Flag
-        sessionStorage.setItem('cacheCleanupDone', 'true');
+        // Entferne altes Cleanup-Flag
+        sessionStorage.removeItem('cacheCleanupDone');
+
+        // Setze neues Flag für v2
+        sessionStorage.setItem('cacheCleanupDone_v2', 'true');
 
         if (cleanedCount > 0) {
-            console.log(`🧹 Cleaned up ${cleanedCount} legacy cache entries`);
+            console.log(`🧹 Cleaned up ${cleanedCount} legacy cache entries (Multi-Chain migration)`);
         }
     }
 
@@ -1686,7 +1691,7 @@ class QuizUI {
         const walletAddress = sessionStorage.getItem('walletAddress');
         const playerName = sessionStorage.getItem('playerName');
         const polkadotAddress = sessionStorage.getItem('polkadotAddress');
-        const network = 'polkadot'; // Aktuell nur Polkadot
+        const networkGroup = 'polkadot'; // Standard: Polkadot Network Group
 
         if (!walletAddress) {
             console.error('No wallet address in session');
@@ -1779,14 +1784,17 @@ class QuizUI {
             // Loading-Overlay anzeigen
             document.getElementById('onchain-loading-overlay').style.display = 'flex';
 
-            // On-Chain-Daten laden
-            const onChainData = await this.loadOnChainData(walletAddress, false, network);
+            // Multi-Chain-Verbindung aufbauen
+            await onChainService.connectToNetworkGroup(networkGroup);
+
+            // Aggregierte On-Chain-Daten laden
+            const onChainData = await this.loadOnChainData(walletAddress, false, networkGroup);
 
             // Loading-Overlay verstecken
             document.getElementById('onchain-loading-overlay').style.display = 'none';
 
             // Daten rendern
-            this.renderOnChainData(onChainData, network);
+            this.renderOnChainData(onChainData, networkGroup);
             
             // Address Display initialisieren
             this.initializeAddressDisplay();
@@ -1809,20 +1817,22 @@ class QuizUI {
                         // Loading-Overlay anzeigen
                         document.getElementById('onchain-loading-overlay').style.display = 'flex';
 
-                        // Force-Refresh
-                        const freshData = await this.loadOnChainData(walletAddress, true, network);
+                        // Force-Refresh mit Multi-Chain
+                        const currentNetworkGroup = onChainService.currentNetworkGroup || 'polkadot';
+                        const freshData = await this.loadOnChainData(walletAddress, true, currentNetworkGroup);
 
                         // Loading-Overlay verstecken
                         document.getElementById('onchain-loading-overlay').style.display = 'none';
 
                         // Neu rendern
-                        this.renderOnChainData(freshData, network);
+                        this.renderOnChainData(freshData, currentNetworkGroup);
 
+                        this.showToast('On-chain data refreshed successfully!');
                         console.log('✅ On-chain data refreshed');
                     } catch (error) {
                         document.getElementById('onchain-loading-overlay').style.display = 'none';
                         console.error('Failed to refresh on-chain data:', error);
-                        alert('Failed to refresh data. Please try again.');
+                        this.showToast(`Failed to refresh data: ${error.message}`, true);
                     }
                 });
             }
@@ -1844,7 +1854,16 @@ class QuizUI {
      * @param {Object} data - On-Chain-Daten
      * @param {string} network - Netzwerk (polkadot, kusama, westend)
      */
-    renderOnChainData(data, network = 'polkadot') {
+    renderOnChainData(data, networkGroup = 'polkadot') {
+        console.log('🎨 renderOnChainData called with:', {
+            networkGroup,
+            hasData: !!data,
+            dataKeys: data ? Object.keys(data) : [],
+            chains: data?.chains ? Object.keys(data.chains) : [],
+            relayData: data?.chains?.relay,
+            peopleData: data?.chains?.people
+        });
+        
         const isStale = data.isStale || false;
 
         // Warning Banner
@@ -1860,106 +1879,418 @@ class QuizUI {
             lastUpdateEl.textContent = `Last updated: ${date.toLocaleString()}`;
         }
 
-        // Unit basierend auf Netzwerk
-        const unit = network === 'polkadot' ? 'DOT' : network === 'kusama' ? 'KSM' : 'WND';
-        const decimals = 10; // Alle Polkadot-Chains nutzen 10 decimals
+        // Unit basierend auf Network Group
+        const unit = networkGroup === 'polkadot' ? 'DOT' : networkGroup === 'kusama' ? 'KSM' : 'WND';
+        const decimals = networkGroup === 'kusama' ? 12 : 10;
 
-        // === Account Section ===
+        // === Identity Section (von People Chain) ===
         const accountSection = document.getElementById('account-section');
-        const identity = data.account?.identity || {};
-        const flags = data.account?.flags || {};
-
-        const identityDisplay = identity.hasIdentity
-            ? `<strong>${identity.display}</strong>`
-            : '<em>No on-chain identity set</em>';
-
-        const flagsList = [];
-        if (flags.isCouncil) flagsList.push('🏛️ Council Member');
-        if (flags.isSociety) flagsList.push('🎭 Society Member');
-        if (flags.isTechCommittee) flagsList.push('🔧 Tech Committee');
-
+        const peopleData = data.chains?.people || {};
+        
+        let identityHtml = '';
+        
+        if (peopleData.error) {
+            identityHtml = `
+                <div class="data-row">
+                    <span class="data-label">Identity:</span>
+                    <span class="data-value error">no data (${peopleData.chainName})</span>
+                </div>
+            `;
+        } else {
+            const identity = peopleData.identity || {};
+            
+            // Verification Badge (alle Judgements außer FeePaid zählen als verified)
+            const hasVerification = identity.judgements && identity.judgements.length > 0 &&
+                identity.judgements.some(j => j.judgementType !== 'FeePaid');
+            
+            let identityDisplay = '';
+            if (identity.hasIdentity) {
+                identityDisplay = `<strong>${identity.display}</strong>`;
+                if (hasVerification) {
+                    identityDisplay += ' <span class="identity-verified" title="Verified Identity">✓</span>';
+                }
+            } else {
+                identityDisplay = '<em>No on-chain identity set</em>';
+            }
+            
+            // Parent-Identity Info (falls Sub-Identity)
+            let parentHtml = '';
+            if (identity.isSubIdentity && identity.parent) {
+                const parentVerified = identity.parent.judgements && identity.parent.judgements.length > 0 &&
+                    identity.parent.judgements.some(j => j.judgementType !== 'FeePaid');
+                const parentDisplay = identity.parent.display || identity.parent.address.substring(0, 12) + '...';
+                const parentBadge = parentVerified ? ' <span class="identity-verified" title="Verified Parent">✓</span>' : '';
+                
+                parentHtml = `
+                    <div class="data-row identity-parent-info">
+                        <span class="data-label">Parent:</span>
+                        <span class="data-value">${parentDisplay}${parentBadge} <span class="address-short">(${identity.parent.address.substring(0, 8)}...${identity.parent.address.substring(identity.parent.address.length - 6)})</span></span>
+                    </div>
+                `;
+            }
+            
+            // Judgement Details (Registrar-Liste)
+            let judgementsHtml = '';
+            if (hasVerification) {
+                const judgementsList = identity.judgements
+                    .filter(j => j.judgementType !== 'FeePaid')
+                    .map(j => `${j.registrarName} (${j.judgementType})`)
+                    .join(', ');
+                judgementsHtml = `
+                    <div class="data-row identity-judgements">
+                        <span class="data-label">Verified by:</span>
+                        <span class="data-value">${judgementsList}</span>
+                    </div>
+                `;
+            }
+                
+            identityHtml = `
+                <div class="data-row">
+                    <span class="data-label">Identity:</span>
+                    <span class="data-value">${identityDisplay}</span>
+                </div>
+                ${parentHtml}
+                ${judgementsHtml}
+                ${identity.legal ? `<div class="data-row"><span class="data-label">Legal Name:</span><span class="data-value">${identity.legal}</span></div>` : ''}
+                ${identity.web ? `<div class="data-row"><span class="data-label">Website:</span><span class="data-value"><a href="${identity.web}" target="_blank">${identity.web}</a></span></div>` : ''}
+                ${identity.email ? `<div class="data-row"><span class="data-label">Email:</span><span class="data-value">${identity.email}</span></div>` : ''}
+                ${identity.twitter ? `<div class="data-row"><span class="data-label">Twitter:</span><span class="data-value">${identity.twitter}</span></div>` : ''}
+                ${identity.riot ? `<div class="data-row"><span class="data-label">Riot:</span><span class="data-value">${identity.riot}</span></div>` : ''}
+                ${identity.github ? `<div class="data-row"><span class="data-label">GitHub:</span><span class="data-value">${identity.github}</span></div>` : ''}
+                ${identity.discord ? `<div class="data-row"><span class="data-label">Discord:</span><span class="data-value">${identity.discord}</span></div>` : ''}
+                ${identity.matrix ? `<div class="data-row"><span class="data-label">Matrix:</span><span class="data-value">${identity.matrix}</span></div>` : ''}
+                ${identity.pgpFingerprint ? `<div class="data-row"><span class="data-label">PGP:</span><span class="data-value"><code>${identity.pgpFingerprint}</code></span></div>` : ''}
+            `;
+        }
+        
         // Fülle Address Display
         const genericAddr = document.querySelector('.generic-addr');
         const networkAddr = document.querySelector('.network-addr');
         const networkLabel = document.querySelector('.network-label');
         
-        if (data.addresses) {
-            if (genericAddr) genericAddr.textContent = data.addresses.generic || 'N/A';
-            if (networkAddr) networkAddr.textContent = data.addresses.networkSpecific || 'N/A';
-            if (networkLabel) networkLabel.textContent = `${network.charAt(0).toUpperCase() + network.slice(1)}:`;
+        const addresses = peopleData.addresses || data.chains?.assetHub?.addresses || data.chains?.relay?.addresses;
+        if (addresses) {
+            if (genericAddr) genericAddr.textContent = addresses.generic || 'N/A';
+            if (networkAddr) networkAddr.textContent = addresses.networkSpecific || 'N/A';
+            if (networkLabel) networkLabel.textContent = `${networkGroup.charAt(0).toUpperCase() + networkGroup.slice(1)}:`;
+        }
+        
+        accountSection.innerHTML = identityHtml;
+
+        // === Balances Section mit Tabs ===
+        this.renderBalanceTabs(data, networkGroup, unit, decimals);
+
+        // === Staking Section (von Relay Chain) ===
+        const relayData = data.chains?.relay || {};
+        const stakingWrapper = document.getElementById('staking-section-wrapper');
+        const stakingSection = document.getElementById('staking-section');
+
+        if (relayData.error) {
+            stakingWrapper.style.display = 'block';
+            stakingSection.innerHTML = `
+                <div class="data-row">
+                    <span class="data-label">Staking:</span>
+                    <span class="data-value error">no data (${relayData.chainName})</span>
+                </div>
+            `;
+        } else {
+            const staking = relayData.staking || {};
+            if (staking.hasStaking && staking.active !== '0') {
+                stakingWrapper.style.display = 'block';
+                stakingSection.innerHTML = `
+                    <div class="data-row">
+                        <span class="data-label">Active Stake:</span>
+                        <span class="data-value">${onChainService.formatBalance(staking.active || '0', decimals, unit)}</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Total Bonded:</span>
+                        <span class="data-value">${onChainService.formatBalance(staking.total || '0', decimals, unit)}</span>
+                    </div>
+                    ${staking.rewardDestination ? `<div class="data-row"><span class="data-label">Reward Destination:</span><span class="data-value">${staking.rewardDestination}</span></div>` : ''}
+                    ${staking.unlocking && staking.unlocking.length > 0 ? `<div class="data-row"><span class="data-label">Unlocking:</span><span class="data-value">${staking.unlocking.length} chunks</span></div>` : ''}
+                `;
+            } else {
+                stakingWrapper.style.display = 'none';
+            }
         }
 
-        accountSection.innerHTML = `
-            <div class="data-row">
-                <span class="data-label">Account ID:</span>
-                <span class="data-value">${data.account?.accountId || 'N/A'}</span>
-            </div>
-            <div class="data-row">
-                <span class="data-label">Identity:</span>
-                <span class="data-value">${identityDisplay}</span>
-            </div>
-            ${identity.web ? `<div class="data-row"><span class="data-label">Website:</span><span class="data-value"><a href="${identity.web}" target="_blank">${identity.web}</a></span></div>` : ''}
-            ${identity.email ? `<div class="data-row"><span class="data-label">Email:</span><span class="data-value">${identity.email}</span></div>` : ''}
-            ${identity.twitter ? `<div class="data-row"><span class="data-label">Twitter:</span><span class="data-value">${identity.twitter}</span></div>` : ''}
-            ${flagsList.length > 0 ? `<div class="data-row"><span class="data-label">Roles:</span><span class="data-value">${flagsList.join(', ')}</span></div>` : ''}
-        `;
+        // === Governance Section (von Relay Chain) ===
+        console.log('🏛️ Calling renderGovernanceSection with relayData:', {
+            hasRelayData: !!relayData,
+            relayDataKeys: relayData ? Object.keys(relayData) : [],
+            governance: relayData?.governance,
+            votes: relayData?.governance?.votes
+        });
+        this.renderGovernanceSection(relayData, unit, decimals);
+    }
 
-        // === Balances Section ===
+    /**
+     * Rendert Balance-Tabs für Asset Hub, Relay Chain und People
+     */
+    renderBalanceTabs(data, networkGroup, unit, decimals) {
         const balancesSection = document.getElementById('balances-section');
-        const balances = data.balances || {};
-
+        const chains = data.chains || {};
+        
+        // Loading-State während Verbindungsaufbau
+        if (!chains.assetHub && !chains.relay && !chains.people) {
+            balancesSection.innerHTML = `
+                <div class="loading-spinner">
+                    <div class="spinner-icon">⏳</div>
+                    <div>Connecting to Asset Hub...</div>
+                </div>
+            `;
+            return;
+        }
+        
+        // Tab-Navigation
+        const tabsHtml = `
+            <div class="balance-tabs">
+                <button class="balance-tab active" data-chain="assetHub">Asset Hub</button>
+                <button class="balance-tab" data-chain="relay">Relay Chain</button>
+                <button class="balance-tab" data-chain="people">People</button>
+            </div>
+        `;
+        
+        // Tab-Contents
+        const assetHubContent = this.renderBalanceTabContent(chains.assetHub, 'assetHub', unit, decimals);
+        const relayContent = this.renderBalanceTabContent(chains.relay, 'relay', unit, decimals);
+        const peopleContent = this.renderBalanceTabContent(chains.people, 'people', unit, decimals);
+        
         balancesSection.innerHTML = `
+            ${tabsHtml}
+            <div class="balance-tab-content active" data-chain="assetHub">${assetHubContent}</div>
+            <div class="balance-tab-content" data-chain="relay">${relayContent}</div>
+            <div class="balance-tab-content" data-chain="people">${peopleContent}</div>
+        `;
+        
+        // Tab-Click-Handler
+        const tabs = balancesSection.querySelectorAll('.balance-tab');
+        const contents = balancesSection.querySelectorAll('.balance-tab-content');
+        
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const targetChain = tab.getAttribute('data-chain');
+                
+                // Entferne active von allen
+                tabs.forEach(t => t.classList.remove('active'));
+                contents.forEach(c => c.classList.remove('active'));
+                
+                // Aktiviere geklickten Tab
+                tab.classList.add('active');
+                const targetContent = balancesSection.querySelector(`.balance-tab-content[data-chain="${targetChain}"]`);
+                if (targetContent) targetContent.classList.add('active');
+            });
+        });
+    }
+    
+    /**
+     * Rendert Balance-Content für einen spezifischen Chain-Tab
+     */
+    renderBalanceTabContent(chainData, role, unit, decimals) {
+        console.log(`🎨 renderBalanceTabContent called for ${role}:`, {
+            hasChainData: !!chainData,
+            hasError: chainData?.error,
+            balances: chainData?.balances,
+            unit,
+            decimals
+        });
+        
+        if (!chainData || chainData.error) {
+            return `
+                <div class="data-row">
+                    <span class="data-label">Balance:</span>
+                    <span class="data-value error">no data (${chainData?.chainName || 'unknown'})</span>
+                </div>
+            `;
+        }
+        
+        const balances = chainData.balances || {};
+        
+        return `
             <div class="data-row">
                 <span class="data-label">Transferable:</span>
-                <span class="data-value">${onChainService.formatBalance(balances.free || '0', decimals, unit)}</span>
+                <span class="data-value">${onChainService.formatBalance(balances.transferable || '0', decimals, unit)}</span>
             </div>
             <div class="data-row">
                 <span class="data-label">Reserved:</span>
                 <span class="data-value">${onChainService.formatBalance(balances.reserved || '0', decimals, unit)}</span>
             </div>
-            <div class="data-row">
-                <span class="data-label">Frozen:</span>
-                <span class="data-value">${onChainService.formatBalance(balances.frozen || '0', decimals, unit)}</span>
-            </div>
+            ${balances.frozen ? `
+                <div class="data-row">
+                    <span class="data-label">Frozen:</span>
+                    <span class="data-value">${onChainService.formatBalance(balances.frozen || '0', decimals, unit)}</span>
+                </div>
+            ` : ''}
             <div class="data-row">
                 <span class="data-label"><strong>Total:</strong></span>
                 <span class="data-value"><strong>${onChainService.formatBalance(balances.total || '0', decimals, unit)}</strong></span>
             </div>
         `;
-
-        // === Staking Section ===
-        const staking = data.staking || {};
-        const stakingWrapper = document.getElementById('staking-section-wrapper');
-        const stakingSection = document.getElementById('staking-section');
-
-        if (staking.hasStaking && staking.active !== '0') {
-            stakingWrapper.style.display = 'block';
-            stakingSection.innerHTML = `
-                <div class="data-row">
-                    <span class="data-label">Active Stake:</span>
-                    <span class="data-value">${onChainService.formatBalance(staking.active || '0', decimals, unit)}</span>
-                </div>
-                <div class="data-row">
-                    <span class="data-label">Total Bonded:</span>
-                    <span class="data-value">${onChainService.formatBalance(staking.total || '0', decimals, unit)}</span>
-                </div>
-                ${staking.rewardDestination ? `<div class="data-row"><span class="data-label">Reward Destination:</span><span class="data-value">${staking.rewardDestination}</span></div>` : ''}
-                ${staking.unlocking && staking.unlocking.length > 0 ? `<div class="data-row"><span class="data-label">Unlocking:</span><span class="data-value">${staking.unlocking.length} chunks</span></div>` : ''}
-            `;
-        } else {
-            stakingWrapper.style.display = 'none';
+    }
+    
+    /**
+     * Helper: Rendert Vote-Details basierend auf Type
+     */
+    renderVoteDetails(vote, decimals, unit) {
+        switch(vote.type) {
+            case 'standard':
+                return `
+                    <span class="vote-direction ${vote.aye ? 'aye' : 'nay'}">
+                        ${vote.aye ? '✅ AYE' : '❌ NAY'}
+                    </span>
+                    <span class="vote-amount">${onChainService.formatBalance(vote.balance, decimals, unit)}</span>
+                    <span class="vote-conviction">${vote.convictionMultiplier}x</span>
+                `;
+            
+            case 'split':
+                return `
+                    <div class="split-vote-container">
+                        <div class="split-vote-part">
+                            <span class="vote-direction aye">✅ AYE</span>
+                            <span class="vote-amount">${onChainService.formatBalance(vote.ayeBalance, decimals, unit)}</span>
+                        </div>
+                        <div class="split-vote-part">
+                            <span class="vote-direction nay">❌ NAY</span>
+                            <span class="vote-amount">${onChainService.formatBalance(vote.nayBalance, decimals, unit)}</span>
+                        </div>
+                    </div>
+                `;
+            
+            case 'splitAbstain':
+                return `
+                    <div class="split-vote-container">
+                        <div class="split-vote-part">
+                            <span class="vote-direction aye">✅ AYE</span>
+                            <span class="vote-amount">${onChainService.formatBalance(vote.ayeBalance, decimals, unit)}</span>
+                        </div>
+                        <div class="split-vote-part">
+                            <span class="vote-direction nay">❌ NAY</span>
+                            <span class="vote-amount">${onChainService.formatBalance(vote.nayBalance, decimals, unit)}</span>
+                        </div>
+                        <div class="split-vote-part">
+                            <span class="vote-direction abstain">⚪ ABSTAIN</span>
+                            <span class="vote-amount">${onChainService.formatBalance(vote.abstainBalance, decimals, unit)}</span>
+                        </div>
+                    </div>
+                `;
+            
+            case 'delegating':
+                return `
+                    <span class="delegation-icon">🔗</span>
+                    <span class="delegation-target" title="${vote.target}">
+                        To: ${vote.target.substring(0, 8)}...
+                    </span>
+                    <span class="vote-amount">${onChainService.formatBalance(vote.balance, decimals, unit)}</span>
+                    <span class="vote-conviction">${vote.convictionMultiplier}x</span>
+                `;
+            
+            default:
+                return `<span>Unknown vote type</span>`;
         }
-
-        // === Governance Section ===
+    }
+    
+    /**
+     * Helper: Type-Badge für Vote
+     */
+    getVoteTypeBadge(type) {
+        const badges = {
+            'standard': '🗳️ Standard',
+            'split': '⚖️ Split',
+            'splitAbstain': '🎭 Split+Abstain',
+            'delegating': '🔗 Delegating'
+        };
+        return badges[type] || type;
+    }
+    
+    /**
+     * Rendert Governance-Section mit Votes
+     */
+    renderGovernanceSection(relayData, unit, decimals) {
+        console.log('🏛️ renderGovernanceSection called with:', {
+            hasRelayData: !!relayData,
+            hasError: relayData?.error,
+            governance: relayData?.governance,
+            votesCount: relayData?.governance?.votes?.length || 0,
+            votes: relayData?.governance?.votes
+        });
+        
         const governanceSection = document.getElementById('governance-section');
-        const governance = data.governance || {};
-
+        
+        if (!relayData || relayData.error) {
+            governanceSection.innerHTML = `
+                <div class="data-row">
+                    <span class="data-label">Governance:</span>
+                    <span class="data-value error">no data (${relayData?.chainName || 'unknown'})</span>
+                </div>
+            `;
+            return;
+        }
+        
+        const governance = relayData.governance || {};
+        const votes = governance.votes || [];
+        
+        // Kombinierte Vote-Count-Berechnung
+        const individualVotes = votes.filter(v => v.referendumIndex).length;
+        const delegations = votes.filter(v => v.type === 'delegating').length;
+        console.log(`🎨 Rendering ${votes.length} votes: ${individualVotes} individual + ${delegations} delegations`);
+        
+        let voteListHtml = '';
+        if (votes.length > 0) {
+            const visibleVotes = votes.slice(0, 5);
+            voteListHtml = `
+                <div class="vote-list-wrapper">
+                    <button id="toggle-votes-btn" class="secondary-btn">
+                        Show All Votes (${votes.length})
+                    </button>
+                    <div id="vote-list" style="display: none;">
+                        ${visibleVotes.map(vote => `
+                            <div class="vote-item vote-item-${vote.type}">
+                                <div class="vote-header">
+                                    <span class="vote-track">${vote.trackIcon} ${vote.trackName}</span>
+                                    <span class="vote-ref">${vote.referendumIndex ? `Ref #${vote.referendumIndex}` : 'All Referenda'}</span>
+                                </div>
+                                <div class="vote-type-badge">${this.getVoteTypeBadge(vote.type)}</div>
+                                <div class="vote-details">
+                                    ${this.renderVoteDetails(vote, decimals, unit)}
+                                </div>
+                            </div>
+                        `).join('')}
+                        ${votes.length > 5 ? `<div class="vote-more">... and ${votes.length - 5} more votes</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Kombinierte Count-Anzeige
+        const voteCountText = individualVotes > 0 || delegations > 0 
+            ? `${individualVotes} vote${individualVotes !== 1 ? 's' : ''}${delegations > 0 ? ' + ' + delegations + ' delegation' + (delegations !== 1 ? 's' : '') : ''}`
+            : '0';
+        
         governanceSection.innerHTML = `
             <div class="data-row">
                 <span class="data-label">Voting Balance:</span>
                 <span class="data-value">${onChainService.formatBalance(governance.votingBalance || '0', decimals, unit)}</span>
             </div>
+            <div class="data-row">
+                <span class="data-label">Active Votes:</span>
+                <span class="data-value">${voteCountText}</span>
+            </div>
+            ${voteListHtml}
         `;
+        
+        // Toggle-Handler für Vote-Liste
+        if (votes.length > 0) {
+            const toggleBtn = document.getElementById('toggle-votes-btn');
+            const voteList = document.getElementById('vote-list');
+            
+            if (toggleBtn && voteList) {
+                toggleBtn.addEventListener('click', () => {
+                    const isVisible = voteList.style.display === 'block';
+                    voteList.style.display = isVisible ? 'none' : 'block';
+                    toggleBtn.textContent = isVisible ? `Show All Votes (${votes.length})` : 'Hide Votes';
+                });
+            }
+        }
     }
 
     /**
@@ -2150,7 +2481,7 @@ class QuizUI {
     }
 
     /**
-     * Initialisiert Network Selector Dropdown mit Registry-Daten
+     * Initialisiert Network Selector Dropdown mit Network Groups
      * @param {string} walletAddress - Wallet-Adresse für Data-Loading
      */
     async initializeNetworkSelector(walletAddress) {
@@ -2159,76 +2490,52 @@ class QuizUI {
 
         // Registry laden
         await onChainService.loadNetworkRegistry();
-        const registry = onChainService.networkRegistry;
+        const networkGroups = onChainService.networkGroups;
 
-        // Top 5 Netzwerke initial anzeigen
-        const topNetworks = registry.slice(0, 5);
-        
+        // Nur Network Groups anzeigen (Polkadot, Kusama)
         selector.innerHTML = '';
-        topNetworks.forEach(net => {
+        networkGroups.forEach(group => {
             const option = document.createElement('option');
-            option.value = net.network;
-            option.textContent = `${net.displayName} (${net.symbol})`;
-            if (net.network === 'polkadot') option.selected = true;
+            option.value = group.id;
+            option.textContent = group.displayName;
+            if (group.id === 'polkadot') option.selected = true;
             selector.appendChild(option);
         });
 
-        // "Show More" Option (wenn mehr als 5 Netzwerke)
-        if (registry.length > 5) {
-            const showMoreOption = document.createElement('option');
-            showMoreOption.value = '__showmore__';
-            showMoreOption.textContent = '--- Show More Networks ---';
-            selector.appendChild(showMoreOption);
-        }
-
         // Event Listener für Netzwerk-Wechsel
         selector.onchange = async (e) => {
-            const selectedNetwork = e.target.value;
-
-            // "Show More" geklickt?
-            if (selectedNetwork === '__showmore__') {
-                // Lade alle Netzwerke
-                selector.innerHTML = '';
-                registry.forEach(net => {
-                    const option = document.createElement('option');
-                    option.value = net.network;
-                    option.textContent = `${net.displayName} (${net.symbol})`;
-                    selector.appendChild(option);
-                });
-                selector.value = onChainService.currentNetwork || 'polkadot';
-                return;
-            }
+            const selectedNetworkGroup = e.target.value;
 
             // Netzwerk-Wechsel
             try {
-                console.log('🔄 Switching network to:', selectedNetwork);
+                console.log('🔄 Switching network group to:', selectedNetworkGroup);
                 
                 // Loading-Overlay anzeigen
                 document.getElementById('onchain-loading-overlay').style.display = 'flex';
 
-                // Alte Verbindung trennen
+                // Alte Verbindungen trennen
                 await onChainService.disconnect();
 
-                // Neue Verbindung aufbauen
-                await onChainService.connect(selectedNetwork);
+                // Neue Verbindung zu Network Group aufbauen
+                await onChainService.connectToNetworkGroup(selectedNetworkGroup);
 
                 // Daten neu laden
-                const freshData = await this.loadOnChainData(walletAddress, true, selectedNetwork);
+                const freshData = await this.loadOnChainData(walletAddress, true, selectedNetworkGroup);
 
                 // Loading-Overlay verstecken
                 document.getElementById('onchain-loading-overlay').style.display = 'none';
 
                 // UI neu rendern
-                this.renderOnChainData(freshData, selectedNetwork);
+                this.renderOnChainData(freshData, selectedNetworkGroup);
                 
-                console.log('✅ Network switched successfully');
+                console.log('✅ Network group switched successfully');
             } catch (error) {
                 console.error('❌ Network switch failed:', error);
                 document.getElementById('onchain-loading-overlay').style.display = 'none';
-                alert(`Failed to switch network: ${error.message}`);
+                this.showToast(`Failed to switch network: ${error.message}`, true);
                 
                 // Zurück zum vorherigen Netzwerk
-                selector.value = onChainService.currentNetwork || 'polkadot';
+                selector.value = onChainService.currentNetworkGroup || 'polkadot';
             }
         };
     }
@@ -2401,18 +2708,18 @@ class QuizUI {
     }
 
     /**
-     * Lädt On-Chain-Daten für eine Adresse
+     * Lädt On-Chain-Daten für eine Adresse (Multi-Chain Aggregation)
      * @param {string} address - Generic Address
      * @param {boolean} forceRefresh - Ignoriert Cache und lädt neu
-     * @param {string} network - Netzwerk (default: polkadot)
-     * @returns {Promise<Object>} On-Chain-Daten
+     * @param {string} networkGroup - Network Group (default: polkadot)
+     * @returns {Promise<Object>} Aggregierte On-Chain-Daten
      */
-    async loadOnChainData(address, forceRefresh = false, network = 'polkadot') {
+    async loadOnChainData(address, forceRefresh = false, networkGroup = 'polkadot') {
         try {
-            console.log(`🔄 Loading on-chain data for ${address.substring(0, 12)}... (forceRefresh: ${forceRefresh}, network: ${network})`);
+            console.log(`🔄 Loading aggregated data for ${address.substring(0, 12)}... (forceRefresh: ${forceRefresh}, networkGroup: ${networkGroup})`);
 
-            // Session Storage Key mit Netzwerk-Präfix
-            const cacheKey = `onchain_${network}_${address}`;
+            // Session Storage Key mit Network-Group-Präfix
+            const cacheKey = `onchain_aggregate_${networkGroup}_${address}`;
             
             // Prüfe Cache falls kein Force-Refresh
             if (!forceRefresh) {
@@ -2421,12 +2728,12 @@ class QuizUI {
                     const cachedData = JSON.parse(cached);
                     
                     // Prüfe ob gecachtes Netzwerk mit angefordertem übereinstimmt
-                    const cachedNetwork = cachedData.network || 'polkadot';
-                    if (cachedNetwork !== network) {
-                        console.log(`🔄 Network changed from ${cachedNetwork} to ${network}, forcing refresh`);
+                    const cachedNetworkGroup = cachedData.networkGroup || 'polkadot';
+                    if (cachedNetworkGroup !== networkGroup) {
+                        console.log(`🔄 Network group changed from ${cachedNetworkGroup} to ${networkGroup}, forcing refresh`);
                         forceRefresh = true;
                     } else if (!onChainService.needsRefresh(cachedData.lastUpdate)) {
-                        console.log('✅ Using cached on-chain data (still fresh)');
+                        console.log('✅ Using cached aggregated data (still fresh)');
                         return cachedData;
                     } else {
                         console.log('⏱️ Cached data is stale, refreshing...');
@@ -2444,9 +2751,9 @@ class QuizUI {
                 });
                 const playerResult = await playerResponse.json();
                 
-                if (playerResult.onChainData && playerResult.onChainData[network]) {
-                    backendData = playerResult.onChainData[network];
-                    console.log('📦 Found on-chain data in backend');
+                if (playerResult.onChainData && playerResult.onChainData[networkGroup]) {
+                    backendData = playerResult.onChainData[networkGroup];
+                    console.log('📦 Found aggregated data in backend');
                     
                     // Prüfe ob Backend-Daten fresh genug sind
                     if (!forceRefresh && !onChainService.needsRefresh(backendData.lastUpdate)) {
@@ -2460,19 +2767,16 @@ class QuizUI {
             }
 
             // Live RPC-Call nötig
-            console.log('📡 Fetching fresh on-chain data from RPC...');
+            console.log('📡 Fetching fresh aggregated data from multiple chains...');
             
             try {
                 // Verbinde falls nötig
-                if (!onChainService.isConnected) {
-                    await onChainService.connect(network);
+                if (!onChainService.isConnected || onChainService.currentNetworkGroup !== networkGroup) {
+                    await onChainService.connectToNetworkGroup(networkGroup);
                 }
 
-                // Daten abrufen
-                const onChainData = await onChainService.fetchAllOnChainData(address);
-                
-                // Füge Netzwerk-Info hinzu
-                onChainData.network = network;
+                // Aggregierte Daten abrufen
+                const aggregatedData = await onChainService.aggregateMultiChainData(networkGroup, address);
 
                 // In Backend speichern
                 try {
@@ -2481,8 +2785,8 @@ class QuizUI {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             walletAddress: address,
-                            network: network,
-                            onChainData: onChainData
+                            networkGroup: networkGroup,
+                            onChainData: aggregatedData
                         })
                     });
                     
@@ -2502,19 +2806,25 @@ class QuizUI {
                 }
 
                 // In Session Storage speichern
-                sessionStorage.setItem(cacheKey, JSON.stringify(onChainData));
+                sessionStorage.setItem(cacheKey, JSON.stringify(aggregatedData));
 
-                console.log('✅ Fresh on-chain data loaded successfully');
-                return onChainData;
+                console.log('✅ Fresh aggregated data loaded successfully');
+                console.log('📦 Returning aggregatedData:', {
+                    hasChains: !!aggregatedData.chains,
+                    chains: aggregatedData.chains ? Object.keys(aggregatedData.chains) : [],
+                    relayChain: aggregatedData.chains?.relay,
+                    peopleChain: aggregatedData.chains?.people
+                });
+                return aggregatedData;
 
             } catch (rpcError) {
                 console.error('❌ RPC fetch failed:', rpcError);
                 
                 // Prüfe ob es ein Address Conversion Error ist
                 if (rpcError.message && (rpcError.message.includes('convert') || rpcError.message.includes('invalid'))) {
-                    // Zeige Error Overlay
-                    this.showAddressConversionError(rpcError.message, address, network);
-                    throw rpcError; // Re-throw damit showAccountOverview nicht weiter ausführt
+                    // Zeige Error Toast
+                    this.showToast(`Address conversion failed: ${rpcError.message}`, true);
+                    throw rpcError;
                 }
                 
                 // Fallback zu gecachten Daten (Backend oder Session)

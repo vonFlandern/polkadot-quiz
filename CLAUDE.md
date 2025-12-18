@@ -54,7 +54,7 @@ chmod 644 data/*.json
 
 ### Frontend Architecture (Vanilla JS - Class-Based)
 
-The frontend is organized into **4 main classes** that work together:
+The frontend is organized into **5 main classes** that work together:
 
 #### 1. `QuizEngine` (quiz-engine.js)
 **Purpose**: Core game logic and state management
@@ -78,6 +78,8 @@ The frontend is organized into **4 main classes** that work together:
 - Event handler registration (wallets, buttons, countdowns)
 - Wallet account selection and display
 - Player name management (change name modal)
+- **NEW**: On-chain data rendering (Identity, Balances, Governance)
+- **NEW**: Network switching (Polkadot ↔ Kusama)
 
 **Key Patterns**:
 - Single event listener registration (prevents duplicates via `eventListenersInitialized` flag)
@@ -96,6 +98,29 @@ The frontend is organized into **4 main classes** that work together:
 #### 4. `QuizTimer` (timer.js)
 **Purpose**: Millisecond-precise time measurement
 **Uses**: `performance.now()` for high-resolution timing
+
+#### 5. `OnChainService` (onchain-service.js) **NEW**
+**Purpose**: Multi-chain blockchain data aggregation
+**Responsibilities**:
+- Connect to 3 chains sequentially/parallel (Asset Hub → Relay + People)
+- Query balances with correct decimals (DOT: 10, KSM: 12)
+- Fetch Identity data from People Chain (with Sub-Identity support)
+- Query OpenGov votes from Relay Chain (16 tracks, 4 vote types)
+- Cache data (10min session storage + backend)
+- Auto-refresh timer (10 minutes)
+- Network switching (Polkadot ↔ Kusama)
+
+**Key Methods**:
+- `connectToGroup(networkGroup)` - Connect to all 3 chains
+- `aggregateMultiChainData(address, group)` - Fetch and combine data
+- `fetchChainData(api, chainConfig, address)` - Query individual chain
+- `formatBalance(value, decimals, unit)` - Manual formatting (avoids polkadotUtil bug)
+- `convertToNetworkAddress(generic, prefix)` - SS58 address conversion
+
+**Chain Queries**:
+- **Asset Hub**: `api.derive.balances.all()` → transferable, reserved, frozen
+- **Relay Chain**: Balances + `api.derive.staking.account()` + OpenGov tracks
+- **People Chain**: `api.query.identity.identityOf()` + `api.query.identity.superOf()`
 
 ---
 

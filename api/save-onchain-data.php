@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 // Input validieren
 $input = json_decode(file_get_contents('php://input'), true);
 
-$requiredFields = ['walletAddress', 'network', 'onChainData'];
+$requiredFields = ['walletAddress', 'networkGroup', 'onChainData'];
 foreach ($requiredFields as $field) {
     if (!isset($input[$field])) {
         errorResponse("Missing field: $field");
@@ -23,7 +23,7 @@ foreach ($requiredFields as $field) {
 }
 
 $walletAddress = sanitizeInput($input['walletAddress']);
-$network = sanitizeInput($input['network']);
+$networkGroup = sanitizeInput($input['networkGroup']);
 $onChainData = $input['onChainData'];
 
 // Validierungen
@@ -31,9 +31,9 @@ if (!isValidPolkadotAddress($walletAddress)) {
     errorResponse('Invalid wallet address');
 }
 
-// Network-Namen validieren (alphanum + dash)
-if (!preg_match('/^[a-z0-9-]+$/', $network)) {
-    errorResponse('Invalid network name format');
+// Network Group validieren (whitelist)
+if (!in_array($networkGroup, ['polkadot', 'kusama'], true)) {
+    errorResponse('Invalid network group. Allowed: polkadot, kusama');
 }
 
 // On-Chain-Daten validieren (muss Object sein mit erwarteten Keys)
@@ -71,8 +71,8 @@ if (!isset($player['onChainData'])) {
     $player['onChainData'] = [];
 }
 
-// Daten für das spezifische Netzwerk speichern
-$player['onChainData'][$network] = $onChainData;
+// Daten für die Network Group speichern (hierarchische Struktur)
+$player['onChainData'][$networkGroup] = $onChainData;
 
 // Player-Daten aktualisieren
 $playersData['players'][$playerIndex] = $player;
@@ -85,7 +85,7 @@ if (!saveJSON('players.json', $playersData)) {
 // Erfolgreiche Response
 jsonResponse([
     'success' => true,
-    'message' => 'On-chain data saved successfully',
-    'network' => $network,
+    'message' => 'Aggregated on-chain data saved successfully',
+    'networkGroup' => $networkGroup,
     'lastUpdate' => $onChainData['lastUpdate']
 ]);

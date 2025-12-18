@@ -1,4 +1,67 @@
 /**
+ * OpenGov Track-Mapping (16 Tracks)
+ * Quelle: Polkadot Governance v2 (OpenGov)
+ */
+const OPENGOV_TRACKS = {
+    0: { id: 0, name: 'Root', icon: '👑', description: 'Full system control' },
+    1: { id: 1, name: 'WhitelistedCaller', icon: '✅', description: 'Whitelisted operations' },
+    10: { id: 10, name: 'StakingAdmin', icon: '🔒', description: 'Staking parameters' },
+    11: { id: 11, name: 'Treasurer', icon: '💰', description: 'Treasury spending' },
+    12: { id: 12, name: 'LeaseAdmin', icon: '📝', description: 'Parachain lease management' },
+    13: { id: 13, name: 'FellowshipAdmin', icon: '🎓', description: 'Fellowship management' },
+    14: { id: 14, name: 'ReferendumCanceller', icon: '🚫', description: 'Cancel referenda' },
+    15: { id: 15, name: 'ReferendumKiller', icon: '💀', description: 'Kill malicious referenda' },
+    20: { id: 20, name: 'GeneralAdmin', icon: '⚙️', description: 'General administration' },
+    21: { id: 21, name: 'AuctionAdmin', icon: '🔨', description: 'Auction parameters' },
+    30: { id: 30, name: 'SmallTipper', icon: '🪙', description: 'Tips up to 250 DOT' },
+    31: { id: 31, name: 'BigTipper', icon: '💸', description: 'Tips up to 1000 DOT' },
+    32: { id: 32, name: 'SmallSpender', icon: '💵', description: 'Spend up to 10k DOT' },
+    33: { id: 33, name: 'MediumSpender', icon: '💴', description: 'Spend up to 100k DOT' },
+    34: { id: 34, name: 'BigSpender', icon: '💶', description: 'Spend up to 1M DOT' },
+    40: { id: 40, name: 'WishForChange', icon: '🌟', description: 'Community wishes' }
+};
+
+/**
+ * Holt Track-Name anhand der ID
+ */
+function getTrackName(trackId) {
+    return OPENGOV_TRACKS[trackId]?.name || `Unknown Track ${trackId}`;
+}
+
+/**
+ * Holt Track-Icon anhand der ID
+ */
+function getTrackIcon(trackId) {
+    return OPENGOV_TRACKS[trackId]?.icon || '❓';
+}
+
+/**
+ * Conviction-Multiplier (0-6)
+ */
+function getConvictionMultiplier(conviction) {
+    const multipliers = [0.1, 1, 2, 3, 4, 5, 6];
+    return multipliers[conviction] || conviction;
+}
+
+/**
+ * Identity-Registrar-Mapping (bekannte Registrars)
+ * Polkadot Mainnet Registrars
+ */
+const IDENTITY_REGISTRARS = {
+    0: 'Registrar',
+    1: 'Web3 Foundation',
+    2: 'Certus One',
+    3: 'Chevdor'
+};
+
+/**
+ * Holt Registrar-Name anhand der ID
+ */
+function getRegistrarName(registrarIndex) {
+    return IDENTITY_REGISTRARS[registrarIndex] || `Registrar #${registrarIndex}`;
+}
+
+/**
  * OnChainService
  * Verwaltet die Verbindung zur Polkadot-Chain und lädt On-Chain-Daten
  * Nutzt @polkadot/api für RPC-Calls und Derive-Funktionen
@@ -9,12 +72,14 @@ class OnChainService {
         // Konfigurierbares Refresh-Intervall (10 Minuten)
         this.REFRESH_INTERVAL_MS = 10 * 60 * 1000;
         
-        // API-Instanzen
-        this.api = null;
-        this.wsProvider = null;
+        // Multi-API-Instanzen (Map: network -> {api, wsProvider, config})
+        this.apis = new Map();
+        
+        // Verbindungsstatus (Map: network -> {connected: boolean, error: string})
+        this.connectionStatus = new Map();
         
         // Status
-        this.currentNetwork = null;
+        this.currentNetworkGroup = null;
         this.isConnected = false;
         
         // Background-Refresh Timer
@@ -23,6 +88,7 @@ class OnChainService {
         
         // Network Registry
         this.networkRegistry = [];
+        this.networkGroups = [];
         this.registryLoaded = false;
         
         // Hardcoded minimal Registry als Fallback
@@ -71,6 +137,7 @@ class OnChainService {
             if (response.ok) {
                 const data = await response.json();
                 registry = data.registry;
+                this.networkGroups = data.networkGroups || [];
                 console.log('✅ Loaded local registry with RPC endpoints');
             }
         } catch (error) {
@@ -81,6 +148,10 @@ class OnChainService {
         if (!registry || !Array.isArray(registry) || registry.length === 0) {
             console.warn('⚠️ Local registry failed, using hardcoded minimal registry');
             registry = this.MINIMAL_REGISTRY;
+            this.networkGroups = [
+                { id: 'polkadot', displayName: 'Polkadot', chains: ['polkadot'] },
+                { id: 'kusama', displayName: 'Kusama', chains: ['kusama'] }
+            ];
         }
 
         // Sortiere nach Priority (falls vorhanden)
@@ -88,12 +159,13 @@ class OnChainService {
 
         // In SessionStorage cachen
         sessionStorage.setItem('networkRegistry', JSON.stringify(registry));
+        sessionStorage.setItem('networkGroups', JSON.stringify(this.networkGroups));
         sessionStorage.setItem('registryLastFetch', now.toString());
 
         this.networkRegistry = registry;
         this.registryLoaded = true;
 
-        console.log(`✅ Network registry loaded: ${registry.length} networks`);
+        console.log(`✅ Network registry loaded: ${registry.length} networks, ${this.networkGroups.length} groups`);
         return this.networkRegistry;
     }
 
@@ -127,85 +199,665 @@ class OnChainService {
     }
 
     /**
-     * Verbindung zur Chain herstellen
-     * @param {string} network - Netzwerk (polkadot, kusama, westend)
-     * @returns {Promise<boolean>} Success
+     * Verbindet zu allen Chains einer Network-Gruppe (Multi-Chain)
+     * Sequenziell: Asset Hub zuerst (required), dann parallel Relay + People
+     * @param {string} networkGroup - 'polkadot' oder 'kusama'
+     * @returns {Promise<Map>} Map mit network -> api Instanz
      */
-    async connect(network = 'polkadot') {
+    async connectToNetworkGroup(networkGroup) {
+        console.log(`🔌 Connecting to ${networkGroup} network group...`);
+        
+        // Registry laden
+        if (!this.registryLoaded) {
+            await this.loadNetworkRegistry();
+        }
+        
+        // Alle Chains der Gruppe finden
+        const groupChains = this.networkRegistry.filter(n => n.networkGroup === networkGroup);
+        
+        if (groupChains.length === 0) {
+            throw new Error(`No chains found for network group: ${networkGroup}`);
+        }
+        
+        console.log(`Found ${groupChains.length} chains in ${networkGroup} group`);
+        
+        // Alte Verbindungen dieser Gruppe trennen
+        for (const [network, connection] of this.apis.entries()) {
+            const chainConfig = this.networkRegistry.find(n => n.network === network);
+            if (chainConfig?.networkGroup === networkGroup) {
+                console.log(`🔌 Disconnecting old connection: ${network}`);
+                try {
+                    await connection.api.disconnect();
+                } catch (error) {
+                    console.warn(`Error disconnecting ${network}:`, error);
+                }
+                this.apis.delete(network);
+                this.connectionStatus.delete(network);
+            }
+        }
+        
+        // SCHRITT 1: Asset Hub zuerst verbinden (REQUIRED)
+        const assetHubConfig = groupChains.find(c => c.groupRole === 'assetHub' && c.required);
+        if (!assetHubConfig) {
+            throw new Error(`No required Asset Hub found for ${networkGroup}`);
+        }
+        
+        console.log(`🔗 Step 1: Connecting to ${assetHubConfig.displayName} (required)...`);
+        
         try {
-            // Registry laden falls noch nicht geschehen
-            if (!this.registryLoaded) {
-                await this.loadNetworkRegistry();
-            }
-
-            // Bereits verbunden mit gleichem Netzwerk?
-            if (this.isConnected && this.currentNetwork === network) {
-                console.log(`✅ Already connected to ${network}`);
-                return true;
-            }
-
-            // Alte Verbindung trennen falls vorhanden
-            if (this.isConnected) {
-                await this.disconnect();
-            }
-
-            console.log(`🔌 Connecting to ${network}...`);
-
-            // Endpoint aus Registry holen
-            const networkConfig = this.networkRegistry.find(n => n.network === network);
-            if (!networkConfig) {
-                throw new Error(`Unknown network: ${network}`);
-            }
-            const endpoint = networkConfig.rpcEndpoint;
-            
-            console.log(`🔗 Using RPC endpoint: ${endpoint}`);
-            
-            if (!endpoint) {
-                throw new Error(`No RPC endpoint configured for network: ${network}`);
-            }
-
-            // WebSocket Provider erstellen
-            this.wsProvider = new polkadotApi.WsProvider(endpoint);
-
-            // API-Instanz erstellen
-            this.api = await polkadotApi.ApiPromise.create({
-                provider: this.wsProvider,
+            const wsProvider = new polkadotApi.WsProvider(assetHubConfig.rpcEndpoint);
+            const api = await polkadotApi.ApiPromise.create({
+                provider: wsProvider,
                 throwOnConnect: true
             });
-
-            // Auf Ready warten
-            await this.api.isReady;
-
-            this.currentNetwork = network;
-            this.isConnected = true;
-
-            console.log(`✅ Connected to ${network}`);
             
-            // Chain-Info loggen
-            const chain = await this.api.rpc.system.chain();
-            const nodeName = await this.api.rpc.system.name();
-            const nodeVersion = await this.api.rpc.system.version();
-            console.log(`📡 Chain: ${chain}, Node: ${nodeName} v${nodeVersion}`);
-
-            return true;
-
+            await api.isReady;
+            
+            // 🔍 Debug: Chain Properties (Decimals)
+            const properties = api.registry.getChainProperties();
+            const chainDecimals = properties?.tokenDecimals?.toJSON?.()?.[0];
+            console.log(`🔬 Chain Properties for ${assetHubConfig.displayName}:`, {
+                tokenSymbol: properties?.tokenSymbol?.toJSON?.(),
+                tokenDecimals: chainDecimals,
+                configDecimals: assetHubConfig.decimals
+            });
+            
+            this.apis.set(assetHubConfig.network, { api, wsProvider, config: assetHubConfig });
+            this.connectionStatus.set(assetHubConfig.network, { connected: true, error: null });
+            
+            console.log(`✅ Connected to ${assetHubConfig.displayName}`);
         } catch (error) {
-            console.error('❌ Connection failed:', error);
+            console.error(`❌ Failed to connect to ${assetHubConfig.displayName}:`, error);
+            this.connectionStatus.set(assetHubConfig.network, { connected: false, error: error.message });
+            throw new Error(`Asset Hub connection failed: ${error.message}`);
+        }
+        
+        // SCHRITT 2: Relay + People parallel verbinden (OPTIONAL)
+        const optionalChains = groupChains.filter(c => c.groupRole !== 'assetHub');
+        
+        console.log(`🔗 Step 2: Connecting to ${optionalChains.length} optional chains in parallel...`);
+        
+        const optionalConnections = optionalChains.map(async (chainConfig) => {
+            try {
+                console.log(`🔗 Connecting to ${chainConfig.displayName}...`);
+                
+                const wsProvider = new polkadotApi.WsProvider(chainConfig.rpcEndpoint);
+                const api = await polkadotApi.ApiPromise.create({
+                    provider: wsProvider,
+                    throwOnConnect: true
+                });
+                
+                await api.isReady;
+                
+                this.apis.set(chainConfig.network, { api, wsProvider, config: chainConfig });
+                this.connectionStatus.set(chainConfig.network, { connected: true, error: null });
+                
+                console.log(`✅ Connected to ${chainConfig.displayName}`);
+                return { success: true, network: chainConfig.network };
+            } catch (error) {
+                console.error(`❌ Failed to connect to ${chainConfig.displayName}:`, error);
+                this.connectionStatus.set(chainConfig.network, { connected: false, error: error.message });
+                return { success: false, network: chainConfig.network, error: error.message };
+            }
+        });
+        
+        await Promise.allSettled(optionalConnections);
+        
+        this.currentNetworkGroup = networkGroup;
+        this.isConnected = true;
+        
+        const connectedCount = Array.from(this.connectionStatus.values()).filter(s => s.connected).length;
+        console.log(`✅ Connected to ${connectedCount}/${groupChains.length} chains in ${networkGroup}`);
+        
+        return this.apis;
+    }
+    
+    /**
+     * Trennt Verbindung zu einer Network-Gruppe
+     * @param {string} networkGroup - 'polkadot' oder 'kusama'
+     */
+    async disconnectNetworkGroup(networkGroup) {
+        const chainsToDisconnect = [];
+        
+        for (const [network, connection] of this.apis.entries()) {
+            const chainConfig = this.networkRegistry.find(n => n.network === network);
+            if (chainConfig?.networkGroup === networkGroup) {
+                chainsToDisconnect.push(network);
+            }
+        }
+        
+        for (const network of chainsToDisconnect) {
+            const connection = this.apis.get(network);
+            try {
+                await connection.api.disconnect();
+                console.log(`✅ Disconnected from ${network}`);
+            } catch (error) {
+                console.error(`Error disconnecting ${network}:`, error);
+            }
+            this.apis.delete(network);
+            this.connectionStatus.delete(network);
+        }
+        
+        if (this.currentNetworkGroup === networkGroup) {
+            this.currentNetworkGroup = null;
             this.isConnected = false;
-            this.api = null;
-            this.wsProvider = null;
-            throw error;
         }
     }
 
     /**
-     * Alle On-Chain-Daten für eine Adresse abrufen
+     * Hilfsfunktion: Konvertiert Polkadot.js Typen zu primitiven Strings
+     */
+    toSafeString(value) {
+        if (!value) return null;
+        if (typeof value === 'string') return value;
+        if (typeof value === 'number') return value.toString();
+        
+        if (typeof value.toJSON === 'function') {
+            const json = value.toJSON();
+            return typeof json === 'string' ? json : String(json);
+        }
+        if (typeof value.toHuman === 'function') {
+            return String(value.toHuman());
+        }
+        if (typeof value.toString === 'function') {
+            const str = value.toString();
+            return str === '[object Object]' ? null : str;
+        }
+        return null;
+    }
+    
+    /**
+     * Aggregiert On-Chain-Daten von mehreren Chains einer Network-Gruppe
+     * @param {string} networkGroup - 'polkadot' oder 'kusama'
+     * @param {string} address - Generic Address (Präfix 42)
+     * @returns {Promise<Object>} Aggregierte Daten mit chains: {relay, assetHub, people}
+     */
+    async aggregateMultiChainData(networkGroup, address) {
+        console.log(`📥 Fetching aggregated data for ${address.substring(0, 12)} from ${networkGroup}...`);
+        
+        const result = {
+            networkGroup: networkGroup,
+            chains: {},
+            lastUpdate: Date.now()
+        };
+        
+        const groupChains = this.networkRegistry.filter(n => n.networkGroup === networkGroup);
+        
+        // Daten von allen verfügbaren Chains parallel abrufen
+        const fetchPromises = groupChains.map(async (chainConfig) => {
+            const connection = this.apis.get(chainConfig.network);
+            const status = this.connectionStatus.get(chainConfig.network);
+            
+            if (!connection || !status?.connected) {
+                return {
+                    network: chainConfig.network,
+                    role: chainConfig.groupRole,
+                    error: true,
+                    chainName: chainConfig.network,
+                    message: status?.error || 'Not connected'
+                };
+            }
+            
+            try {
+                const data = await this.fetchChainData(
+                    connection.api,
+                    chainConfig,
+                    address
+                );
+                
+                // 🔍 Debug: Inspect raw chain data before aggregation
+                console.log(`📊 ${chainConfig.displayName} (${chainConfig.groupRole}) RAW data:`, {
+                    balances: data.balances,
+                    staking: data.staking,
+                    identity: data.identity
+                });
+                
+                return {
+                    network: chainConfig.network,
+                    role: chainConfig.groupRole,
+                    data: data
+                };
+            } catch (error) {
+                console.error(`❌ Failed to fetch data from ${chainConfig.displayName}:`, error);
+                return {
+                    network: chainConfig.network,
+                    role: chainConfig.groupRole,
+                    error: true,
+                    chainName: chainConfig.network,
+                    message: error.message
+                };
+            }
+        });
+        
+        const results = await Promise.allSettled(fetchPromises);
+        
+        // Organisiere Daten nach Rolle
+        for (const promiseResult of results) {
+            if (promiseResult.status === 'fulfilled') {
+                const { network, role, data, error, chainName, message } = promiseResult.value;
+                
+                if (data) {
+                    result.chains[role] = data;
+                } else if (error) {
+                    result.chains[role] = { error: true, chainName, message };
+                }
+            }
+        }
+        
+        console.log(`✅ Aggregated data fetched from ${Object.keys(result.chains).length} chains`);
+        return result;
+    }
+    
+    /**
+     * Lädt Daten von einer einzelnen Chain
+     * @param {ApiPromise} api - Polkadot.js API Instanz
+     * @param {Object} chainConfig - Chain-Konfiguration aus Registry
+     * @param {string} address - Generic Address
+     * @returns {Promise<Object>} Chain-spezifische Daten
+     */
+    async fetchChainData(api, chainConfig, address) {
+        // Konvertiere Generic → Network-Specific Address
+        const addresses = this.convertToNetworkAddress(address, chainConfig.prefix);
+        const queryAddress = addresses.networkSpecific;
+        
+        console.log(`🔍 Querying ${chainConfig.displayName} with address: ${queryAddress.substring(0, 12)}...`);
+        
+        const data = {
+            network: chainConfig.network,
+            displayName: chainConfig.displayName,
+            addresses: addresses
+        };
+        
+        // Je nach Chain-Rolle verschiedene Daten abrufen
+        const role = chainConfig.groupRole;
+        
+        try {
+            if (role === 'assetHub') {
+                // Asset Hub: Balances + Assets
+                const balances = await api.derive.balances.all(queryAddress);
+                
+                // 🔍 Debug: Raw balance object from API
+                console.log(`🔬 Asset Hub RAW balances object:`, {
+                    availableBalance: balances?.availableBalance?.toString(),
+                    freeBalance: balances?.freeBalance?.toString(),
+                    reservedBalance: balances?.reservedBalance?.toString(),
+                    frozenFee: balances?.frozenFee?.toString(),
+                    lockedBalance: balances?.lockedBalance?.toString(),
+                    allKeys: Object.keys(balances || {})
+                });
+                
+                const free = this.toSafeString(balances?.freeBalance) || '0';
+                const reserved = this.toSafeString(balances?.reservedBalance) || '0';
+                const totalBigInt = BigInt(free) + BigInt(reserved);
+                
+                data.balances = {
+                    free,
+                    reserved,
+                    frozen: this.toSafeString(balances?.frozenFee) || '0',
+                    transferable: this.toSafeString(balances?.availableBalance) || '0',
+                    total: totalBigInt.toString()
+                };
+            }
+            
+            if (role === 'relay') {
+                // Relay Chain: Balances + Staking + Governance
+                const [balances, stakingInfo, votingBalance] = await Promise.all([
+                    api.derive.balances.all(queryAddress),
+                    api.derive.staking.account(queryAddress),
+                    api.derive.balances.votingBalance(queryAddress)
+                ]);
+                
+                // 🔍 Debug: Raw balance object from API
+                console.log(`🔬 Relay Chain RAW balances object:`, {
+                    availableBalance: balances?.availableBalance?.toString(),
+                    freeBalance: balances?.freeBalance?.toString(),
+                    reservedBalance: balances?.reservedBalance?.toString(),
+                    frozenFee: balances?.frozenFee?.toString(),
+                    lockedBalance: balances?.lockedBalance?.toString(),
+                    allKeys: Object.keys(balances || {})
+                });
+                
+                const free = this.toSafeString(balances?.freeBalance) || '0';
+                const reserved = this.toSafeString(balances?.reservedBalance) || '0';
+                const totalBigInt = BigInt(free) + BigInt(reserved);
+                
+                data.balances = {
+                    free,
+                    reserved,
+                    frozen: this.toSafeString(balances?.frozenFee) || '0',
+                    transferable: this.toSafeString(balances?.availableBalance) || '0',
+                    locked: this.toSafeString(balances?.lockedBalance) || '0',
+                    total: totalBigInt.toString()
+                };
+                
+                data.staking = {
+                    hasStaking: stakingInfo?.stakingLedger ? true : false,
+                    active: this.toSafeString(stakingInfo?.stakingLedger?.active) || '0',
+                    total: this.toSafeString(stakingInfo?.stakingLedger?.total) || '0',
+                    unlocking: stakingInfo?.unlocking?.map(u => ({
+                        value: this.toSafeString(u?.value) || '0',
+                        era: this.toSafeString(u?.era) || '0'
+                    })) || [],
+                    rewardDestination: this.toSafeString(stakingInfo?.rewardDestination),
+                    nominators: stakingInfo?.nominators?.map(n => this.toSafeString(n)) || []
+                };
+                
+                data.governance = {
+                    votingBalance: this.toSafeString(votingBalance) || '0',
+                    votes: []
+                };
+                
+                // OpenGov Votes abrufen (falls verfügbar)
+                if (api.query.convictionVoting?.votingFor) {
+                    try {
+                        const votes = await this.fetchGovernanceVotes(api, queryAddress);
+                        data.governance.votes = votes;
+                    } catch (error) {
+                        console.warn('Failed to fetch governance votes:', error);
+                    }
+                }
+            }
+            
+            if (role === 'people') {
+                // People Chain: Identity + Balances
+                // WICHTIG: Auf People Chain existiert api.derive.accounts.info() NICHT!
+                // Direkte Identity-Pallet-Queries verwenden (query.identity.identityOf/superOf)
+                try {
+                    // Hilfsfunktion: Parse Identity Data-Type zu UTF-8 String
+                    const parseIdentityData = (dataField) => {
+                        if (!dataField || dataField.isNone) return null;
+                        try {
+                            // Data-Type kann Raw oder andere Varianten sein
+                            if (dataField.isRaw) {
+                                return dataField.asRaw.toUtf8();
+                            }
+                            // Fallback: toHuman() für andere Types
+                            const human = dataField.toHuman();
+                            return human?.Raw || human || null;
+                        } catch (e) {
+                            return null;
+                        }
+                    };
+                    
+                    // 1. Prüfe ob Sub-Identity
+                    const superOf = await api.query.identity.superOf(queryAddress);
+                    let parentIdentity = null;
+                    let isSubIdentity = false;
+                    let subIdentityData = null;
+                    
+                    if (superOf.isSome) {
+                        isSubIdentity = true;
+                        const [parentAddress, subData] = superOf.unwrap();
+                        const parentAddressStr = parentAddress.toString();
+                        
+                        // WICHTIG: subData enthält die Sub-Identity-Info (Data-Type)
+                        subIdentityData = parseIdentityData(subData);
+                        console.log(`✅ Sub-Identity detected: "${subIdentityData}" (Parent: ${parentAddressStr.substring(0, 12)}...)`);
+                        
+                        // Lade Parent-Identity
+                        const parentIdentityOf = await api.query.identity.identityOf(parentAddressStr);
+                        if (parentIdentityOf.isSome) {
+                            const parentData = parentIdentityOf.unwrap();
+                            parentIdentity = {
+                                address: parentAddressStr,
+                                display: parseIdentityData(parentData.info.display),
+                                judgements: parentData.judgements.map(([registrarIndex, judgement]) => ({
+                                    registrarIndex: registrarIndex.toNumber(),
+                                    registrarName: getRegistrarName(registrarIndex.toNumber()),
+                                    judgement: judgement.toString(),
+                                    judgementType: judgement.type
+                                }))
+                            };
+                        }
+                    }
+                    
+                    // 2. Lade Haupt-Identity ODER verwende Sub-Identity-Daten
+                    if (isSubIdentity && subIdentityData) {
+                        // Sub-Identity: Verwende die Sub-Identity-Daten (nur Display-Name verfügbar)
+                        // Alle anderen Felder kommen vom Parent
+                        const parentInfo = parentIdentity ? await api.query.identity.identityOf(parentIdentity.address).then(r => r.isSome ? r.unwrap().info : null) : null;
+                        
+                        data.identity = {
+                            hasIdentity: true,
+                            display: subIdentityData, // Sub-Identity Name (z.B. "VFDA")
+                            legal: parentInfo ? parseIdentityData(parentInfo.legal) : null,
+                            web: parentInfo ? parseIdentityData(parentInfo.web) : null,
+                            email: parentInfo ? parseIdentityData(parentInfo.email) : null,
+                            twitter: parentInfo ? parseIdentityData(parentInfo.twitter) : null,
+                            riot: parentInfo ? parseIdentityData(parentInfo.riot) : null,
+                            github: parentInfo ? parseIdentityData(parentInfo.github) : null,
+                            discord: parentInfo ? parseIdentityData(parentInfo.discord) : null,
+                            matrix: parentInfo ? parseIdentityData(parentInfo.matrix) : null,
+                            pgpFingerprint: parentInfo && parentInfo.pgpFingerprint && !parentInfo.pgpFingerprint.isNone 
+                                ? parentInfo.pgpFingerprint.unwrap().toHex() 
+                                : null,
+                            judgements: parentIdentity ? parentIdentity.judgements : [], // Judgements vom Parent
+                            isSubIdentity: true,
+                            parent: parentIdentity
+                        };
+                    } else {
+                        // Standard-Identity (kein Sub)
+                        const identityOf = await api.query.identity.identityOf(queryAddress);
+                        
+                        if (identityOf.isNone) {
+                            // Keine Identity gesetzt
+                            data.identity = {
+                                hasIdentity: false,
+                                display: null,
+                                legal: null,
+                                web: null,
+                                email: null,
+                                twitter: null,
+                                riot: null,
+                                github: null,
+                                discord: null,
+                                matrix: null,
+                                pgpFingerprint: null,
+                                judgements: [],
+                                isSubIdentity: false,
+                                parent: null
+                            };
+                        } else {
+                            const identity = identityOf.unwrap();
+                            const info = identity.info;
+                            
+                            // Parse alle Identity-Felder
+                            data.identity = {
+                                hasIdentity: true,
+                                display: parseIdentityData(info.display),
+                                legal: parseIdentityData(info.legal),
+                                web: parseIdentityData(info.web),
+                                email: parseIdentityData(info.email),
+                                twitter: parseIdentityData(info.twitter),
+                                riot: parseIdentityData(info.riot),
+                                github: parseIdentityData(info.github),
+                                discord: parseIdentityData(info.discord),
+                                matrix: parseIdentityData(info.matrix),
+                                pgpFingerprint: info.pgpFingerprint && !info.pgpFingerprint.isNone 
+                                    ? info.pgpFingerprint.unwrap().toHex() 
+                                    : null,
+                                judgements: identity.judgements.map(([registrarIndex, judgement]) => ({
+                                    registrarIndex: registrarIndex.toNumber(),
+                                    registrarName: getRegistrarName(registrarIndex.toNumber()),
+                                    judgement: judgement.toString(),
+                                    judgementType: judgement.type
+                                })),
+                                isSubIdentity: false,
+                                parent: null
+                            };
+                        }
+                    }
+                    
+                    // 3. Balances abrufen
+                    const balances = await api.derive.balances.all(queryAddress).catch(error => {
+                        console.warn(`⚠️ Balance query failed for ${queryAddress.substring(0, 12)}...:`, error.message);
+                        return null;
+                    });
+                    
+                    if (balances) {
+                        data.balances = {
+                            free: this.toSafeString(balances?.freeBalance) || '0',
+                            reserved: this.toSafeString(balances?.reservedBalance) || '0',
+                            transferable: this.toSafeString(balances?.availableBalance) || '0',
+                            total: (balances?.freeBalance && balances?.reservedBalance)
+                                ? this.toSafeString(balances.freeBalance.add(balances.reservedBalance)) || '0'
+                                : '0'
+                        };
+                    }
+                    
+                } catch (error) {
+                    console.warn(`⚠️ Identity extraction failed for ${queryAddress.substring(0, 12)}...:`, error.message);
+                    // Werfe Fehler, damit fetchChainData() fehlschlägt und aggregateMultiChainData() die Chain als fehlgeschlagen markiert
+                    // Dies führt dazu, dass die gecachten People-Daten beibehalten werden statt mit leeren Daten überschrieben zu werden
+                    throw new Error(`Identity API failed: ${error.message}`);
+                }
+            }
+            
+        } catch (error) {
+            console.error(`Error fetching data from ${chainConfig.displayName}:`, error);
+            throw error;
+        }
+        
+        return data;
+    }
+    
+    /**
+     * Lädt Governance-Votes von OpenGov
+     * @param {ApiPromise} api - Polkadot.js API Instanz
+     * @param {string} address - Network-Specific Address
+     * @returns {Promise<Array>} Liste von Votes
+     */
+    async fetchGovernanceVotes(api, address) {
+        const votes = [];
+        
+        try {
+            // Alle Tracks basierend auf OPENGOV_TRACKS abfragen (nicht-sequenzielle IDs)
+            const availableTracks = Object.keys(OPENGOV_TRACKS).map(Number);
+            console.log(`🎯 Querying ${availableTracks.length} OpenGov tracks:`, availableTracks);
+            console.log(`🎯 Address: ${address.substring(0, 12)}...`);
+            
+            const trackPromises = [];
+            for (const trackId of availableTracks) {
+                trackPromises.push(
+                    api.query.convictionVoting.votingFor(address, trackId)
+                        .then(voting => {
+                            console.log(`  ✅ Track ${trackId} (${getTrackName(trackId)}): ${voting.type}`);
+                            return { trackId, voting };
+                        })
+                        .catch(err => {
+                            console.warn(`  ❌ Track ${trackId} query failed:`, err.message);
+                            return { trackId, voting: null };
+                        })
+                );
+            }
+            
+            const trackResults = await Promise.all(trackPromises);
+            
+            // Count nach Type für Debug
+            const typeCounts = { standard: 0, split: 0, splitAbstain: 0, delegating: 0 };
+            
+            for (const { trackId, voting } of trackResults) {
+                if (!voting) continue;
+                
+                // DELEGATING VOTES
+                if (voting.isDelegating) {
+                    const delegation = voting.asDelegating;
+                    console.log(`  🔗 Track ${trackId}: Delegating to ${this.toSafeString(delegation.target).substring(0, 12)}...`);
+                    
+                    votes.push({
+                        type: 'delegating',
+                        trackId: trackId,
+                        trackName: getTrackName(trackId),
+                        trackIcon: getTrackIcon(trackId),
+                        target: this.toSafeString(delegation.target),
+                        balance: this.toSafeString(delegation.balance),
+                        conviction: delegation.conviction.toNumber(),
+                        convictionMultiplier: getConvictionMultiplier(delegation.conviction.toNumber())
+                    });
+                    typeCounts.delegating++;
+                    continue;
+                }
+                
+                // CASTING VOTES (Standard/Split/SplitAbstain)
+                if (voting.isCasting) {
+                    const castingVotes = voting.asCasting.votes;
+                    console.log(`  🗳️ Track ${trackId}: ${castingVotes.length} casting votes`);
+                    
+                    for (const [refIndex, voteData] of castingVotes) {
+                        
+                        // STANDARD VOTE
+                        if (voteData.isStandard) {
+                            const vote = voteData.asStandard;
+                            
+                            votes.push({
+                                type: 'standard',
+                                referendumIndex: this.toSafeString(refIndex),
+                                trackId: trackId,
+                                trackName: getTrackName(trackId),
+                                trackIcon: getTrackIcon(trackId),
+                                aye: vote.vote.isAye,
+                                conviction: vote.vote.conviction.toNumber(),
+                                convictionMultiplier: getConvictionMultiplier(vote.vote.conviction.toNumber()),
+                                balance: this.toSafeString(vote.balance)
+                            });
+                            typeCounts.standard++;
+                        }
+                        
+                        // SPLIT VOTE
+                        else if (voteData.isSplit) {
+                            const vote = voteData.asSplit;
+                            console.log(`    ⚖️ Ref #${refIndex}: Split vote (AYE: ${vote.aye.toString()}, NAY: ${vote.nay.toString()})`);
+                            
+                            votes.push({
+                                type: 'split',
+                                referendumIndex: this.toSafeString(refIndex),
+                                trackId: trackId,
+                                trackName: getTrackName(trackId),
+                                trackIcon: getTrackIcon(trackId),
+                                ayeBalance: this.toSafeString(vote.aye),
+                                nayBalance: this.toSafeString(vote.nay)
+                            });
+                            typeCounts.split++;
+                        }
+                        
+                        // SPLITABSTAIN VOTE
+                        else if (voteData.isSplitAbstain) {
+                            const vote = voteData.asSplitAbstain;
+                            console.log(`    🎭 Ref #${refIndex}: SplitAbstain vote`);
+                            
+                            votes.push({
+                                type: 'splitAbstain',
+                                referendumIndex: this.toSafeString(refIndex),
+                                trackId: trackId,
+                                trackName: getTrackName(trackId),
+                                trackIcon: getTrackIcon(trackId),
+                                ayeBalance: this.toSafeString(vote.aye),
+                                nayBalance: this.toSafeString(vote.nay),
+                                abstainBalance: this.toSafeString(vote.abstain)
+                            });
+                            typeCounts.splitAbstain++;
+                        }
+                    }
+                }
+            }
+            
+            console.log(`📊 Found ${votes.length} total votes:`, typeCounts);
+        } catch (error) {
+            console.error('Error fetching governance votes:', error);
+        }
+        
+        return votes;
+    }
+    
+    /**
+     * LEGACY: Alle On-Chain-Daten für eine Adresse abrufen (Single-Chain-Modus)
+     * @deprecated Verwende aggregateMultiChainData() für Multi-Chain
      * @param {string} address - Generic Address (Präfix 42)
      * @returns {Promise<Object>} On-Chain-Daten mit addresses: {generic, networkSpecific}
      */
     async fetchAllOnChainData(address) {
-        if (!this.isConnected || !this.api) {
-            throw new Error('Not connected to chain');
+        if (!this.isConnected || this.apis.size === 0) {
+            throw new Error('Not connected to any chain');
         }
 
         console.log(`📥 Fetching on-chain data for ${address.substring(0, 12)}...`);
@@ -355,30 +1007,31 @@ class OnChainService {
     }
 
     /**
-     * Verbindung trennen und Cleanup
+     * Trennt alle Verbindungen
      */
     async disconnect() {
-        console.log('🔌 Disconnecting from chain...');
+        console.log('🔌 Disconnecting from all chains...');
 
         // Auto-Refresh stoppen
         this.stopAutoRefresh();
 
-        // API trennen
-        if (this.api) {
+        // Alle APIs trennen
+        for (const [network, connection] of this.apis.entries()) {
             try {
-                await this.api.disconnect();
+                await connection.api.disconnect();
+                console.log(`✅ Disconnected from ${network}`);
             } catch (error) {
-                console.error('Error disconnecting API:', error);
+                console.error(`Error disconnecting ${network}:`, error);
             }
         }
 
         // Status zurücksetzen
-        this.api = null;
-        this.wsProvider = null;
+        this.apis.clear();
+        this.connectionStatus.clear();
         this.isConnected = false;
-        this.currentNetwork = null;
+        this.currentNetworkGroup = null;
 
-        console.log('✅ Disconnected');
+        console.log('✅ All connections closed');
     }
 
     /**
@@ -439,11 +1092,15 @@ class OnChainService {
             }
             
             // Prüfe ob es ein HEX-String ist (z.B. "02c79236085d") und konvertiere zu Decimal
-            if (/^[0-9a-fA-F]+$/.test(valueStr) && valueStr.length > 0) {
+            // WICHTIG: Nur wenn tatsächlich Hex-Chars (a-f) vorhanden sind
+            const hasHexChars = /[a-fA-F]/.test(valueStr);
+            if (hasHexChars && /^[0-9a-fA-F]+$/.test(valueStr) && valueStr.length > 0) {
                 try {
                     // Konvertiere Hex zu BigInt dann zu String
+                    console.log('🔬 Converting HEX balance:', valueStr);
                     const hexBigInt = BigInt('0x' + valueStr);
                     valueStr = hexBigInt.toString();
+                    console.log('🔬 Converted to decimal:', valueStr);
                 } catch (hexError) {
                     console.warn('Failed to convert hex balance:', valueStr);
                 }
@@ -455,12 +1112,29 @@ class OnChainService {
                 return `0 ${unit}`;
             }
 
-            // Nutzt polkadot-util für korrekte Formatierung
-            // WICHTIG: withUnit und forceUnit NICHT zusammen verwenden!
-            return polkadotUtil.formatBalance(valueStr, {
-                decimals: decimals,
-                withUnit: unit
-            });
+            // Manuelle Formatierung (polkadotUtil.formatBalance hat Bugs mit verschiedenen Decimals)
+            // Konvertiere Plancks zu Token: value / 10^decimals
+            const divisor = BigInt(10) ** BigInt(decimals);
+            const valueBigInt = BigInt(valueStr);
+            
+            // Integer Teil
+            const integerPart = valueBigInt / divisor;
+            
+            // Dezimal Teil (mit führenden Nullen)
+            const remainder = valueBigInt % divisor;
+            const decimalStr = remainder.toString().padStart(decimals, '0');
+            
+            // Zeige immer genau 4 Dezimalstellen
+            const displayDecimal = decimalStr.substring(0, 4);
+            
+            const result = `${integerPart}.${displayDecimal} ${unit}`;
+            
+            // 🔍 Debug: Nur bei großen Werten loggen
+            if (BigInt(valueStr) > BigInt(1000000000)) {
+                console.log(`🔬 formatBalance: ${valueStr} (dec:${decimals}) -> ${result}`);
+            }
+            
+            return result;
         } catch (error) {
             console.error('Error formatting balance:', error, 'Value:', value);
             // Fallback: Manuelle Formatierung
