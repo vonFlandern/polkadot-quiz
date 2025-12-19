@@ -683,7 +683,8 @@ button.secondary {
     position: relative;
 }
 
-.account-menu a#account-menu-trigger {
+.account-menu a#account-menu-trigger,
+.account-menu a#account-menu-trigger-overview {
     color: var(--account-menu-hamburger);
     text-decoration: none;
     font-size: 1.5em;
@@ -695,7 +696,8 @@ button.secondary {
     line-height: 1;
 }
 
-.account-menu a#account-menu-trigger:hover {
+.account-menu a#account-menu-trigger:hover,
+.account-menu a#account-menu-trigger-overview:hover {
     background: rgba(255, 255, 255, 0.1);
 }
 
@@ -854,25 +856,37 @@ button.secondary {
     cursor: not-allowed;
 }
 
-/* Loading Overlay */
-#onchain-loading-overlay {
-    position: absolute;
+/* === POLKADOT LOGO LOADING SPINNER === */
+.polkadot-spinner-overlay {
+    position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(0, 0, 0, 0.7);
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
-    border-radius: 8px;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
 }
 
-#onchain-loading-overlay .spinner {
-    font-size: 48px;
+.polkadot-spinner-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.polkadot-spinner-icon {
+    width: 80px;
+    height: 80px;
     animation: spin 2s linear infinite;
+}
+
+.spinner-text {
+    display: none; /* Kein Text, nur Logo */
 }
 
 @keyframes spin {
@@ -880,11 +894,16 @@ button.secondary {
     100% { transform: rotate(360deg); }
 }
 
-#onchain-loading-overlay p {
-    margin-top: 10px;
-    font-size: 16px;
-    color: var(--text-color);
-    font-weight: 600;
+/* Responsive für Mobile */
+@media (max-width: 768px) {
+    .polkadot-spinner-icon {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .spinner-text {
+        font-size: 16px;
+    }
 }
 
 /* On-Chain Data Body */
@@ -1144,12 +1163,6 @@ button.secondary {
 
 #show-more-networks-btn:hover {
     background: #c5006b;
-}
-
-/* ========== Error State für Loading Overlay ========== */
-#onchain-loading-overlay.error-state {
-    background: rgba(255, 240, 240, 0.98);
-    border: 3px solid #f44336;
 }
 
 .error-content {

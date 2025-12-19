@@ -12,6 +12,31 @@ class QuizUI {
     }
 
     /**
+     * Zeige Polkadot Loading Spinner
+     * @param {string} text - Text unter dem Spinner (optional)
+     */
+    showSpinner(text = 'Loading...') {
+        const spinner = document.getElementById('polkadot-spinner');
+        const spinnerText = spinner.querySelector('.spinner-text');
+        if (spinnerText) {
+            spinnerText.textContent = text;
+        }
+        spinner.style.display = 'flex';
+        // Kleine Verzögerung für CSS Transition
+        setTimeout(() => spinner.classList.add('active'), 10);
+    }
+
+    /**
+     * Verstecke Polkadot Loading Spinner
+     */
+    hideSpinner() {
+        const spinner = document.getElementById('polkadot-spinner');
+        spinner.classList.remove('active');
+        // Warte auf CSS Transition bevor display:none
+        setTimeout(() => spinner.style.display = 'none', 300);
+    }
+
+    /**
      * Räumt alte Cache-Einträge auf (einmalig pro Session)
      * Entfernt Session Storage Keys mit altem Format: onchain_data_*
      */
@@ -139,7 +164,7 @@ class QuizUI {
                 statusDiv.innerHTML = '<p class="success">✅ Wallet connected! Choose an account:</p>';
 
                 // Show accounts with converted addresses
-                accountsDiv.innerHTML = '<p>🔄 Loading accounts...</p>';
+                this.showSpinner('Loading accounts...');
                 
                 // Für jeden Account: Prüfe ob bekannt und konvertiere für Anzeige
                 const accountsWithInfo = await Promise.all(
@@ -188,6 +213,9 @@ class QuizUI {
                         };
                     })
                 );
+                
+                // Verstecke Spinner
+                this.hideSpinner();
                 
                 // Zeige Accounts
                 accountsDiv.innerHTML = '';
@@ -300,21 +328,53 @@ class QuizUI {
 
                             playerNameInput.appendChild(buttonsDiv);
 
-                            // Event Listener OHNE Validierung/Registrierung
+                            // Event Listener - Automatische Registrierung mit vollständigem Datensatz
                             setTimeout(() => {
                                 document.getElementById('continue-quiz-btn').addEventListener('click', async () => {
-                                    // WICHTIG: Setze Session-Daten OHNE playerName
-                                    sessionStorage.setItem('walletAddress', account.genericAddress);
-                                    sessionStorage.setItem('polkadotAddress', account.polkadotAddress);
-                                    // playerName wird NICHT gesetzt → Level Overview zeigt Name-Eingabe an
+                                    try {
+                                        // 1. Zeige Spinner während Registrierung
+                                        this.showSpinner('Registering player...');
+                                        console.log('📝 Registering new player...');
 
-                                    // Pre-Load On-Chain-Daten (Fire-and-Forget, blockiert nicht)
-                                    this.loadOnChainData(account.genericAddress, false, 'polkadot').catch(err => {
-                                        console.warn('On-chain data pre-loading failed:', err);
-                                    });
+                                        // 2. Registriere Spieler in players.json (OHNE Namen)
+                                        const registerResponse = await fetch('api/register-player.php', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                walletAddress: account.genericAddress,
+                                                playerName: null  // Kein Name = wird in Level Overview eingegeben
+                                            })
+                                        });
 
-                                    // Zeige Level-Übersicht
-                                    this.showLevelOverview();
+                                        if (!registerResponse.ok) {
+                                            const errorData = await registerResponse.json();
+                                            throw new Error(errorData.error || 'Registration failed');
+                                        }
+                                        
+                                        console.log('✅ Player registered in database');
+
+                                        // 3. Lade On-Chain-Daten (blockierend, damit kompletter Datensatz vorhanden)
+                                        this.showSpinner('Loading on-chain data...');
+                                        console.log('🔄 Loading on-chain data...');
+                                        await this.loadOnChainData(account.genericAddress, true, 'polkadot');
+                                        console.log('✅ On-chain data loaded');
+
+                                        // 4. Setze Session-Daten OHNE playerName
+                                        sessionStorage.setItem('walletAddress', account.genericAddress);
+                                        sessionStorage.setItem('polkadotAddress', account.polkadotAddress);
+                                        // playerName wird NICHT gesetzt → Level Overview zeigt Name-Eingabe an
+
+                                        // 5. Verstecke Spinner
+                                        this.hideSpinner();
+
+                                        // 6. Zeige Level-Übersicht
+                                        this.showLevelOverview();
+                                        
+                                    } catch (error) {
+                                        this.hideSpinner();
+                                        console.error('❌ Continue to quiz failed:', error);
+                                        this.showToast(`Failed to load account data: ${error.message}`, true);
+                                    }
                                 });
                             }, 0);
                         }
@@ -369,8 +429,8 @@ class QuizUI {
                     <div id="account-menu-dropdown" class="menu-dropdown" style="display: none;">
                         <a href="#" id="menu-logout">Log Out</a>
                         <a href="#" id="menu-change-name">Change Name</a>
-                        <a href="#" id="menu-account-overview">Account Overview</a>
                         <a href="#" id="menu-anleitung">Instructions</a>
+                        <a href="#" id="menu-account-overview">Account Overview</a>
                     </div>
                 </div>
             </div>
@@ -1731,9 +1791,7 @@ class QuizUI {
                         <a href="#" id="account-menu-trigger-overview">☰</a>
                         <div id="account-menu-dropdown-overview" class="menu-dropdown" style="display: none;">
                             <a href="#" id="menu-logout-overview">Log Out</a>
-                            <a href="#" id="menu-change-name-overview">Change Name</a>
-                            <a href="#" id="menu-back-level">Back to Levels</a>
-                            <a href="#" id="menu-anleitung-overview">Instructions</a>
+                            <a href="#" id="menu-back-level">Back to Quiz</a>
                         </div>
                     </div>
                 </div>
@@ -1781,8 +1839,8 @@ class QuizUI {
             // Network Selector initialisieren
             await this.initializeNetworkSelector(walletAddress);
 
-            // Loading-Overlay anzeigen
-            document.getElementById('onchain-loading-overlay').style.display = 'flex';
+            // Spinner anzeigen
+            this.showSpinner('Loading on-chain data...');
 
             // Multi-Chain-Verbindung aufbauen
             await onChainService.connectToNetworkGroup(networkGroup);
@@ -1790,8 +1848,8 @@ class QuizUI {
             // Aggregierte On-Chain-Daten laden
             const onChainData = await this.loadOnChainData(walletAddress, false, networkGroup);
 
-            // Loading-Overlay verstecken
-            document.getElementById('onchain-loading-overlay').style.display = 'none';
+            // Spinner verstecken
+            this.hideSpinner();
 
             // Daten rendern
             this.renderOnChainData(onChainData, networkGroup);
@@ -1814,15 +1872,15 @@ class QuizUI {
                 refreshBtn.setAttribute('data-listener-added', 'true');
                 refreshBtn.addEventListener('click', async () => {
                     try {
-                        // Loading-Overlay anzeigen
-                        document.getElementById('onchain-loading-overlay').style.display = 'flex';
+                        // Spinner anzeigen
+                        this.showSpinner('Refreshing on-chain data...');
 
                         // Force-Refresh mit Multi-Chain
                         const currentNetworkGroup = onChainService.currentNetworkGroup || 'polkadot';
                         const freshData = await this.loadOnChainData(walletAddress, true, currentNetworkGroup);
 
-                        // Loading-Overlay verstecken
-                        document.getElementById('onchain-loading-overlay').style.display = 'none';
+                        // Spinner verstecken
+                        this.hideSpinner();
 
                         // Neu rendern
                         this.renderOnChainData(freshData, currentNetworkGroup);
@@ -1830,7 +1888,7 @@ class QuizUI {
                         this.showToast('On-chain data refreshed successfully!');
                         console.log('✅ On-chain data refreshed');
                     } catch (error) {
-                        document.getElementById('onchain-loading-overlay').style.display = 'none';
+                        this.hideSpinner();
                         console.error('Failed to refresh on-chain data:', error);
                         this.showToast(`Failed to refresh data: ${error.message}`, true);
                     }
@@ -1839,7 +1897,7 @@ class QuizUI {
 
         } catch (error) {
             console.error('Failed to show account overview:', error);
-            document.getElementById('onchain-loading-overlay').style.display = 'none';
+            this.hideSpinner();
             document.getElementById('onchain-data-body').innerHTML = `
                 <div class="error-message">
                     <p>❌ Failed to load on-chain data</p>
@@ -2028,10 +2086,7 @@ class QuizUI {
         // Loading-State während Verbindungsaufbau
         if (!chains.assetHub && !chains.relay && !chains.people) {
             balancesSection.innerHTML = `
-                <div class="loading-spinner">
-                    <div class="spinner-icon">⏳</div>
-                    <div>Connecting to Asset Hub...</div>
-                </div>
+                <p style="text-align: center; padding: 20px; color: #666;">⏳ Connecting to blockchain...</p>
             `;
             return;
         }
@@ -2353,8 +2408,8 @@ class QuizUI {
             console.log(`🔄 Switching network to: ${newNetwork}`);
 
             try {
-                // Loading-Overlay anzeigen
-                document.getElementById('onchain-loading-overlay').style.display = 'flex';
+                // Spinner anzeigen
+                this.showSpinner('Switching network...');
 
                 // Alte Verbindung trennen
                 if (onChainService.isConnected) {
@@ -2367,8 +2422,8 @@ class QuizUI {
                 // Daten neu laden
                 const freshData = await this.loadOnChainData(walletAddress, true, newNetwork);
 
-                // Loading-Overlay verstecken
-                document.getElementById('onchain-loading-overlay').style.display = 'none';
+                // Spinner verstecken
+                this.hideSpinner();
 
                 // UI neu rendern
                 this.renderOnChainData(freshData, newNetwork);
@@ -2376,8 +2431,8 @@ class QuizUI {
                 console.log(`✅ Switched to ${newNetwork}`);
             } catch (error) {
                 console.error('❌ Network switch failed:', error);
-                document.getElementById('onchain-loading-overlay').style.display = 'none';
-                alert(`Failed to switch network: ${error.message}`);
+                this.hideSpinner();
+                this.showToast(`Failed to switch network: ${error.message}`, true);
                 // Zurück zu vorheriger Auswahl
                 selector.value = onChainService.currentNetwork || 'polkadot';
             }
@@ -2529,8 +2584,8 @@ class QuizUI {
             try {
                 console.log('🔄 Switching network group to:', selectedNetworkGroup);
                 
-                // Loading-Overlay anzeigen
-                document.getElementById('onchain-loading-overlay').style.display = 'flex';
+                // Spinner anzeigen
+                this.showSpinner('Switching network...');
 
                 // Alte Verbindungen trennen
                 await onChainService.disconnect();
@@ -2541,8 +2596,8 @@ class QuizUI {
                 // Daten neu laden
                 const freshData = await this.loadOnChainData(walletAddress, true, selectedNetworkGroup);
 
-                // Loading-Overlay verstecken
-                document.getElementById('onchain-loading-overlay').style.display = 'none';
+                // Spinner verstecken
+                this.hideSpinner();
 
                 // UI neu rendern
                 this.renderOnChainData(freshData, selectedNetworkGroup);
@@ -2550,7 +2605,7 @@ class QuizUI {
                 console.log('✅ Network group switched successfully');
             } catch (error) {
                 console.error('❌ Network switch failed:', error);
-                document.getElementById('onchain-loading-overlay').style.display = 'none';
+                this.hideSpinner();
                 this.showToast(`Failed to switch network: ${error.message}`, true);
                 
                 // Zurück zum vorherigen Netzwerk
@@ -2675,55 +2730,24 @@ class QuizUI {
     }
 
     /**
-     * Zeigt Error Overlay für Address Conversion Fehler
+     * Zeigt Error für Address Conversion Fehler
      * @param {string} errorMessage - Fehlermeldung
      * @param {string} address - Betroffene Adresse
      * @param {string} network - Netzwerk
      */
     showAddressConversionError(errorMessage, address, network) {
-        const overlay = document.getElementById('onchain-loading-overlay');
-        if (!overlay) return;
+        this.hideSpinner();
+        const shortAddress = `${address.substring(0, 12)}...${address.substring(address.length - 6)}`;
+        this.showToast(`Address conversion failed: ${errorMessage} (${shortAddress})`, true);
+        console.error('Address conversion error:', { errorMessage, address, network });
+    }
 
-        overlay.className = 'error-state';
-        overlay.style.display = 'flex';
-        overlay.innerHTML = `
-            <div class="error-content">
-                <div class="error-icon">⚠️</div>
-                <h3>Address Conversion Failed</h3>
-                <p>${errorMessage}</p>
-                <p class="error-details">
-                    <strong>Address:</strong> ${address.substring(0, 12)}...${address.substring(address.length - 6)}<br>
-                    <strong>Network:</strong> ${network}
-                </p>
-                <div class="error-actions">
-                    <button id="error-retry-btn" class="btn-primary">Try Again</button>
-                    <button id="error-disconnect-btn" class="btn-secondary">Disconnect Wallet</button>
-                </div>
-            </div>
-        `;
-
-        // Retry Button
-        document.getElementById('error-retry-btn')?.addEventListener('click', async () => {
-            overlay.className = '';
-            overlay.innerHTML = `
-                <div class="spinner">🔄</div>
-                <p>Loading blockchain data...</p>
-            `;
-            
-            try {
-                const freshData = await this.loadOnChainData(address, true, network);
-                overlay.style.display = 'none';
-                this.renderOnChainData(freshData, network);
-            } catch (error) {
-                this.showAddressConversionError(error.message, address, network);
-            }
-        });
-
-        // Disconnect Button
-        document.getElementById('error-disconnect-btn')?.addEventListener('click', () => {
-            walletManager.disconnect();
-            this.showWalletConnect();
-        });
+    /**
+     * LEGACY: Disconnect Button Handler (alte Methode wurde entfernt, nur noch Platzhalter)
+     */
+    _legacyDisconnectHandler() {
+        // Diese Methode wurde durch showToast-basiertes Error-Handling ersetzt
+        console.warn('_legacyDisconnectHandler: Diese Methode ist veraltet und sollte nicht mehr verwendet werden');
     }
 
     /**

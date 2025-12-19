@@ -19,6 +19,12 @@
     <script src="https://unpkg.com/@polkadot/extension-dapp@0.46.1/bundle-polkadot-extension-dapp.js"></script>
 </head>
 <body>
+    <!-- Polkadot Loading Spinner -->
+    <div id="polkadot-spinner" class="polkadot-spinner-overlay">
+        <img src="assets/img/polkadot.-logo.png" alt="Loading" class="polkadot-spinner-icon">
+        <div class="spinner-text">Loading...</div>
+    </div>
+
     <div class="quiz-container">
         <!-- Header (Standalone only) -->
         <div class="quiz-header">
@@ -233,12 +239,6 @@
                     <code class="network-addr"></code>
                     <button class="copy-btn" data-copy="network" title="Copy to clipboard">📋</button>
                 </div>
-            </div>
-
-            <!-- Loading Overlay -->
-            <div id="onchain-loading-overlay" style="display: none;">
-                <div class="spinner">🔄</div>
-                <p>Loading blockchain data...</p>
             </div>
 
             <!-- On-Chain Data Body -->

@@ -23,12 +23,12 @@ if (extension_loaded('gmp') && extension_loaded('sodium')) {
 // Input validieren
 $input = json_decode(file_get_contents('php://input'), true);
 
-if (!isset($input['walletAddress']) || !isset($input['playerName'])) {
-    errorResponse('Wallet address and player name required');
+if (!isset($input['walletAddress'])) {
+    errorResponse('Wallet address required');
 }
 
 $walletAddress = sanitizeInput($input['walletAddress']);
-$playerName = sanitizeInput($input['playerName']);
+$playerName = isset($input['playerName']) ? sanitizeInput($input['playerName']) : null;
 $walletName = isset($input['walletName']) ? sanitizeInput($input['walletName']) : null;
 
 // Validierungen
@@ -36,13 +36,15 @@ if (!isValidPolkadotAddress($walletAddress)) {
     errorResponse('Invalid wallet address');
 }
 
-// Validierung: 3-20 Zeichen
-if (strlen($playerName) < 3) {
-    errorResponse('Player name must be at least 3 characters');
-}
+// Validierung: Wenn playerName angegeben, muss er 3-20 Zeichen sein
+if ($playerName !== null) {
+    if (strlen($playerName) < 3) {
+        errorResponse('Player name must be at least 3 characters');
+    }
 
-if (strlen($playerName) > 20) {
-    errorResponse('Player name must be max 20 characters');
+    if (strlen($playerName) > 20) {
+        errorResponse('Player name must be max 20 characters');
+    }
 }
 
 
@@ -62,10 +64,12 @@ try {
     // Kein Problem: Nutze Generic für beide
 }
 
-// Prüfe Verfügbarkeit mit gemeinsamer Funktion
-$availabilityCheck = checkPlayerNameAvailability($playerName, $genericAddress);
-if (!$availabilityCheck['available']) {
-    errorResponse($availabilityCheck['error']);
+// Prüfe Verfügbarkeit nur wenn Name angegeben
+if ($playerName !== null) {
+    $availabilityCheck = checkPlayerNameAvailability($playerName, $genericAddress);
+    if (!$availabilityCheck['available']) {
+        errorResponse($availabilityCheck['error']);
+    }
 }
 
 // Players laden
@@ -92,14 +96,14 @@ if ($playerIndex === -1) {
         'polkadotAddress' => $polkadotAddress,    // Für Anzeige
         'walletAddress' => $genericAddress,       // Backward compatibility
         'walletName' => $walletName,              // NEU: Name aus Wallet-Extension
-        'playerName' => $playerName,
-        'nameHistory' => [
+        'playerName' => $playerName,              // Kann null sein
+        'nameHistory' => $playerName !== null ? [
             [
                 'name' => $playerName,
                 'timestamp' => date('c'),
                 'action' => 'initial'
             ]
-        ],
+        ] : [],
         'registeredAt' => date('c'),
         'totalScore' => 0,
         'totalTime' => 0,
@@ -117,9 +121,9 @@ if ($playerIndex === -1) {
     // Bestehender Spieler - Update
     $playersData['players'][$playerIndex]['polkadotAddress'] = $polkadotAddress;
     
-    // Prüfe ob Name geändert wurde
+    // Prüfe ob Name geändert wurde (nur wenn neuer Name angegeben)
     $currentName = $playersData['players'][$playerIndex]['playerName'];
-    if ($currentName !== $playerName) {
+    if ($playerName !== null && $currentName !== $playerName) {
         // Name wurde geändert - Füge zu Historie hinzu
         if (!isset($playersData['players'][$playerIndex]['nameHistory'])) {
             // Alte Einträge: Erstelle Historie mit aktuellem Namen

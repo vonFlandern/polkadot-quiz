@@ -203,6 +203,11 @@ function checkPlayerNameAvailability($playerName, $walletAddress = null) {
     
     // Prüfe ob Name bereits vergeben ist (case-insensitive)
     foreach ($playersData['players'] as $player) {
+        // Überspringe Spieler ohne Namen
+        if (!isset($player['playerName']) || $player['playerName'] === null) {
+            continue;
+        }
+        
         if (strcasecmp($player['playerName'], $playerName) === 0) {
             // Falls walletAddress gegeben: Ist es der eigene Name?
             if ($walletAddress) {
