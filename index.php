@@ -266,12 +266,6 @@
                     <div id="staking-section"></div>
                 </div>
 
-                <!-- Governance Section -->
-                <div class="onchain-section">
-                    <h3>🗳️ Governance</h3>
-                    <div id="governance-section"></div>
-                </div>
-
                 <!-- Footer with Refresh and Last Update -->
                 <div class="onchain-footer">
                     <button id="refresh-onchain-btn">🔄 Refresh Data</button>

@@ -2014,14 +2014,8 @@ class QuizUI {
             }
         }
 
-        // === Governance Section (von Relay Chain) ===
-        console.log('🏛️ Calling renderGovernanceSection with relayData:', {
-            hasRelayData: !!relayData,
-            relayDataKeys: relayData ? Object.keys(relayData) : [],
-            governance: relayData?.governance,
-            votes: relayData?.governance?.votes
-        });
-        this.renderGovernanceSection(relayData, unit, decimals);
+        // Governance-Daten werden weiterhin im Hintergrund abgerufen (für Level-Prüfungen),
+        // aber die UI-Sektion wurde entfernt
     }
 
     /**
@@ -2229,7 +2223,8 @@ class QuizUI {
     /**
      * Rendert Governance-Section mit Votes
      */
-    renderGovernanceSection(relayData, unit, decimals) {
+    // ENTFERNT: Governance UI-Sektion (Daten werden noch abgerufen für Level-Prüfungen)
+    renderGovernanceSection_DISABLED(relayData, unit, decimals) {
         console.log('🏛️ renderGovernanceSection called with:', {
             hasRelayData: !!relayData,
             hasError: relayData?.error,

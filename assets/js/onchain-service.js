@@ -560,11 +560,10 @@ class OnChainService {
             }
             
             if (role === 'relay') {
-                // Relay Chain: Balances + Staking + Governance
-                const [balances, stakingInfo, votingBalance] = await Promise.all([
+                // Relay Chain: Balances + Staking
+                const [balances, stakingInfo] = await Promise.all([
                     api.derive.balances.all(queryAddress),
-                    api.derive.staking.account(queryAddress),
-                    api.derive.balances.votingBalance(queryAddress)
+                    api.derive.staking.account(queryAddress)
                 ]);
                 
                 // 🔍 Debug: Raw balance object from API
@@ -636,21 +635,6 @@ class OnChainService {
                     rewardDestination: this.toSafeString(stakingInfo?.rewardDestination),
                     nominators: stakingInfo?.nominators?.map(n => this.toSafeString(n)) || []
                 };
-                
-                data.governance = {
-                    votingBalance: this.toSafeString(votingBalance) || '0',
-                    votes: []
-                };
-                
-                // OpenGov Votes abrufen (falls verfügbar)
-                if (api.query.convictionVoting?.votingFor) {
-                    try {
-                        const votes = await this.fetchGovernanceVotes(api, queryAddress);
-                        data.governance.votes = votes;
-                    } catch (error) {
-                        console.warn('Failed to fetch governance votes:', error);
-                    }
-                }
                 
                 // Referenda Locks via classLocksFor abrufen (wie polkadot-js/apps)
                 if (api.query.convictionVoting?.classLocksFor) {
@@ -846,127 +830,8 @@ class OnChainService {
      * @param {string} address - Network-Specific Address
      * @returns {Promise<Array>} Liste von Votes
      */
-    async fetchGovernanceVotes(api, address) {
-        const votes = [];
-        
-        try {
-            // Alle Tracks basierend auf OPENGOV_TRACKS abfragen (nicht-sequenzielle IDs)
-            const availableTracks = Object.keys(OPENGOV_TRACKS).map(Number);
-            console.log(`🎯 Querying ${availableTracks.length} OpenGov tracks:`, availableTracks);
-            console.log(`🎯 Address: ${address.substring(0, 12)}...`);
-            
-            const trackPromises = [];
-            for (const trackId of availableTracks) {
-                trackPromises.push(
-                    api.query.convictionVoting.votingFor(address, trackId)
-                        .then(voting => {
-                            console.log(`  ✅ Track ${trackId} (${getTrackName(trackId)}): ${voting.type}`);
-                            return { trackId, voting };
-                        })
-                        .catch(err => {
-                            console.warn(`  ❌ Track ${trackId} query failed:`, err.message);
-                            return { trackId, voting: null };
-                        })
-                );
-            }
-            
-            const trackResults = await Promise.all(trackPromises);
-            
-            // Count nach Type für Debug
-            const typeCounts = { standard: 0, split: 0, splitAbstain: 0, delegating: 0 };
-            
-            for (const { trackId, voting } of trackResults) {
-                if (!voting) continue;
-                
-                // DELEGATING VOTES
-                if (voting.isDelegating) {
-                    const delegation = voting.asDelegating;
-                    console.log(`  🔗 Track ${trackId}: Delegating to ${this.toSafeString(delegation.target).substring(0, 12)}...`);
-                    
-                    votes.push({
-                        type: 'delegating',
-                        trackId: trackId,
-                        trackName: getTrackName(trackId),
-                        trackIcon: getTrackIcon(trackId),
-                        target: this.toSafeString(delegation.target),
-                        balance: this.toSafeString(delegation.balance),
-                        conviction: delegation.conviction.toNumber(),
-                        convictionMultiplier: getConvictionMultiplier(delegation.conviction.toNumber())
-                    });
-                    typeCounts.delegating++;
-                    continue;
-                }
-                
-                // CASTING VOTES (Standard/Split/SplitAbstain)
-                if (voting.isCasting) {
-                    const castingVotes = voting.asCasting.votes;
-                    console.log(`  🗳️ Track ${trackId}: ${castingVotes.length} casting votes`);
-                    
-                    for (const [refIndex, voteData] of castingVotes) {
-                        
-                        // STANDARD VOTE
-                        if (voteData.isStandard) {
-                            const vote = voteData.asStandard;
-                            
-                            votes.push({
-                                type: 'standard',
-                                referendumIndex: this.toSafeString(refIndex),
-                                trackId: trackId,
-                                trackName: getTrackName(trackId),
-                                trackIcon: getTrackIcon(trackId),
-                                aye: vote.vote.isAye,
-                                conviction: vote.vote.conviction.toNumber(),
-                                convictionMultiplier: getConvictionMultiplier(vote.vote.conviction.toNumber()),
-                                balance: this.toSafeString(vote.balance)
-                            });
-                            typeCounts.standard++;
-                        }
-                        
-                        // SPLIT VOTE
-                        else if (voteData.isSplit) {
-                            const vote = voteData.asSplit;
-                            console.log(`    ⚖️ Ref #${refIndex}: Split vote (AYE: ${vote.aye.toString()}, NAY: ${vote.nay.toString()})`);
-                            
-                            votes.push({
-                                type: 'split',
-                                referendumIndex: this.toSafeString(refIndex),
-                                trackId: trackId,
-                                trackName: getTrackName(trackId),
-                                trackIcon: getTrackIcon(trackId),
-                                ayeBalance: this.toSafeString(vote.aye),
-                                nayBalance: this.toSafeString(vote.nay)
-                            });
-                            typeCounts.split++;
-                        }
-                        
-                        // SPLITABSTAIN VOTE
-                        else if (voteData.isSplitAbstain) {
-                            const vote = voteData.asSplitAbstain;
-                            console.log(`    🎭 Ref #${refIndex}: SplitAbstain vote`);
-                            
-                            votes.push({
-                                type: 'splitAbstain',
-                                referendumIndex: this.toSafeString(refIndex),
-                                trackId: trackId,
-                                trackName: getTrackName(trackId),
-                                trackIcon: getTrackIcon(trackId),
-                                ayeBalance: this.toSafeString(vote.aye),
-                                nayBalance: this.toSafeString(vote.nay),
-                                abstainBalance: this.toSafeString(vote.abstain)
-                            });
-                            typeCounts.splitAbstain++;
-                        }
-                    }
-                }
-            }
-            
-            console.log(`📊 Found ${votes.length} total votes:`, typeCounts);
-        } catch (error) {
-            console.error('Error fetching governance votes:', error);
-        }
-        
-        return votes;
-    }
+    // ENTFERNT: fetchGovernanceVotes() - Vote-Anzeige war fehlerhaft und wurde komplett entfernt
+    // classLocksFor für referenda Balance bleibt erhalten (funktioniert korrekt)
     
     /**
      * LEGACY: Alle On-Chain-Daten für eine Adresse abrufen (Single-Chain-Modus)
