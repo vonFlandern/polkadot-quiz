@@ -2111,14 +2111,38 @@ class QuizUI {
                 <span class="data-label">Transferable:</span>
                 <span class="data-value">${onChainService.formatBalance(balances.transferable || '0', decimals, unit)}</span>
             </div>
+            ${balances.bonded && balances.bonded !== '0' ? `
+                <div class="data-row">
+                    <span class="data-label">Bonded:</span>
+                    <span class="data-value">${onChainService.formatBalance(balances.bonded || '0', decimals, unit)}</span>
+                </div>
+            ` : ''}
+            ${balances.unbonding && balances.unbonding !== '0' ? `
+                <div class="data-row">
+                    <span class="data-label">Unbonding:</span>
+                    <span class="data-value">${onChainService.formatBalance(balances.unbonding || '0', decimals, unit)}</span>
+                </div>
+            ` : ''}
             <div class="data-row">
                 <span class="data-label">Reserved:</span>
                 <span class="data-value">${onChainService.formatBalance(balances.reserved || '0', decimals, unit)}</span>
             </div>
-            ${balances.frozen ? `
+            ${balances.frozen && balances.frozen !== '0' ? `
                 <div class="data-row">
                     <span class="data-label">Frozen:</span>
                     <span class="data-value">${onChainService.formatBalance(balances.frozen || '0', decimals, unit)}</span>
+                </div>
+            ` : ''}
+            ${balances.locked && balances.locked !== '0' ? `
+                <div class="data-row">
+                    <span class="data-label">Locked:</span>
+                    <span class="data-value">${onChainService.formatBalance(balances.locked || '0', decimals, unit)}</span>
+                </div>
+            ` : ''}
+            ${balances.referenda && balances.referenda !== '0' ? `
+                <div class="data-row">
+                    <span class="data-label">Referenda:</span>
+                    <span class="data-value">${onChainService.formatBalance(balances.referenda || '0', decimals, unit)}</span>
                 </div>
             ` : ''}
             <div class="data-row">

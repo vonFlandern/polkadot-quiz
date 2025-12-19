@@ -473,7 +473,7 @@ class OnChainService {
         
         try {
             if (role === 'assetHub') {
-                // Asset Hub: Balances + Assets
+                // Asset Hub: Balances + Staking (seit Migration 04.11.2025)
                 const balances = await api.derive.balances.all(queryAddress);
                 
                 // 🔍 Debug: Raw balance object from API
@@ -490,11 +490,71 @@ class OnChainService {
                 const reserved = this.toSafeString(balances?.reservedBalance) || '0';
                 const totalBigInt = BigInt(free) + BigInt(reserved);
                 
+                // Versuche Staking-Daten abzurufen (direkte Query statt derive)
+                let bonded = '0';
+                let unbonding = '0';
+                
+                try {
+                    // Prüfe ob Staking-Pallet existiert
+                    if (api.query.staking?.ledger) {
+                        const ledger = await api.query.staking.ledger(queryAddress);
+                        console.log(`🔍 Asset Hub Staking Ledger:`, ledger.toHuman());
+                        
+                        if (ledger.isSome) {
+                            const ledgerData = ledger.unwrap();
+                            bonded = this.toSafeString(ledgerData.active) || '0';
+                            
+                            // Unbonding chunks
+                            const unlocking = ledgerData.unlocking || [];
+                            if (unlocking.length > 0) {
+                                unbonding = unlocking
+                                    .filter(u => u?.value && BigInt(this.toSafeString(u.value) || '0') > 0n)
+                                    .reduce((sum, u) => {
+                                        const value = this.toSafeString(u.value) || '0';
+                                        return (BigInt(sum) + BigInt(value)).toString();
+                                    }, '0');
+                            }
+                            
+                            console.log(`✅ Asset Hub Staking: bonded=${bonded}, unbonding=${unbonding}`);
+                        }
+                    }
+                } catch (error) {
+                    console.log(`ℹ️ Asset Hub staking query failed:`, error.message);
+                }
+                
+                // Referenda Locks via classLocksFor abrufen
+                let referenda = '0';
+                if (api.query.convictionVoting?.classLocksFor) {
+                    try {
+                        const classLocks = await api.query.convictionVoting.classLocksFor(queryAddress);
+                        console.log(`🔒 Asset Hub ClassLocks:`, classLocks.toHuman());
+                        
+                        if (classLocks && classLocks.length > 0) {
+                            let maxLock = BigInt(0);
+                            for (const [classId, amount] of classLocks) {
+                                const lockAmount = BigInt(this.toSafeString(amount) || '0');
+                                if (lockAmount > maxLock) {
+                                    maxLock = lockAmount;
+                                }
+                                console.log(`  🔍 Asset Hub Track ${classId}: ${lockAmount.toString()}`);
+                            }
+                            referenda = maxLock.toString();
+                            console.log(`  ✅ Asset Hub Max Referenda Lock: ${maxLock.toString()}`);
+                        }
+                    } catch (error) {
+                        console.log(`ℹ️ Asset Hub convictionVoting query failed:`, error.message);
+                    }
+                }
+                
                 data.balances = {
                     free,
                     reserved,
                     frozen: this.toSafeString(balances?.frozenFee) || '0',
-                    transferable: this.toSafeString(balances?.availableBalance) || '0',
+                    transferable: free,  // Asset Hub: free = transferable (matches polkadot.js.org)
+                    locked: this.toSafeString(balances?.lockedBalance) || '0',
+                    bonded,
+                    unbonding,
+                    referenda,
                     total: totalBigInt.toString()
                 };
             }
@@ -521,12 +581,47 @@ class OnChainService {
                 const reserved = this.toSafeString(balances?.reservedBalance) || '0';
                 const totalBigInt = BigInt(free) + BigInt(reserved);
                 
+                // Berechne bonded aus Staking (auch für Controller anzeigen)
+                let bonded = '0';
+                if (stakingInfo?.stakingLedger?.active) {
+                    bonded = this.toSafeString(stakingInfo.stakingLedger.active) || '0';
+                }
+                
+                // Berechne unbonding (filtere remainingEras > 0, redeemable Chunks nicht zählen)
+                const unbondingArray = stakingInfo?.unlocking || [];
+                const unbonding = unbondingArray.length > 0
+                    ? unbondingArray
+                        .filter(u => u?.remainingEras && BigInt(this.toSafeString(u.remainingEras) || '0') > 0n)
+                        .reduce((sum, u) => {
+                            const value = this.toSafeString(u?.value) || '0';
+                            return (BigInt(sum) + BigInt(value)).toString();
+                        }, '0')
+                    : '0';
+                
+                console.log(`🔍 Staking Status for ${queryAddress.substring(0, 12)}:`, {
+                    hasLedger: !!stakingInfo?.stakingLedger,
+                    accountId: stakingInfo?.accountId?.toHuman(),
+                    stashId: stakingInfo?.stashId?.toHuman(),
+                    isStash: stakingInfo?.accountId?.eq(stakingInfo?.stashId),
+                    controllerId: stakingInfo?.controllerId?.toHuman(),
+                    bonded,
+                    unbondingChunks: unbondingArray.length,
+                    unbondingDetails: unbondingArray.map(u => ({
+                        value: this.toSafeString(u?.value),
+                        remainingEras: this.toSafeString(u?.remainingEras)
+                    })),
+                    unbonding
+                });
+                
                 data.balances = {
                     free,
                     reserved,
                     frozen: this.toSafeString(balances?.frozenFee) || '0',
                     transferable: this.toSafeString(balances?.availableBalance) || '0',
                     locked: this.toSafeString(balances?.lockedBalance) || '0',
+                    bonded,
+                    unbonding,
+                    referenda: '0',  // Wird später gefüllt wenn convictionVoting vorhanden
                     total: totalBigInt.toString()
                 };
                 
@@ -554,6 +649,30 @@ class OnChainService {
                         data.governance.votes = votes;
                     } catch (error) {
                         console.warn('Failed to fetch governance votes:', error);
+                    }
+                }
+                
+                // Referenda Locks via classLocksFor abrufen (wie polkadot-js/apps)
+                if (api.query.convictionVoting?.classLocksFor) {
+                    try {
+                        const classLocks = await api.query.convictionVoting.classLocksFor(queryAddress);
+                        console.log(`🔒 ClassLocks:`, classLocks.toHuman());
+                        
+                        // classLocks ist Vec<(u16, u128)> = Array von [classId, lockedAmount]
+                        if (classLocks && classLocks.length > 0) {
+                            let maxLock = BigInt(0);
+                            for (const [classId, amount] of classLocks) {
+                                const lockAmount = BigInt(this.toSafeString(amount) || '0');
+                                if (lockAmount > maxLock) {
+                                    maxLock = lockAmount;
+                                }
+                                console.log(`  🔍 Track ${classId}: ${lockAmount.toString()}`);
+                            }
+                            data.balances.referenda = maxLock.toString();
+                            console.log(`  ✅ Max Referenda Lock: ${maxLock.toString()}`);
+                        }
+                    } catch (error) {
+                        console.warn('Failed to fetch classLocksFor:', error);
                     }
                 }
             }
