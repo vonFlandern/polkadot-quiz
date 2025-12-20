@@ -6,15 +6,6 @@
 
 require_once '../config.php';
 
-// Wähle automatisch die richtige Converter-Version
-if (extension_loaded('gmp') && extension_loaded('sodium')) {
-    require_once '../SS58AddressConverter.php';
-    $converterClass = 'SS58AddressConverter';
-} else {
-    require_once '../SS58AddressConverterFallback.php';
-    $converterClass = 'SS58AddressConverterFallback';
-}
-
 // Nur POST erlauben
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     errorResponse('Method not allowed', 405);
@@ -34,16 +25,6 @@ if (!isValidPolkadotAddress($walletAddress)) {
 
 // WICHTIG: Suche immer nach Generic-Adresse (Primary Key)
 $genericAddress = $walletAddress;
-$polkadotAddress = $walletAddress;
-
-// Konvertiere für Anzeige
-try {
-    $converted = call_user_func([$converterClass, 'toPolkadot'], $walletAddress);
-    $polkadotAddress = $converted;
-    error_log("Player lookup ({$converterClass}): {$genericAddress} -> {$polkadotAddress}");
-} catch (Exception $e) {
-    error_log("SS58 conversion failed in get-player: " . $e->getMessage());
-}
 
 // Players laden
 $playersData = loadJSON('players.json');
@@ -70,20 +51,18 @@ if (!$player) {
     jsonResponse([
         'found' => false,
         'message' => 'Player not found',
-        'genericAddress' => $genericAddress,
-        'polkadotAddress' => $polkadotAddress
+        'genericAddress' => $genericAddress
     ]);
 }
 
 // On-Chain-Daten inkludieren falls vorhanden
 $onChainData = isset($player['onChainData']) ? $player['onChainData'] : null;
 
-// Spieler gefunden - Return mit beiden Adressen und On-Chain-Daten
+// Spieler gefunden - Return mit On-Chain-Daten
 jsonResponse([
     'found' => true,
     'returning' => true,  // Wiederkehrender Spieler!
     'player' => $player,
     'genericAddress' => $genericAddress,
-    'polkadotAddress' => $polkadotAddress,
     'onChainData' => $onChainData
 ]);

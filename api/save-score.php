@@ -6,16 +6,6 @@
 
 require_once '../config.php';
 
-// Wähle automatisch die richtige Converter-Version
-if (extension_loaded('gmp') && extension_loaded('sodium')) {
-    require_once '../SS58AddressConverter.php';
-    $converterClass = 'SS58AddressConverter';
-} else {
-    require_once '../SS58AddressConverterFallback.php';
-    $converterClass = 'SS58AddressConverterFallback';
-    error_log("Using SS58 Fallback Converter (gmp/sodium not available)");
-}
-
 // Nur POST erlauben
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     errorResponse('Method not allowed', 405);
@@ -43,18 +33,6 @@ if (!isValidPolkadotAddress($walletAddress)) {
 
 // WICHTIG: Speichere ORIGINAL (Generic) als Primary Key
 $genericAddress = $walletAddress;
-$polkadotAddress = $walletAddress;
-
-// Versuche zu konvertieren für Anzeige
-try {
-    $converted = call_user_func([$converterClass, 'toPolkadot'], $walletAddress);
-    $polkadotAddress = $converted;
-    
-    error_log("Address for display ({$converterClass}): {$genericAddress} -> {$polkadotAddress}");
-} catch (Exception $e) {
-    error_log("SS58 conversion failed: " . $e->getMessage());
-    // Kein Problem: Nutze Generic für beide
-}
 
 // Validierung: 3-20 Zeichen
 if (strlen($playerName) < 3) {
@@ -119,7 +97,6 @@ if ($nameAlreadyTaken) {
 if ($playerIndex === -1) {
     $newPlayer = [
         'genericAddress' => $genericAddress,      // Primary Key
-        'polkadotAddress' => $polkadotAddress,    // Für Anzeige
         'walletAddress' => $genericAddress,       // Backward compatibility
         'playerName' => $playerName,
         'nameHistory' => [
@@ -140,9 +117,6 @@ if ($playerIndex === -1) {
     $playersData['players'][] = $newPlayer;
     $playerIndex = count($playersData['players']) - 1;
 } else {
-    // Update Polkadot-Adresse falls sich Format geändert hat
-    $playersData['players'][$playerIndex]['polkadotAddress'] = $polkadotAddress;
-    
     // Prüfe ob Name geändert wurde
     $currentName = $playersData['players'][$playerIndex]['playerName'];
     if ($currentName !== $playerName) {

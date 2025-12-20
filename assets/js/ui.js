@@ -170,24 +170,7 @@ class QuizUI {
                 const accountsWithInfo = await Promise.all(
                     accounts.map(async (account) => {
                         const genericAddress = account.address; // Original = Primary Key
-                        let polkadotAddress = genericAddress;
                         let existingPlayer = null;
-                        
-                        // Versuche zu konvertieren für Anzeige
-                        try {
-                            const convertResponse = await fetch('api/convert-address.php', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ address: genericAddress })
-                            });
-                            
-                            const convertResult = await convertResponse.json();
-                            if (convertResult.success) {
-                                polkadotAddress = convertResult.polkadot.address;
-                            }
-                        } catch (error) {
-                            console.warn('Conversion failed for', account.name);
-                        }
                         
                         // Prüfe ob Account schon existiert
                         try {
@@ -208,7 +191,6 @@ class QuizUI {
                         return {
                             ...account,
                             genericAddress: genericAddress,      // Primary Key
-                            polkadotAddress: polkadotAddress,    // Für Anzeige
                             existingPlayer: existingPlayer       // Wenn bekannt
                         };
                     })
@@ -223,12 +205,12 @@ class QuizUI {
                     const accountBtn = document.createElement('button');
                     accountBtn.className = 'account-btn';
                     
-                    // Zeige nur erste 12 Zeichen der Polkadot-Adresse
-                    const shortAddress = account.polkadotAddress.substring(0, 12) + '...';
-                    
                     accountBtn.innerHTML = `
                         <strong>${account.name || 'Unnamed'}</strong><br>
-                        <small style="color: var(--primary-color);">${shortAddress}</small>
+                        <div style="display: flex; align-items: center; margin-top: 4px;">
+                            <img src="assets/img/generic.-logo.png" alt="generic" title="Generic Address" style="height: 14px; width: auto; margin-right: 8px;">
+                            <small style="color: #2C2C2C; word-break: break-all;">${account.genericAddress}</small>
+                        </div>
                     `;
                     
                     accountBtn.addEventListener('click', async () => {
@@ -251,8 +233,10 @@ class QuizUI {
                         const oldButtons = document.getElementById('action-buttons');
                         if (oldButtons) oldButtons.remove();
                         
-                        // If known player
-                        if (account.existingPlayer) {
+                        // If known player WITH valid playerName (not null, not Player_)
+                        if (account.existingPlayer && 
+                            account.existingPlayer.playerName && 
+                            !account.existingPlayer.playerName.startsWith('Player_')) {
                             // Hide label and input (player is already known)
                             const nameLabel = document.querySelector('label[for="player-name"]');
                             if (nameLabel) {
@@ -284,13 +268,13 @@ class QuizUI {
                             // Event Listener
                             setTimeout(() => {
                                 document.getElementById('continue-quiz-btn').addEventListener('click', async () => {
-                                    // WICHTIG: Setze Session-Daten
+                                    // WICHTIG: Setze Session-Daten (nur walletAddress + playerName)
                                     sessionStorage.setItem('walletAddress', account.genericAddress);
                                     sessionStorage.setItem('playerName', account.existingPlayer.playerName);
-                                    sessionStorage.setItem('polkadotAddress', account.polkadotAddress);
 
-                                    // Pre-Load On-Chain-Daten (Fire-and-Forget, blockiert nicht)
-                                    this.loadOnChainData(account.genericAddress, false, 'polkadot').catch(err => {
+                                    // Pre-Load On-Chain-Daten mit preferredNetwork (Fire-and-Forget, blockiert nicht)
+                                    const networkToLoad = account.existingPlayer.preferredNetwork || 'polkadot';
+                                    this.loadOnChainData(account.genericAddress, false, networkToLoad).catch(err => {
                                         console.warn('On-chain data pre-loading failed:', err);
                                     });
 
@@ -336,13 +320,14 @@ class QuizUI {
                                         this.showSpinner('Registering player...');
                                         console.log('📝 Registering new player...');
 
-                                        // 2. Registriere Spieler in players.json (OHNE Namen)
+                                        // 2. Registriere Spieler in players.json (OHNE Namen, MIT walletName)
                                         const registerResponse = await fetch('api/register-player.php', {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify({
                                                 walletAddress: account.genericAddress,
-                                                playerName: null  // Kein Name = wird in Level Overview eingegeben
+                                                playerName: null,  // Kein Name = wird in Level Overview eingegeben
+                                                walletName: account.name || null  // Wallet-Name aus Extension
                                             })
                                         });
 
@@ -353,21 +338,20 @@ class QuizUI {
                                         
                                         console.log('✅ Player registered in database');
 
-                                        // 3. Lade On-Chain-Daten (blockierend, damit kompletter Datensatz vorhanden)
+                                        // 3. Lade On-Chain-Daten BLOCKIEREND (Polkadot als Default für Logik)
                                         this.showSpinner('Loading on-chain data...');
-                                        console.log('🔄 Loading on-chain data...');
+                                        console.log('📡 Loading on-chain data for new player with Polkadot...');
                                         await this.loadOnChainData(account.genericAddress, true, 'polkadot');
                                         console.log('✅ On-chain data loaded');
 
                                         // 4. Setze Session-Daten OHNE playerName
                                         sessionStorage.setItem('walletAddress', account.genericAddress);
-                                        sessionStorage.setItem('polkadotAddress', account.polkadotAddress);
                                         // playerName wird NICHT gesetzt → Level Overview zeigt Name-Eingabe an
 
                                         // 5. Verstecke Spinner
                                         this.hideSpinner();
 
-                                        // 6. Zeige Level-Übersicht
+                                        // 6. Zeige Level-Übersicht (displayNetwork=generic zeigt generic UI)
                                         this.showLevelOverview();
                                         
                                     } catch (error) {
@@ -395,14 +379,6 @@ class QuizUI {
      * Rendere Player-Info mit Category-Badge (Account-Container)
      */
     renderPlayerInfo(playerData, playerName, walletAddress) {
-        let displayAddress = walletAddress ? walletAddress.substring(0, 12) + '...' : '';
-
-        if (playerData.polkadotAddress) {
-            displayAddress = playerData.polkadotAddress.substring(0, 12) + '...';
-        } else if (playerData.found && playerData.player && playerData.player.polkadotAddress) {
-            displayAddress = playerData.player.polkadotAddress.substring(0, 12) + '...';
-        }
-
         // Hole Badge (Shiro als Fallback für neue Spieler)
         const categoryObj = this.getPlayerBadge(playerData);
 
@@ -414,9 +390,62 @@ class QuizUI {
                    title="${categoryObj.catDescription}">`
             : '';
 
-        // Network-Icon ermitteln
-        const preferredNetwork = playerData?.player?.preferredNetwork || sessionStorage.getItem('preferredNetwork') || 'polkadot';
-        const networkIconPath = `assets/img/${preferredNetwork}.-logo.png`;
+        // Display-Network für UI (generic bis User wählt), preferredNetwork für API-Logik
+        const displayNetwork = playerData?.player?.displayNetwork || 'generic';
+        const preferredNetwork = playerData?.player?.preferredNetwork || 'polkadot';
+        
+        // Adresse und Label basierend auf Display-Network
+        let displayAddress = '';
+        let addressLabel = '';
+        let addressColor = '#2C2C2C';
+        
+        if (displayNetwork === 'generic') {
+            // Zustand 1: Generic anzeigen (User hat noch nicht gewählt)
+            const genericAddr = playerData?.player?.genericAddress || walletAddress;
+            displayAddress = `${genericAddr.substring(0, 6)}...${genericAddr.substring(genericAddr.length - 6)}`;
+            addressLabel = '<img src="assets/img/generic.-logo.png" alt="generic" title="Network: Generic" style="height: 16px; width: auto; margin-right: 8px;">';
+            addressColor = '#2C2C2C';
+        } else if (displayNetwork === 'polkadot') {
+            // Zustand 2a: Polkadot gewählt - nutze networkSpecific aus On-Chain-Daten
+            const polkadotNetworkAddress = playerData?.onChainData?.polkadot?.chains?.relay?.addresses?.networkSpecific;
+            if (polkadotNetworkAddress) {
+                displayAddress = `${polkadotNetworkAddress.substring(0, 6)}...${polkadotNetworkAddress.substring(polkadotNetworkAddress.length - 6)}`;
+            } else {
+                // Fallback: polkadotAddress aus playerData
+                const fallbackAddr = playerData?.polkadotAddress || walletAddress;
+                displayAddress = `${fallbackAddr.substring(0, 6)}...${fallbackAddr.substring(fallbackAddr.length - 6)}`;
+            }
+            addressColor = '#E6097A';
+        } else if (displayNetwork === 'kusama') {
+            // Zustand 2b: Kusama gewählt - nutze networkSpecific aus On-Chain-Daten
+            const kusamaNetworkAddress = playerData?.onChainData?.kusama?.chains?.relay?.addresses?.networkSpecific;
+            if (kusamaNetworkAddress) {
+                displayAddress = `${kusamaNetworkAddress.substring(0, 6)}...${kusamaNetworkAddress.substring(kusamaNetworkAddress.length - 6)}`;
+            } else {
+                // Fallback: genericAddress
+                const fallbackAddr = playerData?.player?.genericAddress || walletAddress;
+                displayAddress = `${fallbackAddr.substring(0, 6)}...${fallbackAddr.substring(fallbackAddr.length - 6)}`;
+            }
+            addressColor = '#000000';
+        } else {
+            // Fallback für unbekannte Werte
+            displayAddress = `${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 6)}`;
+        }
+        
+        // Network-Icon basierend auf displayNetwork (nur wenn nicht generic)
+        if (displayNetwork !== 'generic') {
+            const networkIconPath = `assets/img/${displayNetwork}.-logo.png`;
+            addressLabel = `<img src="${networkIconPath}" 
+                                 alt="${displayNetwork}" 
+                                 title="Network: ${preferredNetwork.charAt(0).toUpperCase() + preferredNetwork.slice(1)}"
+                                 style="width: 16px; height: 16px; margin-right: 8px;">`;
+        }
+
+        // Spielername-Anzeige: Nur wenn gesetzt (nicht null und nicht Player_*)
+        const showPlayerName = playerName && !playerName.startsWith('Player_');
+        const playerNameDisplay = showPlayerName 
+            ? `<div class="player-name-display">${playerName}</div>`
+            : '';
 
         // === vonFlandern Account Container ===
         document.getElementById('player-account-info').innerHTML = `
@@ -425,13 +454,10 @@ class QuizUI {
                     ${badgeHTML}
                 </div>
                 <div class="account-info-right">
-                    <div class="player-name-display">${playerName || walletManager.selectedAccount?.name || 'Guest'}</div>
+                    ${playerNameDisplay}
                     <div class="player-wallet-display" style="display: flex; align-items: center;">
-                        <img src="${networkIconPath}" 
-                             alt="${preferredNetwork}" 
-                             title="Network: ${preferredNetwork.charAt(0).toUpperCase() + preferredNetwork.slice(1)}"
-                             style="width: 16px; height: 16px; margin-right: 8px;">
-                        ${displayAddress}
+                        ${addressLabel}
+                        <span style="color: ${addressColor};">${displayAddress}</span>
                     </div>
                 </div>
                 <div class="account-menu">
@@ -633,7 +659,8 @@ class QuizUI {
                     body: JSON.stringify({
                         walletAddress: account.address,
                         playerName: newName,
-                        preferredNetwork: networkValue
+                        preferredNetwork: networkValue,
+                        displayNetwork: networkValue  // Display = preferredNetwork nach User-Wahl
                     })
                 });
 
@@ -644,11 +671,10 @@ class QuizUI {
 
                 console.log('✅ Player name and network updated');
 
-                // Update Session Storage
+                // Update Session Storage (nur playerName)
                 sessionStorage.setItem('playerName', newName);
-                sessionStorage.setItem('preferredNetwork', networkValue);
 
-                // Lade On-Chain-Daten BLOCKIEREND mit gewähltem Network
+                // Lade On-Chain-Daten BLOCKIEREND mit gewähltem Network (falls anders als Polkadot)
                 await this.loadOnChainData(account.address, true, networkValue);
 
                 // Update im Wallet Manager (WICHTIG: Auch für neue Spieler setzen!)
@@ -658,13 +684,15 @@ class QuizUI {
                         walletManager.selectedAccount.existingPlayer = {
                             playerName: newName,
                             preferredNetwork: networkValue,
+                            displayNetwork: networkValue,
                             genericAddress: walletManager.selectedAccount.address,
                             polkadotAddress: walletManager.selectedAccount.polkadotAddress || walletManager.selectedAccount.address
                         };
                     } else {
-                        // Bestehender Spieler: Update Name + Network
+                        // Bestehender Spieler: Update Name + Network + Display
                         walletManager.selectedAccount.existingPlayer.playerName = newName;
                         walletManager.selectedAccount.existingPlayer.preferredNetwork = networkValue;
+                        walletManager.selectedAccount.existingPlayer.displayNetwork = networkValue;
                     }
                 }
 
@@ -1170,6 +1198,13 @@ class QuizUI {
             // === WICHTIG: Design ZUERST anwenden, DANN rendern ===
             // CSS-Variablen müssen gesetzt sein, bevor HTML eingefügt wird
             this.applyAccountDesign(playerData);
+
+            // Bereinige playerName aus Session Storage (falls "null" String oder ungültig)
+            let playerName = sessionStorage.getItem('playerName');
+            if (playerName === 'null' || playerName === 'undefined' || !playerName || playerName.startsWith('Player_')) {
+                playerName = null;
+                sessionStorage.removeItem('playerName'); // Bereinige Session Storage
+            }
 
             // Player-Info mit Badge rendern (Account-Container)
             this.renderPlayerInfo(playerData, playerName, walletAddress);
@@ -1895,7 +1930,8 @@ class QuizUI {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         walletAddress: account.genericAddress,
-                        preferredNetwork: newNetwork
+                        preferredNetwork: newNetwork,
+                        displayNetwork: newNetwork  // Display = preferredNetwork bei User-Wahl
                     })
                 });
                 
@@ -1906,12 +1942,10 @@ class QuizUI {
                 
                 console.log(`✅ Network updated to ${newNetwork}`);
                 
-                // Update Session Storage
-                sessionStorage.setItem('preferredNetwork', newNetwork);
-                
-                // Update im Wallet Manager
+                // Update im Wallet Manager (kein Session Storage)
                 if (walletManager.selectedAccount?.existingPlayer) {
                     walletManager.selectedAccount.existingPlayer.preferredNetwork = newNetwork;
+                    walletManager.selectedAccount.existingPlayer.displayNetwork = newNetwork;
                 }
                 
                 // Lade On-Chain-Daten BLOCKIEREND mit neuem Network
@@ -1984,7 +2018,6 @@ class QuizUI {
 
         const walletAddress = sessionStorage.getItem('walletAddress');
         const playerName = sessionStorage.getItem('playerName');
-        const polkadotAddress = sessionStorage.getItem('polkadotAddress');
 
         if (!walletAddress) {
             console.error('No wallet address in session');
@@ -1995,17 +2028,70 @@ class QuizUI {
             // Player-Daten laden für Header
             const playerData = await quizEngine.loadPlayer(walletAddress);
 
-            // Network Group aus Player-Daten oder Session holen
-            const preferredNetwork = playerData?.player?.preferredNetwork || sessionStorage.getItem('preferredNetwork') || 'polkadot';
-            const networkGroup = preferredNetwork; // Network Group = preferredNetwork (polkadot oder kusama)
+            // Display-Network für UI (generic bis User wählt), preferredNetwork für API-Logik
+            const displayNetwork = playerData?.player?.displayNetwork || 'generic';
+            const preferredNetwork = playerData?.player?.preferredNetwork || 'polkadot';
+            const networkGroup = preferredNetwork; // Network Group für API = preferredNetwork
 
             // Design anwenden
             this.applyAccountDesign(playerData);
 
-            // Header rendern (gleiche Struktur wie Level Overview)
-            const displayAddress = polkadotAddress ? 
-                `${polkadotAddress.substring(0, 6)}...${polkadotAddress.substring(polkadotAddress.length - 6)}` : 
-                walletAddress.substring(0, 12);
+            // Adresse und Label basierend auf Display-Network (identisch zu renderPlayerInfo)
+            let displayAddress = '';
+            let addressLabel = '';
+            let addressColor = '#2C2C2C';
+            
+            if (displayNetwork === 'generic') {
+                // Zustand 1: Generic anzeigen (User hat noch nicht gewählt)
+                displayAddress = playerData?.player?.genericAddress 
+                    ? playerData.player.genericAddress.substring(0, 12) + '...'
+                    : walletAddress.substring(0, 12) + '...';
+                addressLabel = '<img src="assets/img/generic.-logo.png" alt="generic" title="Network: Generic" style="height: 16px; width: auto; margin-right: 8px;">';
+                addressColor = '#2C2C2C';
+            } else if (displayNetwork === 'polkadot') {
+                // Zustand 2a: Polkadot gewählt - nutze networkSpecific aus On-Chain-Daten
+                const polkadotNetworkAddress = playerData?.onChainData?.polkadot?.chains?.relay?.addresses?.networkSpecific;
+                if (polkadotNetworkAddress) {
+                    displayAddress = `${polkadotNetworkAddress.substring(0, 6)}...${polkadotNetworkAddress.substring(polkadotNetworkAddress.length - 6)}`;
+                } else {
+                    // Fallback: polkadotAddress aus playerData
+                    displayAddress = playerData?.polkadotAddress 
+                        ? `${playerData.polkadotAddress.substring(0, 6)}...${playerData.polkadotAddress.substring(playerData.polkadotAddress.length - 6)}`
+                        : walletAddress.substring(0, 12) + '...';
+                }
+                addressColor = '#E6097A';
+            } else if (displayNetwork === 'kusama') {
+                // Zustand 2b: Kusama gewählt - nutze networkSpecific aus On-Chain-Daten
+                const kusamaNetworkAddress = playerData?.onChainData?.kusama?.chains?.relay?.addresses?.networkSpecific;
+                if (kusamaNetworkAddress) {
+                    displayAddress = `${kusamaNetworkAddress.substring(0, 6)}...${kusamaNetworkAddress.substring(kusamaNetworkAddress.length - 6)}`;
+                } else {
+                    // Fallback: genericAddress
+                    displayAddress = playerData?.player?.genericAddress 
+                        ? playerData.player.genericAddress.substring(0, 12) + '...'
+                        : walletAddress.substring(0, 12) + '...';
+                }
+                addressColor = '#000000';
+            } else {
+                // Fallback für unbekannte Werte
+                displayAddress = walletAddress.substring(0, 12) + '...';
+            }
+            
+            // Network-Icon basierend auf displayNetwork (nur wenn nicht generic)
+            if (displayNetwork !== 'generic') {
+                // Network-Icon basierend auf displayNetwork
+                const networkIconPath = `assets/img/${displayNetwork}.-logo.png`;
+                addressLabel = `<img src="${networkIconPath}" 
+                                     alt="${displayNetwork}" 
+                                     title="Network: ${displayNetwork.charAt(0).toUpperCase() + displayNetwork.slice(1)}"
+                                     style="width: 16px; height: 16px; margin-right: 8px;">`;
+            }
+
+            // Spielername-Anzeige: Nur wenn gesetzt
+            const showPlayerName = playerName && !playerName.startsWith('Player_');
+            const playerNameDisplay = showPlayerName 
+                ? `<div class="player-name-display">${playerName}</div>`
+                : '';
 
             const categoryObj = this.getPlayerBadge(playerData);
             const badgeHTML = categoryObj
@@ -2015,22 +2101,16 @@ class QuizUI {
                        title="${categoryObj.catDescription}">`
                 : '';
 
-            // Network-Icon ermitteln (verwendet bereits deklariertes preferredNetwork)
-            const networkIconPath = `assets/img/${preferredNetwork}.-logo.png`;
-
             document.getElementById('account-overview-header').innerHTML = `
                 <div class="vonflandern-account">
                     <div class="account-badge-circle">
                         ${badgeHTML}
                     </div>
                     <div class="account-info-right">
-                        <div class="player-name-display">${playerName || 'Guest'}</div>
+                        ${playerNameDisplay}
                         <div class="player-wallet-display" style="display: flex; align-items: center;">
-                            <img src="${networkIconPath}" 
-                                 alt="${preferredNetwork}" 
-                                 title="Network: ${preferredNetwork.charAt(0).toUpperCase() + preferredNetwork.slice(1)}"
-                                 style="width: 16px; height: 16px; margin-right: 8px;">
-                            ${displayAddress}
+                            ${addressLabel}
+                            <span style="color: ${addressColor};">${displayAddress}</span>
                         </div>
                     </div>
                     <div class="account-menu">
@@ -2089,24 +2169,75 @@ class QuizUI {
                 this.showAnleitung();
             });
 
-            // Spinner anzeigen
-            this.showSpinner('Loading on-chain data...');
+            // Spinner anzeigen (nur wenn displayNetwork nicht generic)
+            if (displayNetwork !== 'generic') {
+                this.showSpinner('Loading on-chain data...');
+            }
 
-            // Multi-Chain-Verbindung aufbauen
-            await onChainService.connectToNetworkGroup(networkGroup);
+            // Prüfung: Bei Generic Display Hinweis-Box anzeigen statt On-Chain-Daten
+            if (displayNetwork === 'generic') {
+                // Hinweis-Box rendern
+                document.getElementById('onchain-data').innerHTML = `
+                    <div style="padding: 40px 20px; text-align: center;">
+                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                    padding: 30px; 
+                                    border-radius: 15px; 
+                                    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+                                    max-width: 500px;
+                                    margin: 0 auto;">
+                            <div style="font-size: 48px; margin-bottom: 15px;">🔗</div>
+                            <h3 style="color: white; margin: 0 0 15px 0; font-size: 1.4em;">
+                                Network auswählen
+                            </h3>
+                            <p style="color: rgba(255,255,255,0.9); margin: 0 0 20px 0; line-height: 1.6;">
+                                Wähle ein Netzwerk (Polkadot oder Kusama) aus, um deine On-Chain-Daten wie 
+                                Identity, Balances und Staking-Informationen zu sehen.
+                            </p>
+                            <button onclick="quizUI.openChangeNetworkModal(walletManager.selectedAccount)"
+                                    style="background: white; 
+                                           color: #667eea; 
+                                           border: none; 
+                                           padding: 12px 30px; 
+                                           border-radius: 25px; 
+                                           font-size: 1em; 
+                                           font-weight: 600; 
+                                           cursor: pointer;
+                                           transition: all 0.3s ease;
+                                           box-shadow: 0 4px 15px rgba(0,0,0,0.2);"
+                                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0,0,0,0.3)';"
+                                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.2)';">
+                                Jetzt Netzwerk wählen
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                // Refresh-Button ausblenden
+                const refreshBtn = document.getElementById('refresh-onchain-btn');
+                if (refreshBtn) refreshBtn.style.display = 'none';
+                
+            } else {
+                // Multi-Chain-Verbindung aufbauen
+                await onChainService.connectToNetworkGroup(networkGroup);
 
-            // Aggregierte On-Chain-Daten laden
-            const onChainData = await this.loadOnChainData(walletAddress, false, networkGroup);
+                // Aggregierte On-Chain-Daten laden
+                const onChainData = await this.loadOnChainData(walletAddress, false, networkGroup);
 
-            // Spinner verstecken
-            this.hideSpinner();
+                // Spinner verstecken
+                this.hideSpinner();
 
-            // Daten rendern
-            this.renderOnChainData(onChainData, networkGroup);
+                // Daten rendern
+                this.renderOnChainData(onChainData, networkGroup);
+                
+                // Address Display initialisieren (nur wenn On-Chain-Daten angezeigt werden)
+                this.initializeAddressDisplay();
+                
+                // Refresh-Button anzeigen
+                const refreshBtn = document.getElementById('refresh-onchain-btn');
+                if (refreshBtn) refreshBtn.style.display = 'block';
+            }
+
             
-            // Address Display initialisieren
-            this.initializeAddressDisplay();
-
             // Back-Button Event-Listener
             const backBtn = document.getElementById('back-from-account-overview-btn');
             if (backBtn && !backBtn.hasAttribute('data-listener-added')) {
@@ -2890,6 +3021,18 @@ class QuizUI {
      */
     async loadOnChainData(address, forceRefresh = false, networkGroup = 'polkadot') {
         try {
+            // Zustand 1: Generic Network - Skip on-chain data loading
+            if (networkGroup === 'generic') {
+                console.log('⏭️ Skipping on-chain data loading for generic network');
+                return {
+                    networkGroup: 'generic',
+                    lastUpdate: Date.now(),
+                    identity: null,
+                    balances: null,
+                    staking: null
+                };
+            }
+
             console.log(`🔄 Loading aggregated data for ${address.substring(0, 12)}... (forceRefresh: ${forceRefresh}, networkGroup: ${networkGroup})`);
 
             // Session Storage Key mit Network-Group-Präfix

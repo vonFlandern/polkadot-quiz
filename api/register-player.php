@@ -11,15 +11,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     errorResponse('Method not allowed', 405);
 }
 
-// Auto-select Converter
-if (extension_loaded('gmp') && extension_loaded('sodium')) {
-    require_once '../SS58AddressConverter.php';
-    $converterClass = 'SS58AddressConverter';
-} else {
-    require_once '../SS58AddressConverterFallback.php';
-    $converterClass = 'SS58AddressConverterFallback';
-}
-
 // Input validieren
 $input = json_decode(file_get_contents('php://input'), true);
 
@@ -31,10 +22,14 @@ $walletAddress = sanitizeInput($input['walletAddress']);
 $playerName = isset($input['playerName']) ? sanitizeInput($input['playerName']) : null;
 $walletName = isset($input['walletName']) ? sanitizeInput($input['walletName']) : null;
 $preferredNetwork = isset($input['preferredNetwork']) ? sanitizeInput($input['preferredNetwork']) : 'polkadot';
+$displayNetwork = isset($input['displayNetwork']) ? sanitizeInput($input['displayNetwork']) : 'generic';
 
 // Network validieren (Whitelist)
 if (!in_array($preferredNetwork, ['polkadot', 'kusama'], true)) {
     $preferredNetwork = 'polkadot'; // Fallback zu Polkadot
+}
+if (!in_array($displayNetwork, ['polkadot', 'kusama', 'generic'], true)) {
+    $displayNetwork = 'generic'; // Fallback zu Generic
 }
 
 // Validierungen
@@ -57,18 +52,6 @@ if ($playerName !== null) {
 
 // WICHTIG: Speichere ORIGINAL (Generic) als Primary Key
 $genericAddress = $walletAddress;
-$polkadotAddress = $walletAddress;
-
-// Versuche zu konvertieren für Anzeige
-try {
-    $converted = call_user_func([$converterClass, 'toPolkadot'], $walletAddress);
-    $polkadotAddress = $converted;
-    
-    error_log("Register player ({$converterClass}): {$genericAddress} -> {$polkadotAddress}");
-} catch (Exception $e) {
-    error_log("SS58 conversion failed: " . $e->getMessage());
-    // Kein Problem: Nutze Generic für beide
-}
 
 // Prüfe Verfügbarkeit nur wenn Name angegeben
 if ($playerName !== null) {
@@ -99,11 +82,11 @@ foreach ($playersData['players'] as $index => $p) {
 if ($playerIndex === -1) {
     $newPlayer = [
         'genericAddress' => $genericAddress,      // Primary Key
-        'polkadotAddress' => $polkadotAddress,    // Für Anzeige
         'walletAddress' => $genericAddress,       // Backward compatibility
         'walletName' => $walletName,              // NEU: Name aus Wallet-Extension
         'playerName' => $playerName,              // Kann null sein
-        'preferredNetwork' => $preferredNetwork,  // NEU: Bevorzugtes Network
+        'preferredNetwork' => $preferredNetwork,  // API-Logik: Polkadot/Kusama
+        'displayNetwork' => $displayNetwork,      // UI-Darstellung: generic bis User wählt
         'nameHistory' => $playerName !== null ? [
             [
                 'name' => $playerName,
@@ -126,15 +109,22 @@ if ($playerIndex === -1) {
     
 } else {
     // Bestehender Spieler - Update
-    $playersData['players'][$playerIndex]['polkadotAddress'] = $polkadotAddress;
     
-    // Update preferredNetwork falls angegeben
+    // Update preferredNetwork falls angegeben (API-Logik)
     if (isset($input['preferredNetwork'])) {
         $validatedNetwork = in_array($input['preferredNetwork'], ['polkadot', 'kusama'], true) 
             ? $input['preferredNetwork'] 
             : 'polkadot';
         $playersData['players'][$playerIndex]['preferredNetwork'] = $validatedNetwork;
         error_log("Player network updated to: {$validatedNetwork} for {$genericAddress}");
+    }
+    
+    // Update displayNetwork falls angegeben (UI-Darstellung)
+    if (isset($input['displayNetwork'])) {
+        $validatedDisplayNetwork = in_array($input['displayNetwork'], ['polkadot', 'kusama', 'generic'], true) 
+            ? $input['displayNetwork'] 
+            : 'generic';
+        $playersData['players'][$playerIndex]['displayNetwork'] = $validatedDisplayNetwork;
     }
     
     // Prüfe ob Name geändert wurde (nur wenn neuer Name angegeben)
