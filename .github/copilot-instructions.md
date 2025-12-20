@@ -5,11 +5,12 @@ Interactive gamified Polkadot blockchain quiz with wallet authentication, millis
 
 ## Architecture Patterns
 
-### Frontend: 4 Core Classes (Vanilla JS)
+### Frontend: 5 Core Classes (Vanilla JS)
 - **QuizEngine** ([quiz-engine.js](assets/js/quiz-engine.js)) - Game logic, scoring, state management
-- **QuizUI** ([ui.js](assets/js/ui.js)) - Screen transitions, event handlers
+- **QuizUI** ([ui.js](assets/js/ui.js)) - Screen transitions, event handlers, loading spinner, dynamic UI design
 - **WalletManager** ([wallet.js](assets/js/wallet.js)) - Polkadot wallet integration
 - **QuizTimer** ([timer.js](assets/js/timer.js)) - High-precision timing with `performance.now()`
+- **OnChainService** ([onchain-service.js](assets/js/onchain-service.js)) - Multi-chain data aggregation (Asset Hub + Relay + People)
 
 ### Backend: Shared Utilities + API Endpoints
 - **config.php** - `loadJSON()/saveJSON()` with file locking, CORS headers, validation helpers
@@ -72,6 +73,60 @@ const newBtn = oldBtn.cloneNode(true);
 oldBtn.replaceWith(newBtn);
 newBtn.addEventListener('click', handler);
 ```
+
+### Automatic Player Registration (NEW!)
+**"Continue to Quiz" creates complete player dataset BEFORE quiz starts**:
+
+```javascript
+// ui.js lines 336-376
+showSpinner('Registering player...');
+await fetch('api/register-player.php', {
+    body: JSON.stringify({ walletAddress: address, playerName: null })
+});
+showSpinner('Loading on-chain data...');
+await loadOnChainData(address, true, 'polkadot'); // BLOCKING!
+hideSpinner();
+showLevelOverview(); // Has complete dataset now
+```
+
+**Backend**: `register-player.php` accepts `playerName: null` for initial registration (validation skipped).
+
+### Loading Spinner Pattern
+**Polkadot Logo Spinner** (rotating logo, NO text):
+
+```javascript
+// Show spinner
+this.showSpinner('Any text'); // Text ignored, only logo shown
+
+// Hide spinner
+this.hideSpinner();
+```
+
+**Used for**:
+- Wallet account loading
+- Player registration
+- On-chain data loading (blocking)
+- Refresh operations
+- Network switching
+
+### Dynamic UI Design Based on Progress
+**Hamburger Menu & Header adapt to player's category**:
+
+```javascript
+// ui.js lines 661-707
+applyAccountDesign(playerData) {
+    const currentCategory = playerData.player?.currentCategory || 0;
+    const categoryObj = quizEngine.getCategoryById(categoryId);
+    const design = categoryObj.designSettings.account;
+    
+    // Set CSS variables
+    root.style.setProperty('--account-header-color-left', design.header.colorLeft);
+    root.style.setProperty('--account-menu-hamburger', design.headerMenu.colorHamburger);
+    // ...
+}
+```
+
+**Categories define colors** in [data/categories.json](data/categories.json) → `designSettings.account`
 
 ### JSON File Locking
 **Never bypass** `saveJSON()` in config.php! Uses `flock(LOCK_EX)` to prevent concurrent write corruption.
@@ -158,14 +213,18 @@ const stats = playerLevels[levelNum] || playerLevels[levelKey];
 **Usage**:
 ```php
 // In register-player.php and save-score.php
-$validation = checkPlayerNameAvailability($playerName, $walletAddress);
-if (!$validation['available']) {
-    errorResponse($validation['reason']);
+if ($playerName !== null) {
+    $validation = checkPlayerNameAvailability($playerName, $walletAddress);
+    if (!$validation['available']) {
+        errorResponse($validation['reason']);
+    }
 }
 ```
 
+**Important**: `checkPlayerNameAvailability()` skips players with `playerName: null` to avoid PHP deprecation warnings with `strcasecmp()`.
+
 ## File Structure
-- [index.php](index.php) - Main entry point
+- [index.php](index.php) - Main entry point, includes Polkadot spinner overlay
 - [config.php](config.php) - Shared utilities (ALWAYS use these functions)
   - `loadJSON()/saveJSON()` - File locking for concurrent writes
   - `isPlayerNameAllowed()` - Profanity filter & character validation (~70 lines)

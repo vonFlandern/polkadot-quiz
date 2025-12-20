@@ -35,6 +35,12 @@ An interactive quiz to test and deepen your knowledge about Polkadot.
 - **On-Chain Identity Display** with verified badges
 - **Responsive Design** for desktop and mobile
 
+### User Experience
+- **Polkadot Logo Loading Spinner** - Rotating logo during async operations
+- **Automatic Player Registration** - Complete dataset created before quiz starts
+- **Blocking On-Chain Data Load** - All blockchain data loaded before Level Overview
+- **Dynamic UI Design** - Hamburger menu adapts to player progress (categories)
+
 ## 🚀 Installation
 
 ### Prerequisites
@@ -110,14 +116,16 @@ polkadot-quiz/
 
 ### Quiz Flow
 
-1. **Connect Wallet** (optional): Players can connect their Polkadot wallet
-2. **Select Level**: Choose between Level 1-3
-3. **Start Quiz**: Answer multiple-choice questions
-4. **Collect Points**: 
+1. **Connect Wallet**: Players connect their Polkadot wallet (Polkadot.js, Talisman, SubWallet)
+2. **Auto-Registration**: Player registered in database with blockchain data loaded (blocking)
+3. **Choose Name**: Set unique player name (3-20 characters, profanity-filtered)
+4. **Select Level**: Choose from available levels based on progress
+5. **Start Quiz**: Answer multiple-choice questions with timer
+6. **Collect Points**: 
    - Fast answers = more points
    - Using hints = point deduction
    - Extending time = point deduction
-5. **Submit Score**: Appear on the leaderboard after completion
+7. **Submit Score**: First attempt counts for leaderboard, subsequent attempts for practice
 
 ### Points System
 
@@ -185,6 +193,24 @@ The quiz integrates real-time blockchain data from 3 chains:
 3. Aggregate data from all chains
 4. Cache for 10 minutes (session storage + backend)
 5. Auto-refresh every 10 minutes
+
+### Loading States
+
+**Polkadot Logo Spinner** (rotating logo, no text):
+- Wallet account loading
+- Player registration
+- On-chain data loading (blocking)
+- Data refresh operations
+- Network switching
+
+**Automatic Player Registration Flow**:
+1. User clicks "Continue to Quiz"
+2. Spinner shows (registration phase)
+3. Player created in `players.json` with `playerName: null`
+4. Spinner updates (loading on-chain data)
+5. Blocking load of all blockchain data (Asset Hub + Relay + People)
+6. Level Overview shown with complete dataset
+7. Name input modal appears (if no name set)
 
 ### Supported Networks
 

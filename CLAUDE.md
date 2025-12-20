@@ -78,13 +78,41 @@ The frontend is organized into **5 main classes** that work together:
 - Event handler registration (wallets, buttons, countdowns)
 - Wallet account selection and display
 - Player name management (change name modal)
-- **NEW**: On-chain data rendering (Identity, Balances, Governance)
-- **NEW**: Network switching (Polkadot ↔ Kusama)
+- On-chain data rendering (Identity, Balances, Governance)
+- Network switching (Polkadot ↔ Kusama)
+- **NEW**: Loading spinner management (`showSpinner(text)`, `hideSpinner()`)
+- **NEW**: Automatic player registration (blocking on-chain data load)
+- **NEW**: Dynamic UI design based on player progress (`applyAccountDesign()`)
 
 **Key Patterns**:
 - Single event listener registration (prevents duplicates via `eventListenersInitialized` flag)
 - Countdown cleanup (clears intervals to prevent double-execution)
 - Account display uses **Polkadot-formatted** addresses (first 12 chars)
+
+**Loading Spinner** (ui.js, lines 18-37):
+```javascript
+showSpinner(text = 'Loading...') {
+    // Shows rotating Polkadot logo
+    // Text parameter ignored (design: logo only)
+    // Uses CSS transition (opacity 0 → 1 over 300ms)
+}
+
+hideSpinner() {
+    // Fades out spinner
+    // Sets display:none after transition
+}
+```
+
+**Automatic Registration Flow** (ui.js, lines 336-376):
+```javascript
+// "Continue to Quiz" button handler
+showSpinner('Registering player...');
+await fetch('api/register-player.php', { playerName: null });
+showSpinner('Loading on-chain data...');
+await loadOnChainData(address, true, 'polkadot'); // Blocking!
+hideSpinner();
+showLevelOverview(); // Now with complete dataset
+```
 
 #### 3. `WalletManager` (wallet.js)
 **Purpose**: Polkadot wallet integration
@@ -129,11 +157,11 @@ The frontend is organized into **5 main classes** that work together:
 #### API Endpoints (RESTful-style)
 All endpoints in `api/` directory, respond with JSON:
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `register-player.php` | POST | Create/update player account |
-| `save-score.php` | POST | Save level completion data |
-| `get-player.php` | POST | Fetch player data by wallet address |
+| Endpoint | Method | Purpose | Notes |
+|----------|--------|---------|-------|
+| `register-player.php` | POST | Create/update player account | **Accepts playerName: null** for initial registration |
+| `save-score.php` | POST | Save level completion data | Also creates player if not exists |
+| `get-player.php` | POST | Fetch player data by wallet address | Returns found/returning status |
 | `get-leaderboard.php` | GET | Top 100 players ranked by totalScore |
 | `check-name.php` | POST | Verify username availability |
 | `suggest-name.php` | POST | Generate unique username |
