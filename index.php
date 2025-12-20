@@ -211,15 +211,6 @@
         <div id="account-overview-screen" class="screen account-overview-screen" style="display: none;">
             <!-- Account Header (gleiche Struktur wie Level Overview) -->
             <div id="account-overview-header"></div>
-
-            <!-- Network Selector -->
-            <div class="network-selector-container">
-                <label for="network-selector">Network:</label>
-                <select id="network-selector">
-                    <!-- Wird dynamisch aus Registry gefüllt -->
-                </select>
-                <button id="show-more-networks-btn" style="display: none;">Show More Networks...</button>
-            </div>
             
             <!-- Address Display Section -->
             <div class="address-display-section">
@@ -287,6 +278,34 @@
                         Save
                     </button>
                     <button id="modal-cancel-name-btn" style="background: #6b7280; flex: 1; padding: 12px; font-size: 16px; font-weight: 600; border: none; border-radius: 6px; color: white; cursor: pointer;">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal for Network Change -->
+        <div id="change-network-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center;">
+            <div style="background: white; padding: 30px; border-radius: 12px; max-width: 400px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                <h3 style="margin-top: 0; color: var(--text-color);">Change Network</h3>
+                <p style="margin-bottom: 20px; color: #6b7280; font-size: 0.95em;">Select your preferred network for on-chain data:</p>
+                
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 12px 15px; border: 2px solid var(--border-color); border-radius: 8px; transition: all 0.2s;">
+                        <input type="radio" name="modal-network" value="polkadot" style="margin-right: 10px; cursor: pointer;">
+                        <span style="font-weight: 500; font-size: 1em;">Polkadot</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 12px 15px; border: 2px solid var(--border-color); border-radius: 8px; transition: all 0.2s;">
+                        <input type="radio" name="modal-network" value="kusama" style="margin-right: 10px; cursor: pointer;">
+                        <span style="font-weight: 500; font-size: 1em;">Kusama</span>
+                    </label>
+                </div>
+                
+                <div style="display: flex; gap: 10px;">
+                    <button id="modal-save-network-btn" style="background: var(--success-color); flex: 1; padding: 12px; font-size: 16px; font-weight: 600; border: none; border-radius: 6px; color: white; cursor: pointer;">
+                        Save & Reload Data
+                    </button>
+                    <button id="modal-cancel-network-btn" style="background: #6b7280; flex: 1; padding: 12px; font-size: 16px; font-weight: 600; border: none; border-radius: 6px; color: white; cursor: pointer;">
                         Cancel
                     </button>
                 </div>

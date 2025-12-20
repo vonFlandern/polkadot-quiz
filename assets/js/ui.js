@@ -414,6 +414,10 @@ class QuizUI {
                    title="${categoryObj.catDescription}">`
             : '';
 
+        // Network-Icon ermitteln
+        const preferredNetwork = playerData?.player?.preferredNetwork || sessionStorage.getItem('preferredNetwork') || 'polkadot';
+        const networkIconPath = `assets/img/${preferredNetwork}.-logo.png`;
+
         // === vonFlandern Account Container ===
         document.getElementById('player-account-info').innerHTML = `
             <div class="vonflandern-account">
@@ -422,7 +426,13 @@ class QuizUI {
                 </div>
                 <div class="account-info-right">
                     <div class="player-name-display">${playerName || walletManager.selectedAccount?.name || 'Guest'}</div>
-                    <div class="player-wallet-display">${displayAddress}</div>
+                    <div class="player-wallet-display" style="display: flex; align-items: center;">
+                        <img src="${networkIconPath}" 
+                             alt="${preferredNetwork}" 
+                             title="Network: ${preferredNetwork.charAt(0).toUpperCase() + preferredNetwork.slice(1)}"
+                             style="width: 16px; height: 16px; margin-right: 8px;">
+                        ${displayAddress}
+                    </div>
                 </div>
                 <div class="account-menu">
                     <a href="#" id="account-menu-trigger">☰</a>
@@ -454,6 +464,17 @@ class QuizUI {
 
         // FALL 1: Neuer Spieler (playerName ist null oder startet mit "Player_")
         if (!playerName || playerName.startsWith('Player_')) {
+            // Verstecke Leaderboard-Info, Level-Liste und Hamburger-Menü für neue Spieler
+            const rankInfo = document.getElementById('player-rank-info');
+            const levelsList = document.getElementById('levels-list');
+            const levelOverviewHeading = document.querySelector('#level-overview-screen > h2');
+            const hamburgerMenu = document.querySelector('.account-menu');
+            
+            if (rankInfo) rankInfo.style.display = 'none';
+            if (levelsList) levelsList.style.display = 'none';
+            if (levelOverviewHeading) levelOverviewHeading.style.display = 'none';
+            if (hamburgerMenu) hamburgerMenu.style.display = 'none';
+            
             welcomeContainer.innerHTML = `
                 <div style="text-align: center; margin-bottom: 20px;">
                     <label for="welcome-name-input" style="display: block; margin-bottom: 15px; font-size: 1.1em; font-weight: 600;">
@@ -464,13 +485,31 @@ class QuizUI {
                         id="welcome-name-input"
                         placeholder="Your name"
                         maxlength="20"
-                        style="width: 100%; max-width: 300px; padding: 12px; font-size: 1em; border: 2px solid var(--border-color); border-radius: 6px; margin-bottom: 15px;"
+                        style="width: 100%; max-width: 300px; padding: 12px; font-size: 1em; border: 2px solid var(--border-color); border-radius: 6px; margin-bottom: 5px;"
                     />
-                    <button id="welcome-save-name-btn" style="padding: 12px 30px; background: var(--primary-color); color: white; border: none; border-radius: 6px; font-size: 1em; font-weight: 600; cursor: pointer;">
-                        Save Name
+                    <p style="margin: 0 0 15px 0; font-size: 0.85em; color: #6b7280;">
+                        3-20 characters
+                    </p>
+                    
+                    <label style="display: block; margin-bottom: 10px; font-size: 1.1em; font-weight: 600;">
+                        Select your network:
+                    </label>
+                    <div style="display: flex; gap: 15px; justify-content: center; margin-bottom: 20px;">
+                        <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 15px; border: 2px solid var(--border-color); border-radius: 8px; transition: all 0.2s;">
+                            <input type="radio" name="welcome-network" value="polkadot" style="margin-right: 8px; cursor: pointer;">
+                            <span style="font-weight: 500;">Polkadot</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 15px; border: 2px solid var(--border-color); border-radius: 8px; transition: all 0.2s;">
+                            <input type="radio" name="welcome-network" value="kusama" style="margin-right: 8px; cursor: pointer;">
+                            <span style="font-weight: 500;">Kusama</span>
+                        </label>
+                    </div>
+                    
+                    <button id="welcome-save-name-btn" disabled style="padding: 12px 30px; background: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 1em; font-weight: 600; cursor: pointer; opacity: 0.5;">
+                        Save Name & Network
                     </button>
                     <p style="margin-top: 10px; font-size: 0.9em; color: #6b7280;">
-                        3-20 characters, must be unique
+                        💡 TIP: You can change your player name and network whenever you like.
                     </p>
                 </div>
             `;
@@ -480,7 +519,17 @@ class QuizUI {
             return;
         }
 
-        // FALL 2: Bestehender Spieler
+        // FALL 2: Bestehender Spieler - Zeige alle Elemente
+        const rankInfo = document.getElementById('player-rank-info');
+        const levelsList = document.getElementById('levels-list');
+        const levelOverviewHeading = document.querySelector('#level-overview-screen > h2');
+        const hamburgerMenu = document.querySelector('.account-menu');
+        
+        if (rankInfo) rankInfo.style.display = 'block';
+        if (levelsList) levelsList.style.display = 'block';
+        if (levelOverviewHeading) levelOverviewHeading.style.display = 'block';
+        if (hamburgerMenu) hamburgerMenu.style.display = 'block';
+        
         const categoryObj = this.getPlayerBadge(playerData);
         const isSensei = categoryObj && categoryObj.catId === 8;
 
@@ -504,6 +553,34 @@ class QuizUI {
 
         if (!saveBtn || !nameInput) return;
 
+        // Event-Listener für Validierung (Enable/Disable Button)
+        const validateForm = () => {
+            const name = nameInput.value.trim();
+            const networkRadios = document.querySelectorAll('input[name="welcome-network"]');
+            const networkSelected = Array.from(networkRadios).some(radio => radio.checked);
+            
+            const isValid = name.length >= 3 && networkSelected;
+            
+            if (isValid) {
+                saveBtn.disabled = false;
+                saveBtn.style.opacity = '1';
+                saveBtn.style.cursor = 'pointer';
+            } else {
+                saveBtn.disabled = true;
+                saveBtn.style.opacity = '0.5';
+                saveBtn.style.cursor = 'not-allowed';
+            }
+        };
+
+        // Event-Listener für Name-Input
+        nameInput.addEventListener('input', validateForm);
+
+        // Event-Listener für Network-Radiobuttons
+        const networkRadios = document.querySelectorAll('input[name="welcome-network"]');
+        networkRadios.forEach(radio => {
+            radio.addEventListener('change', validateForm);
+        });
+
         const handleSave = async () => {
             const newName = nameInput.value.trim();
 
@@ -517,6 +594,15 @@ class QuizUI {
                 alert('❌ Name must not exceed 20 characters!');
                 return;
             }
+
+            // Network-Auswahl prüfen
+            const selectedNetwork = document.querySelector('input[name="welcome-network"]:checked');
+            if (!selectedNetwork) {
+                alert('❌ Please select a network!');
+                return;
+            }
+
+            const networkValue = selectedNetwork.value;
 
             // Prüfe Eindeutigkeit
             try {
@@ -537,13 +623,17 @@ class QuizUI {
                     return;
                 }
 
-                // Speichere Namen
+                // Zeige Spinner während Speichern + On-Chain-Daten laden
+                this.showSpinner('Loading on-chain data...');
+
+                // Speichere Namen + Network
                 const registerResponse = await fetch('api/register-player.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         walletAddress: account.address,
-                        playerName: newName
+                        playerName: newName,
+                        preferredNetwork: networkValue
                     })
                 });
 
@@ -552,10 +642,14 @@ class QuizUI {
                     throw new Error(errorData.error || 'Update failed');
                 }
 
-                console.log('✅ Player name updated');
+                console.log('✅ Player name and network updated');
 
                 // Update Session Storage
                 sessionStorage.setItem('playerName', newName);
+                sessionStorage.setItem('preferredNetwork', networkValue);
+
+                // Lade On-Chain-Daten BLOCKIEREND mit gewähltem Network
+                await this.loadOnChainData(account.address, true, networkValue);
 
                 // Update im Wallet Manager (WICHTIG: Auch für neue Spieler setzen!)
                 if (walletManager.selectedAccount) {
@@ -563,19 +657,25 @@ class QuizUI {
                         // Neuer Spieler: Erstelle existingPlayer-Objekt
                         walletManager.selectedAccount.existingPlayer = {
                             playerName: newName,
+                            preferredNetwork: networkValue,
                             genericAddress: walletManager.selectedAccount.address,
                             polkadotAddress: walletManager.selectedAccount.polkadotAddress || walletManager.selectedAccount.address
                         };
                     } else {
-                        // Bestehender Spieler: Update Name
+                        // Bestehender Spieler: Update Name + Network
                         walletManager.selectedAccount.existingPlayer.playerName = newName;
+                        walletManager.selectedAccount.existingPlayer.preferredNetwork = networkValue;
                     }
                 }
+
+                // Verstecke Spinner
+                this.hideSpinner();
 
                 // Reload Level-Übersicht
                 this.showLevelOverview();
 
             } catch (error) {
+                this.hideSpinner();
                 console.error('Name save error:', error);
                 alert(`❌ Error saving: ${error.message}\n\nPlease try again.`);
             }
@@ -1743,6 +1843,140 @@ class QuizUI {
     }
 
     /**
+     * Öffne Change Network Modal
+     */
+    openChangeNetworkModal(account) {
+        const modal = document.getElementById('change-network-modal');
+        const saveBtn = document.getElementById('modal-save-network-btn');
+        const cancelBtn = document.getElementById('modal-cancel-network-btn');
+        
+        // Aktuelles Network aus Player-Daten oder Session
+        const currentNetwork = account.existingPlayer?.preferredNetwork 
+            || sessionStorage.getItem('preferredNetwork') 
+            || 'polkadot';
+        
+        // Pre-select aktuelles Network
+        const polkadotRadio = document.querySelector('input[name="modal-network"][value="polkadot"]');
+        const kusamaRadio = document.querySelector('input[name="modal-network"][value="kusama"]');
+        
+        if (currentNetwork === 'polkadot' && polkadotRadio) {
+            polkadotRadio.checked = true;
+        } else if (currentNetwork === 'kusama' && kusamaRadio) {
+            kusamaRadio.checked = true;
+        }
+        
+        // Zeige Modal
+        modal.style.display = 'flex';
+        
+        // Speichern Button
+        const handleSave = async () => {
+            const selectedRadio = document.querySelector('input[name="modal-network"]:checked');
+            
+            if (!selectedRadio) {
+                alert('❌ Please select a network!');
+                return;
+            }
+            
+            const newNetwork = selectedRadio.value;
+            
+            // Prüfe ob Network geändert wurde
+            if (newNetwork === currentNetwork) {
+                modal.style.display = 'none';
+                return;
+            }
+            
+            try {
+                // Spinner anzeigen
+                this.showSpinner('Switching network and loading on-chain data...');
+                
+                // Speichere Network-Änderung im Backend
+                const registerResponse = await fetch('api/register-player.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        walletAddress: account.genericAddress,
+                        preferredNetwork: newNetwork
+                    })
+                });
+                
+                if (!registerResponse.ok) {
+                    const errorData = await registerResponse.json();
+                    throw new Error(errorData.error || 'Update failed');
+                }
+                
+                console.log(`✅ Network updated to ${newNetwork}`);
+                
+                // Update Session Storage
+                sessionStorage.setItem('preferredNetwork', newNetwork);
+                
+                // Update im Wallet Manager
+                if (walletManager.selectedAccount?.existingPlayer) {
+                    walletManager.selectedAccount.existingPlayer.preferredNetwork = newNetwork;
+                }
+                
+                // Lade On-Chain-Daten BLOCKIEREND mit neuem Network
+                await this.loadOnChainData(account.genericAddress, true, newNetwork);
+                
+                // Verstecke Spinner
+                this.hideSpinner();
+                
+                // Schließe Modal
+                modal.style.display = 'none';
+                
+                // Toast-Notification
+                const networkName = newNetwork.charAt(0).toUpperCase() + newNetwork.slice(1);
+                this.showToast(`Network changed to ${networkName}. On-chain data updated.`);
+                
+                // Aktualisiere Account Overview (damit neues Network-Icon angezeigt wird)
+                this.showAccountOverview();
+                
+            } catch (error) {
+                this.hideSpinner();
+                console.error('Network update error:', error);
+                alert(`❌ Error saving: ${error.message}\n\nPlease try again.`);
+            }
+        };
+        
+        // Abbrechen Button
+        const handleCancel = () => {
+            modal.style.display = 'none';
+        };
+        
+        // ESC-Taste
+        const handleEsc = (e) => {
+            if (e.key === 'Escape') {
+                modal.style.display = 'none';
+            }
+        };
+        
+        // Entferne alte Event Listener (Clone-Replace Pattern)
+        saveBtn.replaceWith(saveBtn.cloneNode(true));
+        cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+        
+        // Neue Referenzen holen
+        const newSaveBtn = document.getElementById('modal-save-network-btn');
+        const newCancelBtn = document.getElementById('modal-cancel-network-btn');
+        
+        // Event Listeners hinzufügen
+        newSaveBtn.addEventListener('click', handleSave);
+        newCancelBtn.addEventListener('click', handleCancel);
+        document.addEventListener('keydown', handleEsc);
+        
+        // Cleanup
+        const cleanup = () => {
+            document.removeEventListener('keydown', handleEsc);
+        };
+        
+        // Cleanup nach Modal-Schließung
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+                cleanup();
+            }
+        });
+    }
+
+    /**
      * Zeigt Account Overview Screen mit On-Chain-Daten
      */
     async showAccountOverview() {
@@ -1751,7 +1985,6 @@ class QuizUI {
         const walletAddress = sessionStorage.getItem('walletAddress');
         const playerName = sessionStorage.getItem('playerName');
         const polkadotAddress = sessionStorage.getItem('polkadotAddress');
-        const networkGroup = 'polkadot'; // Standard: Polkadot Network Group
 
         if (!walletAddress) {
             console.error('No wallet address in session');
@@ -1761,6 +1994,10 @@ class QuizUI {
         try {
             // Player-Daten laden für Header
             const playerData = await quizEngine.loadPlayer(walletAddress);
+
+            // Network Group aus Player-Daten oder Session holen
+            const preferredNetwork = playerData?.player?.preferredNetwork || sessionStorage.getItem('preferredNetwork') || 'polkadot';
+            const networkGroup = preferredNetwork; // Network Group = preferredNetwork (polkadot oder kusama)
 
             // Design anwenden
             this.applyAccountDesign(playerData);
@@ -1778,6 +2015,9 @@ class QuizUI {
                        title="${categoryObj.catDescription}">`
                 : '';
 
+            // Network-Icon ermitteln (verwendet bereits deklariertes preferredNetwork)
+            const networkIconPath = `assets/img/${preferredNetwork}.-logo.png`;
+
             document.getElementById('account-overview-header').innerHTML = `
                 <div class="vonflandern-account">
                     <div class="account-badge-circle">
@@ -1785,12 +2025,19 @@ class QuizUI {
                     </div>
                     <div class="account-info-right">
                         <div class="player-name-display">${playerName || 'Guest'}</div>
-                        <div class="player-wallet-display">${displayAddress}</div>
+                        <div class="player-wallet-display" style="display: flex; align-items: center;">
+                            <img src="${networkIconPath}" 
+                                 alt="${preferredNetwork}" 
+                                 title="Network: ${preferredNetwork.charAt(0).toUpperCase() + preferredNetwork.slice(1)}"
+                                 style="width: 16px; height: 16px; margin-right: 8px;">
+                            ${displayAddress}
+                        </div>
                     </div>
                     <div class="account-menu">
                         <a href="#" id="account-menu-trigger-overview">☰</a>
                         <div id="account-menu-dropdown-overview" class="menu-dropdown" style="display: none;">
                             <a href="#" id="menu-logout-overview">Log Out</a>
+                            <a href="#" id="menu-change-network-overview">Change Network</a>
                             <a href="#" id="menu-back-level">Back to Quiz</a>
                         </div>
                     </div>
@@ -1824,6 +2071,12 @@ class QuizUI {
                 this.openChangeNameModal(walletManager.selectedAccount);
             });
 
+            document.getElementById('menu-change-network-overview')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                menuDropdown.style.display = 'none';
+                this.openChangeNetworkModal(walletManager.selectedAccount);
+            });
+
             document.getElementById('menu-back-level')?.addEventListener('click', (e) => {
                 e.preventDefault();
                 menuDropdown.style.display = 'none';
@@ -1835,9 +2088,6 @@ class QuizUI {
                 menuDropdown.style.display = 'none';
                 this.showAnleitung();
             });
-
-            // Network Selector initialisieren
-            await this.initializeNetworkSelector(walletAddress);
 
             // Spinner anzeigen
             this.showSpinner('Loading on-chain data...');
@@ -1875,8 +2125,13 @@ class QuizUI {
                         // Spinner anzeigen
                         this.showSpinner('Refreshing on-chain data...');
 
-                        // Force-Refresh mit Multi-Chain
-                        const currentNetworkGroup = onChainService.currentNetworkGroup || 'polkadot';
+                        // Verwende das aktuell gewählte Network aus Player-Daten oder Session
+                        const currentPlayerData = await quizEngine.loadPlayer(walletAddress);
+                        const currentNetworkGroup = currentPlayerData?.player?.preferredNetwork 
+                            || sessionStorage.getItem('preferredNetwork') 
+                            || 'polkadot';
+                        
+                        // Force-Refresh mit aktuellem Network
                         const freshData = await this.loadOnChainData(walletAddress, true, currentNetworkGroup);
 
                         // Spinner verstecken
@@ -2371,73 +2626,7 @@ class QuizUI {
      * Initialisiert Network Selector mit Registry-Daten
      * @param {string} walletAddress - Wallet Address für RPC-Reconnect
      */
-    async initializeNetworkSelector(walletAddress) {
-        const selector = document.getElementById('network-selector');
-        const showMoreBtn = document.getElementById('show-more-networks-btn');
-        
-        if (!selector) return;
 
-        // Registry laden
-        await onChainService.loadNetworkRegistry();
-        const registry = onChainService.networkRegistry;
-
-        // Top 5 Netzwerke (nach Priority sortiert)
-        const topNetworks = registry.slice(0, 5);
-        const remainingNetworks = registry.slice(5);
-
-        // Fülle Dropdown mit Top 5
-        selector.innerHTML = topNetworks.map(net => 
-            `<option value="${net.network}">${net.displayName} (${net.symbol})</option>`
-        ).join('');
-
-        // "Show More" Button anzeigen wenn es mehr Netzwerke gibt
-        if (remainingNetworks.length > 0 && showMoreBtn) {
-            showMoreBtn.style.display = 'inline-block';
-            showMoreBtn.onclick = () => {
-                // Füge restliche Netzwerke hinzu
-                selector.innerHTML = registry.map(net => 
-                    `<option value="${net.network}">${net.displayName} (${net.symbol})</option>`
-                ).join('');
-                showMoreBtn.style.display = 'none';
-            };
-        }
-
-        // Event Listener für Netzwerk-Wechsel
-        selector.onchange = async (e) => {
-            const newNetwork = e.target.value;
-            console.log(`🔄 Switching network to: ${newNetwork}`);
-
-            try {
-                // Spinner anzeigen
-                this.showSpinner('Switching network...');
-
-                // Alte Verbindung trennen
-                if (onChainService.isConnected) {
-                    await onChainService.disconnect();
-                }
-
-                // Neue Verbindung herstellen
-                await onChainService.connect(newNetwork);
-
-                // Daten neu laden
-                const freshData = await this.loadOnChainData(walletAddress, true, newNetwork);
-
-                // Spinner verstecken
-                this.hideSpinner();
-
-                // UI neu rendern
-                this.renderOnChainData(freshData, newNetwork);
-
-                console.log(`✅ Switched to ${newNetwork}`);
-            } catch (error) {
-                console.error('❌ Network switch failed:', error);
-                this.hideSpinner();
-                this.showToast(`Failed to switch network: ${error.message}`, true);
-                // Zurück zu vorheriger Auswahl
-                selector.value = onChainService.currentNetwork || 'polkadot';
-            }
-        };
-    }
 
     /**
      * Initialisiert Address Display mit Copy-Funktion und Toggle
@@ -2554,65 +2743,7 @@ class QuizUI {
         }, 3000);
     }
 
-    /**
-     * Initialisiert Network Selector Dropdown mit Network Groups
-     * @param {string} walletAddress - Wallet-Adresse für Data-Loading
-     */
-    async initializeNetworkSelector(walletAddress) {
-        const selector = document.getElementById('network-selector');
-        if (!selector) return;
 
-        // Registry laden
-        await onChainService.loadNetworkRegistry();
-        const networkGroups = onChainService.networkGroups;
-
-        // Nur Network Groups anzeigen (Polkadot, Kusama)
-        selector.innerHTML = '';
-        networkGroups.forEach(group => {
-            const option = document.createElement('option');
-            option.value = group.id;
-            option.textContent = group.displayName;
-            if (group.id === 'polkadot') option.selected = true;
-            selector.appendChild(option);
-        });
-
-        // Event Listener für Netzwerk-Wechsel
-        selector.onchange = async (e) => {
-            const selectedNetworkGroup = e.target.value;
-
-            // Netzwerk-Wechsel
-            try {
-                console.log('🔄 Switching network group to:', selectedNetworkGroup);
-                
-                // Spinner anzeigen
-                this.showSpinner('Switching network...');
-
-                // Alte Verbindungen trennen
-                await onChainService.disconnect();
-
-                // Neue Verbindung zu Network Group aufbauen
-                await onChainService.connectToNetworkGroup(selectedNetworkGroup);
-
-                // Daten neu laden
-                const freshData = await this.loadOnChainData(walletAddress, true, selectedNetworkGroup);
-
-                // Spinner verstecken
-                this.hideSpinner();
-
-                // UI neu rendern
-                this.renderOnChainData(freshData, selectedNetworkGroup);
-                
-                console.log('✅ Network group switched successfully');
-            } catch (error) {
-                console.error('❌ Network switch failed:', error);
-                this.hideSpinner();
-                this.showToast(`Failed to switch network: ${error.message}`, true);
-                
-                // Zurück zum vorherigen Netzwerk
-                selector.value = onChainService.currentNetworkGroup || 'polkadot';
-            }
-        };
-    }
 
     /**
      * Initialisiert Address Display mit Copy-Funktion und Toggle

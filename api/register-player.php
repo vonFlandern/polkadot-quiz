@@ -30,6 +30,12 @@ if (!isset($input['walletAddress'])) {
 $walletAddress = sanitizeInput($input['walletAddress']);
 $playerName = isset($input['playerName']) ? sanitizeInput($input['playerName']) : null;
 $walletName = isset($input['walletName']) ? sanitizeInput($input['walletName']) : null;
+$preferredNetwork = isset($input['preferredNetwork']) ? sanitizeInput($input['preferredNetwork']) : 'polkadot';
+
+// Network validieren (Whitelist)
+if (!in_array($preferredNetwork, ['polkadot', 'kusama'], true)) {
+    $preferredNetwork = 'polkadot'; // Fallback zu Polkadot
+}
 
 // Validierungen
 if (!isValidPolkadotAddress($walletAddress)) {
@@ -97,6 +103,7 @@ if ($playerIndex === -1) {
         'walletAddress' => $genericAddress,       // Backward compatibility
         'walletName' => $walletName,              // NEU: Name aus Wallet-Extension
         'playerName' => $playerName,              // Kann null sein
+        'preferredNetwork' => $preferredNetwork,  // NEU: Bevorzugtes Network
         'nameHistory' => $playerName !== null ? [
             [
                 'name' => $playerName,
@@ -115,11 +122,20 @@ if ($playerIndex === -1) {
     $playersData['players'][] = $newPlayer;
     $playerIndex = count($playersData['players']) - 1;
     
-    error_log("New player registered: {$playerName} ({$genericAddress})");
+    error_log("New player registered: {$playerName} ({$genericAddress}) on {$preferredNetwork}");
     
 } else {
     // Bestehender Spieler - Update
     $playersData['players'][$playerIndex]['polkadotAddress'] = $polkadotAddress;
+    
+    // Update preferredNetwork falls angegeben
+    if (isset($input['preferredNetwork'])) {
+        $validatedNetwork = in_array($input['preferredNetwork'], ['polkadot', 'kusama'], true) 
+            ? $input['preferredNetwork'] 
+            : 'polkadot';
+        $playersData['players'][$playerIndex]['preferredNetwork'] = $validatedNetwork;
+        error_log("Player network updated to: {$validatedNetwork} for {$genericAddress}");
+    }
     
     // Prüfe ob Name geändert wurde (nur wenn neuer Name angegeben)
     $currentName = $playersData['players'][$playerIndex]['playerName'];
