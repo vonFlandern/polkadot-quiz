@@ -221,7 +221,7 @@
                     </button>
                 </div>
                 <div class="address-row generic-address-row">
-                    <span class="addr-label">Generic (Universal):</span>
+                    <span class="addr-label">Generic:</span>
                     <code class="generic-addr"></code>
                     <button class="copy-btn" data-copy="generic" title="Copy to clipboard">📋</button>
                 </div>

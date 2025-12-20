@@ -6,7 +6,7 @@ class QuizUI {
     constructor() {
         this.currentScreen = 'start';
         this.currentHintUsedThisQuestion = false;
-        this.currentTimeAddUsedThisQuestion = false;
+        this.currentTimeAddCountThisQuestion = 0;
         this.eventListenersInitialized = false; // Verhindert Mehrfach-Registrierung
         this.countdownInterval = null; // Speichere Interval-ID für Cleanup
     }
@@ -1470,7 +1470,7 @@ class QuizUI {
         this.showScreen('question');
 
         this.currentHintUsedThisQuestion = false;
-        this.currentTimeAddUsedThisQuestion = false;
+        this.currentTimeAddCountThisQuestion = 0;
 
         const question = quizEngine.getCurrentQuestion();
         const questionNumber = quizEngine.currentQuestionIndex + 1;
@@ -1575,7 +1575,7 @@ class QuizUI {
         const result = quizEngine.useTimeAdd();
         
         if (result.success) {
-            this.currentTimeAddUsedThisQuestion = true;
+            this.currentTimeAddCountThisQuestion++;
             
             // Visuelles Feedback statt Alert (nicht blockierend!)
             this.showTimeAddFeedback(result.bonusTime);
@@ -1646,7 +1646,7 @@ class QuizUI {
         const result = quizEngine.answerQuestion(
             answerIndex,
             this.currentHintUsedThisQuestion,
-            this.currentTimeAddUsedThisQuestion
+            this.currentTimeAddCountThisQuestion
         );
         this.showFeedback(result);
     }
@@ -1688,7 +1688,7 @@ class QuizUI {
             const breakdown = result.pointsBreakdown;
 
             // Zeige Breakdown wenn: Power-Ups verwendet ODER Basis-Punkte > 0
-            const showBreakdown = breakdown.hintUsed || breakdown.timeAddUsed || breakdown.basePoints > 0;
+            const showBreakdown = breakdown.hintUsed || breakdown.timeAddCount > 0 || breakdown.basePoints > 0;
 
             if (showBreakdown) {
                 const breakdownEl = document.createElement('div');
@@ -1727,9 +1727,9 @@ class QuizUI {
                 }
 
                 // TimeAdd-Penalty (falls verwendet)
-                if (breakdown.timeAddUsed) {
+                if (breakdown.timeAddCount > 0) {
                     html += `<div style="display: flex; justify-content: space-between; padding: 6px 0;">
-                        <span>Added Time (1x):</span>
+                        <span>Added Time (${breakdown.timeAddCount}x):</span>
                         <span style="font-weight: 600; color: #f97316;">-${breakdown.timeAddPenalty}</span>
                     </div>`;
                 }

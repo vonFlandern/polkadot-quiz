@@ -188,7 +188,7 @@ class QuizEngine {
      * Kann negative Werte zurückgeben (bei falscher Antwort + Power-Ups).
      * Die Minimum-Regel (Score >= 0) wird erst am Level-Ende angewendet!
      */
-    calculatePoints(elapsedTimeMs, isCorrect, hintUsed, timeAddUsed) {
+    calculatePoints(elapsedTimeMs, isCorrect, hintUsed, timeAddCount) {
         const question = this.getCurrentQuestion();
 
         // 1. Berechne Basis-Punkte (nur bei richtiger Antwort)
@@ -205,8 +205,8 @@ class QuizEngine {
         if (hintUsed) {
             points -= question.hintPenalty;
         }
-        if (timeAddUsed) {
-            points -= question.timeAddPenalty;
+        if (timeAddCount > 0) {
+            points -= (question.timeAddPenalty * timeAddCount);
         }
 
         // 3. Return kann negativ sein (z.B. falsche Antwort + TimeAdd = -15)
@@ -217,9 +217,9 @@ class QuizEngine {
      * Beantworte Frage
      * @param {number} selectedAnswerIndex - Index der gewählten Antwort
      * @param {boolean} hintUsed - Wurde ein Hint bei dieser Frage verwendet?
-     * @param {boolean} timeAddUsed - Wurde eine Zeitverlängerung bei dieser Frage verwendet?
+     * @param {number} timeAddCount - Wie oft wurde TimeAdd bei dieser Frage verwendet?
      */
-    answerQuestion(selectedAnswerIndex, hintUsed = false, timeAddUsed = false) {
+    answerQuestion(selectedAnswerIndex, hintUsed = false, timeAddCount = 0) {
         const question = this.getCurrentQuestion();
         const elapsedTimeMs = this.timer.getElapsedTime();
         
@@ -232,9 +232,9 @@ class QuizEngine {
         // Wurde Hint oder TimeAdd bei dieser Frage genutzt?
         // Fix: Receive actual usage from UI instead of hardcoded false
         const hintUsedThisQuestion = hintUsed;
-        const timeAddUsedThisQuestion = timeAddUsed;
+        const timeAddCountThisQuestion = timeAddCount;
 
-        const points = this.calculatePoints(elapsedTimeMs, isCorrect, hintUsedThisQuestion, timeAddUsedThisQuestion);
+        const points = this.calculatePoints(elapsedTimeMs, isCorrect, hintUsedThisQuestion, timeAddCountThisQuestion);
 
         // Berechne Basis-Punkte für Breakdown (ohne Penalties)
         // FIX v2.0: Verwende GLEICHE Logik wie Punkteberechnung (maximale Level-Zeit)
@@ -245,7 +245,7 @@ class QuizEngine {
 
         // Berechne Penalties für Breakdown (auch bei falschen Antworten!)
         const hintPenalty = hintUsedThisQuestion ? question.hintPenalty : 0;
-        const timeAddPenalty = timeAddUsedThisQuestion ? question.timeAddPenalty : 0;
+        const timeAddPenalty = timeAddCountThisQuestion > 0 ? (question.timeAddPenalty * timeAddCountThisQuestion) : 0;
 
         // Update State
         this.levelState.score += points;
@@ -276,7 +276,7 @@ class QuizEngine {
                 hintPenalty: hintPenalty,
                 timeAddPenalty: timeAddPenalty,
                 hintUsed: hintUsedThisQuestion,
-                timeAddUsed: timeAddUsedThisQuestion
+                timeAddCount: timeAddCountThisQuestion
             }
         };
     }

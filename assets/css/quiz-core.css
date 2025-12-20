@@ -1196,16 +1196,16 @@ button.secondary {
 
 .addr-label {
     font-weight: bold;
-    min-width: 140px;
+    min-width: 100px;
     color: var(--account-address-box-text);
 }
 
 .generic-addr, .network-addr {
     flex: 1;
     font-family: 'Courier New', monospace;
-    font-size: 13px;
+    font-size: 15px;
     background: #f5f5f5;
-    padding: 8px 12px;
+    padding: 10px 14px;
     border-radius: 6px;
     word-break: break-all;
     color: #333;
