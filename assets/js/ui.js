@@ -205,11 +205,41 @@ class QuizUI {
                     const accountBtn = document.createElement('button');
                     accountBtn.className = 'account-btn';
                     
+                    // Konditionale Adress- und Icon-Anzeige basierend auf displayNetwork
+                    let displayAddress = account.genericAddress;  // Fallback
+                    let logoSrc = 'assets/img/generic.-logo.png';
+                    let logoAlt = 'generic';
+                    let logoTitle = 'Generic Address';
+                    
+                    // Wenn wiederkehrender Spieler mit displayNetwork
+                    if (account.existingPlayer && account.existingPlayer.displayNetwork) {
+                        const displayNetwork = account.existingPlayer.displayNetwork;
+                        
+                        if (displayNetwork === 'polkadot' && 
+                            account.existingPlayer.onChainData?.polkadot?.chains?.relay?.addresses?.networkSpecific) {
+                            // Polkadot anzeigen
+                            displayAddress = account.existingPlayer.onChainData.polkadot.chains.relay.addresses.networkSpecific;
+                            logoSrc = 'assets/img/polkadot.-logo.png';
+                            logoAlt = 'polkadot';
+                            logoTitle = 'Polkadot Address';
+                            
+                        } else if (displayNetwork === 'kusama' && 
+                                   account.existingPlayer.onChainData?.kusama?.chains?.relay?.addresses?.networkSpecific) {
+                            // Kusama anzeigen
+                            displayAddress = account.existingPlayer.onChainData.kusama.chains.relay.addresses.networkSpecific;
+                            logoSrc = 'assets/img/kusama.-logo.png';
+                            logoAlt = 'kusama';
+                            logoTitle = 'Kusama Address';
+                        }
+                        // Bei displayNetwork='generic' oder fehlenden onChainData: Fallback (generisch)
+                    }
+                    // Neue Spieler (ohne existingPlayer): Fallback (generisch)
+                    
                     accountBtn.innerHTML = `
                         <strong>${account.name || 'Unnamed'}</strong><br>
                         <div style="display: flex; align-items: center; margin-top: 4px;">
-                            <img src="assets/img/generic.-logo.png" alt="generic" title="Generic Address" style="height: 14px; width: auto; margin-right: 8px;">
-                            <small style="color: #2C2C2C; word-break: break-all;">${account.genericAddress}</small>
+                            <img src="${logoSrc}" alt="${logoAlt}" title="${logoTitle}" style="height: 22px; width: auto; margin-right: 8px;">
+                            <small style="color: #2C2C2C; word-break: break-all;">${displayAddress}</small>
                         </div>
                     `;
                     
@@ -397,14 +427,14 @@ class QuizUI {
         // Adresse und Label basierend auf Display-Network
         let displayAddress = '';
         let addressLabel = '';
-        let addressColor = '#2C2C2C';
+        let isGenericNetwork = false;
         
         if (displayNetwork === 'generic') {
             // Zustand 1: Generic anzeigen (User hat noch nicht gewählt)
             const genericAddr = playerData?.player?.genericAddress || walletAddress;
             displayAddress = `${genericAddr.substring(0, 6)}...${genericAddr.substring(genericAddr.length - 6)}`;
-            addressLabel = '<img src="assets/img/generic.-logo.png" alt="generic" title="Network: Generic" style="height: 16px; width: auto; margin-right: 8px;">';
-            addressColor = '#2C2C2C';
+            addressLabel = '<img src="assets/img/generic.-logo.png" alt="generic" title="Network: Generic" style="height: 22px; width: auto; margin-right: 8px;">';
+            isGenericNetwork = true;
         } else if (displayNetwork === 'polkadot') {
             // Zustand 2a: Polkadot gewählt - nutze networkSpecific aus On-Chain-Daten
             const polkadotNetworkAddress = playerData?.onChainData?.polkadot?.chains?.relay?.addresses?.networkSpecific;
@@ -415,7 +445,6 @@ class QuizUI {
                 const fallbackAddr = playerData?.polkadotAddress || walletAddress;
                 displayAddress = `${fallbackAddr.substring(0, 6)}...${fallbackAddr.substring(fallbackAddr.length - 6)}`;
             }
-            addressColor = '#E6097A';
         } else if (displayNetwork === 'kusama') {
             // Zustand 2b: Kusama gewählt - nutze networkSpecific aus On-Chain-Daten
             const kusamaNetworkAddress = playerData?.onChainData?.kusama?.chains?.relay?.addresses?.networkSpecific;
@@ -426,7 +455,6 @@ class QuizUI {
                 const fallbackAddr = playerData?.player?.genericAddress || walletAddress;
                 displayAddress = `${fallbackAddr.substring(0, 6)}...${fallbackAddr.substring(fallbackAddr.length - 6)}`;
             }
-            addressColor = '#000000';
         } else {
             // Fallback für unbekannte Werte
             displayAddress = `${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 6)}`;
@@ -438,7 +466,7 @@ class QuizUI {
             addressLabel = `<img src="${networkIconPath}" 
                                  alt="${displayNetwork}" 
                                  title="Network: ${preferredNetwork.charAt(0).toUpperCase() + preferredNetwork.slice(1)}"
-                                 style="width: 16px; height: 16px; margin-right: 8px;">`;
+                                 style="width: 22px; height: 22px; margin-right: 8px;">`;
         }
 
         // Spielername-Anzeige: Nur wenn gesetzt (nicht null und nicht Player_*)
@@ -457,7 +485,7 @@ class QuizUI {
                     ${playerNameDisplay}
                     <div class="player-wallet-display" style="display: flex; align-items: center;">
                         ${addressLabel}
-                        <span style="color: ${addressColor};">${displayAddress}</span>
+                        <span${isGenericNetwork ? ' style="color: #2C2C2C;"' : ''}>${displayAddress}</span>
                     </div>
                 </div>
                 <div class="account-menu">
@@ -826,10 +854,80 @@ class QuizUI {
                 root.style.setProperty('--account-menu-hamburger', accountDesign.headerMenu.colorHamburger);
             }
 
-            // Body-Design (vorbereitet für zukünftige Erweiterung)
+            // Body-Design
             if (accountDesign.body) {
                 root.style.setProperty('--account-body-background', accountDesign.body.colorBackground);
                 root.style.setProperty('--account-body-border', accountDesign.body.colorBorder);
+            }
+
+            // Buttons
+            if (accountDesign.buttons) {
+                // Primary Buttons
+                if (accountDesign.buttons.primary) {
+                    root.style.setProperty('--account-button-primary-bg', accountDesign.buttons.primary.colorBackground);
+                    root.style.setProperty('--account-button-primary-bg-hover', accountDesign.buttons.primary.colorBackgroundHover);
+                    root.style.setProperty('--account-button-primary-text', accountDesign.buttons.primary.colorText);
+                    root.style.setProperty('--account-button-primary-border', accountDesign.buttons.primary.colorBorder);
+                }
+                // Secondary Buttons
+                if (accountDesign.buttons.secondary) {
+                    root.style.setProperty('--account-button-secondary-bg', accountDesign.buttons.secondary.colorBackground);
+                    root.style.setProperty('--account-button-secondary-bg-hover', accountDesign.buttons.secondary.colorBackgroundHover);
+                    root.style.setProperty('--account-button-secondary-text', accountDesign.buttons.secondary.colorText);
+                    root.style.setProperty('--account-button-secondary-border', accountDesign.buttons.secondary.colorBorder);
+                }
+            }
+
+            // Copy Buttons
+            if (accountDesign.copyButtons) {
+                root.style.setProperty('--account-copy-button-bg', accountDesign.copyButtons.colorBackground);
+                root.style.setProperty('--account-copy-button-bg-hover', accountDesign.copyButtons.colorBackgroundHover);
+                root.style.setProperty('--account-copy-button-text', accountDesign.copyButtons.colorText);
+                root.style.setProperty('--account-copy-button-icon', accountDesign.copyButtons.colorIcon);
+            }
+
+            // Tabs
+            if (accountDesign.tabs) {
+                // Active Tabs
+                if (accountDesign.tabs.active) {
+                    root.style.setProperty('--account-tab-active-bg', accountDesign.tabs.active.colorBackground);
+                    root.style.setProperty('--account-tab-active-text', accountDesign.tabs.active.colorText);
+                    root.style.setProperty('--account-tab-active-border', accountDesign.tabs.active.colorBorder);
+                }
+                // Inactive Tabs
+                if (accountDesign.tabs.inactive) {
+                    root.style.setProperty('--account-tab-inactive-bg', accountDesign.tabs.inactive.colorBackground);
+                    root.style.setProperty('--account-tab-inactive-text', accountDesign.tabs.inactive.colorText);
+                    root.style.setProperty('--account-tab-inactive-border', accountDesign.tabs.inactive.colorBorder);
+                }
+            }
+
+            // Address Box
+            if (accountDesign.addressBox) {
+                root.style.setProperty('--account-address-box-bg', accountDesign.addressBox.colorBackground);
+                root.style.setProperty('--account-address-box-text', accountDesign.addressBox.colorText);
+            }
+
+            // Sections
+            if (accountDesign.sections) {
+                // Info Sections (Account Information, Identity)
+                if (accountDesign.sections.info) {
+                    root.style.setProperty('--account-section-info-bg', accountDesign.sections.info.colorBackground);
+                    root.style.setProperty('--account-section-info-border', accountDesign.sections.info.colorBorder);
+                    root.style.setProperty('--account-section-info-heading', accountDesign.sections.info.colorHeadingText);
+                    root.style.setProperty('--account-section-info-content', accountDesign.sections.info.colorContentText);
+                    root.style.setProperty('--account-section-info-label', accountDesign.sections.info.colorLabelText);
+                    root.style.setProperty('--account-section-info-value', accountDesign.sections.info.colorValueText);
+                }
+                // Data Sections (Balances, Staking)
+                if (accountDesign.sections.data) {
+                    root.style.setProperty('--account-section-data-bg', accountDesign.sections.data.colorBackground);
+                    root.style.setProperty('--account-section-data-border', accountDesign.sections.data.colorBorder);
+                    root.style.setProperty('--account-section-data-heading', accountDesign.sections.data.colorHeadingText);
+                    root.style.setProperty('--account-section-data-content', accountDesign.sections.data.colorContentText);
+                    root.style.setProperty('--account-section-data-label', accountDesign.sections.data.colorLabelText);
+                    root.style.setProperty('--account-section-data-value', accountDesign.sections.data.colorValueText);
+                }
             }
 
             console.log(`[UI] Account design applied for category "${categoryObj.catDescription}"`);
@@ -2039,15 +2137,15 @@ class QuizUI {
             // Adresse und Label basierend auf Display-Network (identisch zu renderPlayerInfo)
             let displayAddress = '';
             let addressLabel = '';
-            let addressColor = '#2C2C2C';
+            let isGenericNetwork = false;
             
             if (displayNetwork === 'generic') {
                 // Zustand 1: Generic anzeigen (User hat noch nicht gewählt)
                 displayAddress = playerData?.player?.genericAddress 
                     ? playerData.player.genericAddress.substring(0, 12) + '...'
                     : walletAddress.substring(0, 12) + '...';
-                addressLabel = '<img src="assets/img/generic.-logo.png" alt="generic" title="Network: Generic" style="height: 16px; width: auto; margin-right: 8px;">';
-                addressColor = '#2C2C2C';
+                addressLabel = '<img src="assets/img/generic.-logo.png" alt="generic" title="Network: Generic" style="height: 22px; width: auto; margin-right: 8px;">';
+                isGenericNetwork = true;
             } else if (displayNetwork === 'polkadot') {
                 // Zustand 2a: Polkadot gewählt - nutze networkSpecific aus On-Chain-Daten
                 const polkadotNetworkAddress = playerData?.onChainData?.polkadot?.chains?.relay?.addresses?.networkSpecific;
@@ -2059,7 +2157,6 @@ class QuizUI {
                         ? `${playerData.polkadotAddress.substring(0, 6)}...${playerData.polkadotAddress.substring(playerData.polkadotAddress.length - 6)}`
                         : walletAddress.substring(0, 12) + '...';
                 }
-                addressColor = '#E6097A';
             } else if (displayNetwork === 'kusama') {
                 // Zustand 2b: Kusama gewählt - nutze networkSpecific aus On-Chain-Daten
                 const kusamaNetworkAddress = playerData?.onChainData?.kusama?.chains?.relay?.addresses?.networkSpecific;
@@ -2071,7 +2168,6 @@ class QuizUI {
                         ? playerData.player.genericAddress.substring(0, 12) + '...'
                         : walletAddress.substring(0, 12) + '...';
                 }
-                addressColor = '#000000';
             } else {
                 // Fallback für unbekannte Werte
                 displayAddress = walletAddress.substring(0, 12) + '...';
@@ -2084,7 +2180,7 @@ class QuizUI {
                 addressLabel = `<img src="${networkIconPath}" 
                                      alt="${displayNetwork}" 
                                      title="Network: ${displayNetwork.charAt(0).toUpperCase() + displayNetwork.slice(1)}"
-                                     style="width: 16px; height: 16px; margin-right: 8px;">`;
+                                     style="width: 22px; height: 22px; margin-right: 8px;">`;
             }
 
             // Spielername-Anzeige: Nur wenn gesetzt
@@ -2110,7 +2206,7 @@ class QuizUI {
                         ${playerNameDisplay}
                         <div class="player-wallet-display" style="display: flex; align-items: center;">
                             ${addressLabel}
-                            <span style="color: ${addressColor};">${displayAddress}</span>
+                            <span${isGenericNetwork ? ' style="color: #2C2C2C;"' : ''}>${displayAddress}</span>
                         </div>
                     </div>
                     <div class="account-menu">
@@ -2238,15 +2334,6 @@ class QuizUI {
             }
 
             
-            // Back-Button Event-Listener
-            const backBtn = document.getElementById('back-from-account-overview-btn');
-            if (backBtn && !backBtn.hasAttribute('data-listener-added')) {
-                backBtn.setAttribute('data-listener-added', 'true');
-                backBtn.addEventListener('click', () => {
-                    this.showLevelOverview();
-                });
-            }
-
             // Refresh-Button Event-Listener
             const refreshBtn = document.getElementById('refresh-onchain-btn');
             if (refreshBtn && !refreshBtn.hasAttribute('data-listener-added')) {

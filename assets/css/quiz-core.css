@@ -28,6 +28,50 @@
     --account-menu-hamburger: #ff1212;
     --account-body-background: #E3E3E3;
     --account-body-border: #ff1212;
+
+    /* Buttons */
+    --account-button-primary-bg: #E6007A;
+    --account-button-primary-bg-hover: #c5006b;
+    --account-button-primary-text: #ffffff;
+    --account-button-primary-border: #E6007A;
+    --account-button-secondary-bg: #E3E3E3;
+    --account-button-secondary-bg-hover: #d4d4d4;
+    --account-button-secondary-text: #1a1a1a;
+    --account-button-secondary-border: #1a1a1a;
+
+    /* Copy Buttons */
+    --account-copy-button-bg: #4CAF50;
+    --account-copy-button-bg-hover: #45a049;
+    --account-copy-button-text: #ffffff;
+    --account-copy-button-icon: #ffffff;
+
+    /* Tabs */
+    --account-tab-active-bg: #1a1a1a;
+    --account-tab-active-text: #ff1212;
+    --account-tab-active-border: #ff1212;
+    --account-tab-inactive-bg: #E3E3E3;
+    --account-tab-inactive-text: #555555;
+    --account-tab-inactive-border: #999999;
+
+    /* Address Box (Your Addresses section) */
+    --account-address-box-bg: #1a1a1a;
+    --account-address-box-text: #E3E3E3;
+
+    /* Sections - Info Type (Account Information, Identity) */
+    --account-section-info-bg: #ffffff;
+    --account-section-info-border: #ff1212;
+    --account-section-info-heading: #ff1212;
+    --account-section-info-content: #4a5568;
+    --account-section-info-label: #6b7280;
+    --account-section-info-value: #111827;
+
+    /* Sections - Data Type (Balances, Staking) */
+    --account-section-data-bg: #ffffff;
+    --account-section-data-border: #ff1212;
+    --account-section-data-heading: #ff1212;
+    --account-section-data-content: #4a5568;
+    --account-section-data-label: #6b7280;
+    --account-section-data-value: #111827;
 }
 
 * {
@@ -930,46 +974,84 @@ button.secondary {
     gap: 8px;
 }
 
-/* On-Chain Sections */
-.onchain-section {
+/* On-Chain Sections - Info Type (Account Information, Identity) */
+.onchain-section.section-info {
     margin-bottom: 30px;
+    background: var(--account-section-info-bg);
+    border: 2px solid var(--account-section-info-border);
+    border-radius: 8px;
+    padding: 16px;
 }
 
-.onchain-section:last-child {
+.onchain-section.section-info:last-child {
     margin-bottom: 0;
 }
 
-.onchain-section h3 {
+.onchain-section.section-info h3 {
     margin: 0 0 15px 0;
-    color: var(--text-color);
+    color: var(--account-section-info-heading);
     font-size: 18px;
-    border-bottom: 2px solid var(--account-body-border);
+    border-bottom: 2px solid var(--account-section-info-border);
     padding-bottom: 8px;
 }
 
-/* Data Rows */
+.onchain-section.section-info .data-label {
+    font-weight: 600;
+    color: var(--account-section-info-label);
+    flex: 0 0 40%;
+}
+
+.onchain-section.section-info .data-value {
+    text-align: right;
+    color: var(--account-section-info-value);
+    flex: 1;
+    word-break: break-all;
+}
+
+/* On-Chain Sections - Data Type (Balances, Staking) */
+.onchain-section.section-data {
+    margin-bottom: 30px;
+    background: var(--account-section-data-bg);
+    border: 2px solid var(--account-section-data-border);
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.onchain-section.section-data:last-child {
+    margin-bottom: 0;
+}
+
+.onchain-section.section-data h3 {
+    margin: 0 0 15px 0;
+    color: var(--account-section-data-heading);
+    font-size: 18px;
+    border-bottom: 2px solid var(--account-section-data-border);
+    padding-bottom: 8px;
+}
+
+.onchain-section.section-data .data-label {
+    font-weight: 600;
+    color: var(--account-section-data-label);
+    flex: 0 0 40%;
+}
+
+.onchain-section.section-data .data-value {
+    text-align: right;
+    color: var(--account-section-data-value);
+    flex: 1;
+    word-break: break-all;
+}
+
+/* Data Rows (shared by both section types) */
 .data-row {
     display: flex;
     justify-content: space-between;
     padding: 10px 0;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .data-row:last-child {
     border-bottom: none;
-}
-
-.data-label {
-    font-weight: 600;
-    color: #6b7280;
-    flex: 0 0 40%;
-}
-
-.data-value {
-    text-align: right;
-    color: var(--text-color);
-    flex: 1;
-    word-break: break-all;
 }
 
 .data-value a {
@@ -995,18 +1077,19 @@ button.secondary {
 
 #refresh-onchain-btn {
     padding: 10px 20px;
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
-    color: white;
-    border: none;
+    background: var(--account-button-primary-bg);
+    color: var(--account-button-primary-text);
+    border: 1px solid var(--account-button-primary-border);
     border-radius: 6px;
     font-weight: 600;
     cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: all 0.2s;
 }
 
 #refresh-onchain-btn:hover {
+    background: var(--account-button-primary-bg-hover);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(230, 0, 122, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 #onchain-last-update {
@@ -1064,11 +1147,12 @@ button.secondary {
 
 /* ========== Address Display Section ========== */
 .address-display-section {
-    background: #f9f9f9;
-    border: 2px solid #ddd;
-    border-radius: 12px;
-    padding: 20px;
-    margin: 20px 0;
+    /* Überschreibe spezifische Werte von account-body-section für nahtlosen Header-Anschluss */
+    border-top: none !important;
+    border-top-left-radius: 0px !important;
+    border-top-right-radius: 0px !important;
+    border-radius: 8px;
+    background: var(--account-address-box-bg) !important;
 }
 
 .address-toggle-header {
@@ -1081,13 +1165,13 @@ button.secondary {
 .address-toggle-header h3 {
     margin: 0;
     font-size: 18px;
-    color: #333;
+    color: var(--account-address-box-text);
 }
 
 .address-toggle-btn {
-    background: #e6007a;
-    color: white;
-    border: none;
+    background: var(--account-button-primary-bg);
+    color: var(--account-button-primary-text);
+    border: 1px solid var(--account-button-primary-border);
     padding: 8px 16px;
     border-radius: 6px;
     cursor: pointer;
@@ -1096,7 +1180,7 @@ button.secondary {
 }
 
 .address-toggle-btn:hover {
-    background: #c5006b;
+    background: var(--account-button-primary-bg-hover);
 }
 
 .address-row {
@@ -1113,7 +1197,7 @@ button.secondary {
 .addr-label {
     font-weight: bold;
     min-width: 140px;
-    color: #555;
+    color: var(--account-address-box-text);
 }
 
 .generic-addr, .network-addr {
@@ -1128,8 +1212,8 @@ button.secondary {
 }
 
 .copy-btn {
-    background: #4CAF50;
-    color: white;
+    background: var(--account-copy-button-bg);
+    color: var(--account-copy-button-text);
     border: none;
     padding: 8px 12px;
     border-radius: 6px;
@@ -1140,7 +1224,7 @@ button.secondary {
 }
 
 .copy-btn:hover {
-    background: #45a049;
+    background: var(--account-copy-button-bg-hover);
     transform: scale(1.1);
 }
 
@@ -1268,23 +1352,23 @@ button.secondary {
 .balance-tab {
     padding: 10px 20px;
     border: none;
-    background: transparent;
+    background: var(--account-tab-inactive-bg);
     cursor: pointer;
-    color: #666;
+    color: var(--account-tab-inactive-text);
     font-size: 14px;
     font-weight: 500;
-    border-bottom: 3px solid transparent;
+    border-bottom: 3px solid var(--account-tab-inactive-border);
     transition: all 0.2s;
 }
 
 .balance-tab:hover {
-    color: #667eea;
-    background: #f5f5f5;
+    opacity: 0.8;
 }
 
 .balance-tab.active {
-    color: #667eea;
-    border-bottom-color: #667eea;
+    background: var(--account-tab-active-bg);
+    color: var(--account-tab-active-text);
+    border-bottom-color: var(--account-tab-active-border);
     font-weight: 600;
 }
 

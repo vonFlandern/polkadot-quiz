@@ -212,8 +212,8 @@
             <!-- Account Header (gleiche Struktur wie Level Overview) -->
             <div id="account-overview-header"></div>
             
-            <!-- Address Display Section -->
-            <div class="address-display-section">
+            <!-- Address Display Section (mit account-body-section Styling) -->
+            <div class="address-display-section account-body-section">
                 <div class="address-toggle-header">
                     <h3>Your Addresses</h3>
                     <button id="addr-format-toggle" class="address-toggle-btn" title="Toggle between address formats">
@@ -240,31 +240,29 @@
                 </div>
 
                 <!-- Account Info Section -->
-                <div class="onchain-section">
+                <div class="onchain-section section-info">
                     <h3>📋 Account Information</h3>
                     <div id="account-section"></div>
                 </div>
 
                 <!-- Balances Section -->
-                <div class="onchain-section">
+                <div class="onchain-section section-data">
                     <h3>💰 Balances</h3>
                     <div id="balances-section"></div>
                 </div>
 
                 <!-- Staking Section -->
-                <div class="onchain-section" id="staking-section-wrapper" style="display: none;">
+                <div class="onchain-section section-data" id="staking-section-wrapper" style="display: none;">
                     <h3>🔒 Staking</h3>
                     <div id="staking-section"></div>
                 </div>
 
                 <!-- Footer with Refresh and Last Update -->
                 <div class="onchain-footer">
-                    <button id="refresh-onchain-btn">🔄 Refresh Data</button>
+                    <button id="refresh-onchain-btn">Refresh Data</button>
                     <small id="onchain-last-update">Last updated: --</small>
                 </div>
             </div>
-
-            <button id="back-from-account-overview-btn" style="margin-top: 20px;">Back to Level Overview</button>
         </div>
 
         <!-- Modal for Name Change -->
