@@ -42,8 +42,8 @@
     /* Copy Buttons */
     --account-copy-button-bg: #4CAF50;
     --account-copy-button-bg-hover: #45a049;
+    --account-copy-button-bg-klicked: #4CAF50;
     --account-copy-button-text: #ffffff;
-    --account-copy-button-icon: #ffffff;
 
     /* Tabs */
     --account-tab-active-bg: #1a1a1a;

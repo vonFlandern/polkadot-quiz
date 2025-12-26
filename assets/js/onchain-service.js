@@ -111,34 +111,42 @@ class OnChainService {
             return this.networkRegistry;
         }
 
-        // Cache-Check: 24 Stunden Gültigkeit
+        // Cache-Check: 24 Stunden Gültigkeit + Versions-Check
         const cachedRegistry = sessionStorage.getItem('networkRegistry');
         const cachedTimestamp = sessionStorage.getItem('registryLastFetch');
+        const cachedVersion = sessionStorage.getItem('registryVersion');
         const now = Date.now();
         const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+        const CURRENT_VERSION = '2.0.2'; // Muss mit ss58-registry.json übereinstimmen
 
-        if (cachedRegistry && cachedTimestamp) {
+        if (cachedRegistry && cachedTimestamp && cachedVersion === CURRENT_VERSION) {
             const age = now - parseInt(cachedTimestamp);
             if (age < ONE_DAY_MS) {
-                console.log('📦 Using cached network registry');
+                console.log('📦 Using cached network registry (v' + CURRENT_VERSION + ')');
                 this.networkRegistry = JSON.parse(cachedRegistry);
                 this.registryLoaded = true;
                 return this.networkRegistry;
             }
+        } else if (cachedVersion && cachedVersion !== CURRENT_VERSION) {
+            console.log('🔄 Cache version mismatch (cached: ' + cachedVersion + ', current: ' + CURRENT_VERSION + '), reloading...');
         }
 
         // WICHTIG: GitHub ss58-registry enthält KEINE RPC-Endpoints!
         // Wir laden IMMER unsere lokale Registry mit RPC-Endpoints
         
         let registry = null;
+        let registryVersion = null;
         
         try {
-            const response = await fetch('data/ss58-registry.json');
+            // Cache-Buster: Timestamp als Query-Parameter um Browser-Cache zu umgehen
+            const cacheBuster = Date.now();
+            const response = await fetch(`data/ss58-registry.json?v=${cacheBuster}`);
             if (response.ok) {
                 const data = await response.json();
                 registry = data.registry;
+                registryVersion = data.version || '1.0.0';
                 this.networkGroups = data.networkGroups || [];
-                console.log('✅ Loaded local registry with RPC endpoints');
+                console.log(`✅ Loaded local registry with RPC endpoints (v${registryVersion})`);
             }
         } catch (error) {
             console.error('❌ Local registry failed:', error);
@@ -154,6 +162,19 @@ class OnChainService {
             ];
         }
 
+        // Kompatibilitäts-Layer: rpcEndpoint (String) → rpcEndpoints (Array)
+        registry = registry.map(chain => {
+            if (chain.rpcEndpoint && !chain.rpcEndpoints) {
+                // Legacy-Format: String zu Array konvertieren
+                return { ...chain, rpcEndpoints: [chain.rpcEndpoint] };
+            } else if (!chain.rpcEndpoints && !chain.rpcEndpoint) {
+                // Fallback: Leeres Array
+                console.warn(`⚠️ Chain ${chain.network} has no RPC endpoints`);
+                return { ...chain, rpcEndpoints: [] };
+            }
+            return chain;
+        });
+
         // Sortiere nach Priority (falls vorhanden)
         registry.sort((a, b) => (a.priority || 999) - (b.priority || 999));
 
@@ -161,6 +182,8 @@ class OnChainService {
         sessionStorage.setItem('networkRegistry', JSON.stringify(registry));
         sessionStorage.setItem('networkGroups', JSON.stringify(this.networkGroups));
         sessionStorage.setItem('registryLastFetch', now.toString());
+        sessionStorage.setItem('registryVersion', registryVersion || '1.0.0');
+        sessionStorage.setItem('registryVersion', registryVersion || '1.0.0');
 
         this.networkRegistry = registry;
         this.registryLoaded = true;
@@ -199,14 +222,118 @@ class OnChainService {
     }
 
     /**
+     * Paralleles Verbindungs-Racing: Alle Endpunkte gleichzeitig, schnellster gewinnt
+     * Timeout: 15s pro Provider, 20s gesamt
+     * Cleanup: Verlierende Verbindungen werden geschlossen
+     * Priorisierung: Gewinnender Endpunkt wird an erste Position verschoben
+     * @param {Object} chainConfig - Chain-Konfiguration mit rpcEndpoints Array
+     * @returns {Promise<Object>} { api, wsProvider, endpoint }
+     */
+    async connectWithRacing(chainConfig) {
+        const endpoints = chainConfig.rpcEndpoints || [];
+        
+        if (endpoints.length === 0) {
+            throw new Error(`No RPC endpoints configured for ${chainConfig.network}`);
+        }
+
+        // Parallel alle Endpunkte verbinden
+        const connectionAttempts = endpoints.map(async (endpoint, index) => {
+            let wsProvider;
+            let api;
+            
+            try {
+                // WsProvider OHNE Auto-Reconnect erstellen
+                wsProvider = new polkadotApi.WsProvider(endpoint, false); // false = kein Auto-Reconnect
+                
+                // Manuell verbinden
+                await wsProvider.connect();
+                
+                api = await polkadotApi.ApiPromise.create({
+                    provider: wsProvider,
+                    throwOnConnect: false,
+                    throwOnUnknown: false,
+                    noInitWarn: true
+                });
+                
+                // Timeout nur für api.isReady (30s)
+                await Promise.race([
+                    api.isReady,
+                    new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('API ready timeout (30s)')), 30000)
+                    )
+                ]);
+                
+                return { api, wsProvider, endpoint, success: true, index };
+            } catch (error) {
+                // Bei Fehler: Cleanup
+                try {
+                    if (api) await api.disconnect();
+                    else if (wsProvider) await wsProvider.disconnect();
+                } catch {}
+                throw error;
+            }
+        });
+
+        // Promise.any: Erste erfolgreiche Verbindung gewinnt
+        let winner;
+        
+        try {
+            // Timeout-Wrapper für Gesamt-Timeout (40s)
+            const raceWithTimeout = Promise.race([
+                Promise.any(connectionAttempts),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Connection timeout: All endpoints exceeded 40s')), 40000)
+                )
+            ]);
+            
+            winner = await raceWithTimeout;
+            
+        } catch (error) {
+            // Alle Endpunkte fehlgeschlagen oder Timeout
+            if (error.errors) {
+                // AggregateError von Promise.any
+                const errorDetails = error.errors.map((e, i) => `${endpoints[i]}: ${e.message}`).join('; ');
+                console.error(`❌ All endpoints failed for ${chainConfig.network}:`, errorDetails);
+                throw new Error(`All RPC endpoints failed. Errors: ${errorDetails}`);
+            } else {
+                // Timeout
+                console.error(`❌ Connection timeout for ${chainConfig.network}:`, error.message);
+                throw error;
+            }
+        }
+
+        // Verlierende Verbindungen im Hintergrund schließen
+        Promise.allSettled(connectionAttempts).then(results => {
+            results.forEach((result, index) => {
+                if (result.status === 'fulfilled' && result.value.success && index !== winner.index) {
+                    const loser = result.value;
+                    try {
+                        loser.api.disconnect();
+                    } catch (error) {
+                        // Ignorieren - nicht kritisch
+                    }
+                }
+            });
+        });
+
+        // Gewinnenden Endpunkt an erste Position verschieben (Session-Scope Priorisierung)
+        const winnerEndpoint = winner.endpoint;
+        const winnerIndex = endpoints.indexOf(winnerEndpoint);
+        if (winnerIndex > 0) {
+            endpoints.splice(winnerIndex, 1);
+            endpoints.unshift(winnerEndpoint);
+        }
+
+        return winner;
+    }
+
+    /**
      * Verbindet zu allen Chains einer Network-Gruppe (Multi-Chain)
      * Sequenziell: Asset Hub zuerst (required), dann parallel Relay + People
      * @param {string} networkGroup - 'polkadot' oder 'kusama'
      * @returns {Promise<Map>} Map mit network -> api Instanz
      */
     async connectToNetworkGroup(networkGroup) {
-        console.log(`🔌 Connecting to ${networkGroup} network group...`);
-        
         // Registry laden
         if (!this.registryLoaded) {
             await this.loadNetworkRegistry();
@@ -219,17 +346,14 @@ class OnChainService {
             throw new Error(`No chains found for network group: ${networkGroup}`);
         }
         
-        console.log(`Found ${groupChains.length} chains in ${networkGroup} group`);
-        
         // Alte Verbindungen dieser Gruppe trennen
         for (const [network, connection] of this.apis.entries()) {
             const chainConfig = this.networkRegistry.find(n => n.network === network);
             if (chainConfig?.networkGroup === networkGroup) {
-                console.log(`🔌 Disconnecting old connection: ${network}`);
                 try {
                     await connection.api.disconnect();
                 } catch (error) {
-                    console.warn(`Error disconnecting ${network}:`, error);
+                    // Ignorieren - nicht kritisch
                 }
                 this.apis.delete(network);
                 this.connectionStatus.delete(network);
@@ -242,30 +366,12 @@ class OnChainService {
             throw new Error(`No required Asset Hub found for ${networkGroup}`);
         }
         
-        console.log(`🔗 Step 1: Connecting to ${assetHubConfig.displayName} (required)...`);
-        
         try {
-            const wsProvider = new polkadotApi.WsProvider(assetHubConfig.rpcEndpoint);
-            const api = await polkadotApi.ApiPromise.create({
-                provider: wsProvider,
-                throwOnConnect: true
-            });
+            // Paralleles Verbindungs-Racing über alle Endpunkte
+            const result = await this.connectWithRacing(assetHubConfig);
             
-            await api.isReady;
-            
-            // 🔍 Debug: Chain Properties (Decimals)
-            const properties = api.registry.getChainProperties();
-            const chainDecimals = properties?.tokenDecimals?.toJSON?.()?.[0];
-            console.log(`🔬 Chain Properties for ${assetHubConfig.displayName}:`, {
-                tokenSymbol: properties?.tokenSymbol?.toJSON?.(),
-                tokenDecimals: chainDecimals,
-                configDecimals: assetHubConfig.decimals
-            });
-            
-            this.apis.set(assetHubConfig.network, { api, wsProvider, config: assetHubConfig });
-            this.connectionStatus.set(assetHubConfig.network, { connected: true, error: null });
-            
-            console.log(`✅ Connected to ${assetHubConfig.displayName}`);
+            this.apis.set(assetHubConfig.network, { api: result.api, wsProvider: result.wsProvider, config: assetHubConfig });
+            this.connectionStatus.set(assetHubConfig.network, { connected: true, error: null, endpoint: result.endpoint });
         } catch (error) {
             console.error(`❌ Failed to connect to ${assetHubConfig.displayName}:`, error);
             this.connectionStatus.set(assetHubConfig.network, { connected: false, error: error.message });
@@ -275,24 +381,13 @@ class OnChainService {
         // SCHRITT 2: Relay + People parallel verbinden (OPTIONAL)
         const optionalChains = groupChains.filter(c => c.groupRole !== 'assetHub');
         
-        console.log(`🔗 Step 2: Connecting to ${optionalChains.length} optional chains in parallel...`);
-        
         const optionalConnections = optionalChains.map(async (chainConfig) => {
             try {
-                console.log(`🔗 Connecting to ${chainConfig.displayName}...`);
+                const result = await this.connectWithRacing(chainConfig);
                 
-                const wsProvider = new polkadotApi.WsProvider(chainConfig.rpcEndpoint);
-                const api = await polkadotApi.ApiPromise.create({
-                    provider: wsProvider,
-                    throwOnConnect: true
-                });
+                this.apis.set(chainConfig.network, { api: result.api, wsProvider: result.wsProvider, config: chainConfig });
+                this.connectionStatus.set(chainConfig.network, { connected: true, error: null, endpoint: result.endpoint });
                 
-                await api.isReady;
-                
-                this.apis.set(chainConfig.network, { api, wsProvider, config: chainConfig });
-                this.connectionStatus.set(chainConfig.network, { connected: true, error: null });
-                
-                console.log(`✅ Connected to ${chainConfig.displayName}`);
                 return { success: true, network: chainConfig.network };
             } catch (error) {
                 console.error(`❌ Failed to connect to ${chainConfig.displayName}:`, error);
@@ -305,9 +400,6 @@ class OnChainService {
         
         this.currentNetworkGroup = networkGroup;
         this.isConnected = true;
-        
-        const connectedCount = Array.from(this.connectionStatus.values()).filter(s => s.connected).length;
-        console.log(`✅ Connected to ${connectedCount}/${groupChains.length} chains in ${networkGroup}`);
         
         return this.apis;
     }
@@ -330,9 +422,8 @@ class OnChainService {
             const connection = this.apis.get(network);
             try {
                 await connection.api.disconnect();
-                console.log(`✅ Disconnected from ${network}`);
             } catch (error) {
-                console.error(`Error disconnecting ${network}:`, error);
+                // Ignorieren - nicht kritisch
             }
             this.apis.delete(network);
             this.connectionStatus.delete(network);

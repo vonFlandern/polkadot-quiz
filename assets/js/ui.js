@@ -882,8 +882,8 @@ class QuizUI {
             if (accountDesign.copyButtons) {
                 root.style.setProperty('--account-copy-button-bg', accountDesign.copyButtons.colorBackground);
                 root.style.setProperty('--account-copy-button-bg-hover', accountDesign.copyButtons.colorBackgroundHover);
+                root.style.setProperty('--account-copy-button-bg-klicked', accountDesign.copyButtons.colorBackgroundKlicked);
                 root.style.setProperty('--account-copy-button-text', accountDesign.copyButtons.colorText);
-                root.style.setProperty('--account-copy-button-icon', accountDesign.copyButtons.colorIcon);
             }
 
             // Tabs
@@ -2371,12 +2371,41 @@ class QuizUI {
         } catch (error) {
             console.error('Failed to show account overview:', error);
             this.hideSpinner();
+            
+            // Error-Details parsen
+            const errorMessage = error.message || 'Unknown error occurred';
+            const isTimeout = errorMessage.includes('timeout') || errorMessage.includes('exceeded');
+            const isConnectionFailed = errorMessage.includes('failed') || errorMessage.includes('refused');
+            
+            // Error-Container mit Retry-Button
+            const errorIcon = isTimeout ? '⏱️' : isConnectionFailed ? '🔌' : '❌';
+            const errorTitle = isTimeout 
+                ? 'Connection Timeout' 
+                : isConnectionFailed 
+                    ? 'Connection Failed' 
+                    : 'Failed to load on-chain data';
+            
             document.getElementById('onchain-data-body').innerHTML = `
-                <div class="error-message">
-                    <p>❌ Failed to load on-chain data</p>
-                    <p>${error.message}</p>
+                <div class="error-message" style="text-align: center; padding: 40px 20px;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">${errorIcon}</div>
+                    <h3 style="margin-bottom: 12px;">${errorTitle}</h3>
+                    <p style="color: #888; margin-bottom: 24px; word-break: break-word;">${errorMessage}</p>
+                    <button id="retry-onchain-btn" class="cta-button" style="min-width: 140px;">
+                        🔄 Retry
+                    </button>
                 </div>
             `;
+            
+            // Retry-Button Event Listener (mit Clone-and-Replace für saubere Deduplication)
+            const retryBtn = document.getElementById('retry-onchain-btn');
+            if (retryBtn) {
+                const newRetryBtn = retryBtn.cloneNode(true);
+                retryBtn.replaceWith(newRetryBtn);
+                newRetryBtn.addEventListener('click', async () => {
+                    console.log('🔄 Retrying on-chain data load...');
+                    await this.showAccountOverview(); // Rekursiver Aufruf ohne Page-Reload
+                });
+            }
         }
     }
 
@@ -2847,59 +2876,6 @@ class QuizUI {
 
 
     /**
-     * Initialisiert Address Display mit Copy-Funktion und Toggle
-     */
-    initializeAddressDisplay() {
-        // Toggle Button
-        const toggleBtn = document.getElementById('addr-format-toggle');
-        const genericRow = document.querySelector('.generic-address-row');
-        const networkRow = document.querySelector('.network-address-row');
-
-        if (toggleBtn) {
-            // Lade gespeicherte Präferenz
-            const savedFormat = localStorage.getItem('addressDisplayFormat') || 'both';
-            this.applyAddressDisplayFormat(savedFormat);
-
-            toggleBtn.onclick = () => {
-                const currentFormat = localStorage.getItem('addressDisplayFormat') || 'both';
-                const newFormat = currentFormat === 'both' ? 'generic' : 
-                                  currentFormat === 'generic' ? 'network' : 'both';
-                
-                localStorage.setItem('addressDisplayFormat', newFormat);
-                this.applyAddressDisplayFormat(newFormat);
-            };
-        }
-
-        // Copy Buttons
-        document.querySelectorAll('.copy-btn').forEach(btn => {
-            btn.onclick = async () => {
-                const copyType = btn.getAttribute('data-copy');
-                const addressElement = copyType === 'generic' 
-                    ? document.querySelector('.generic-addr')
-                    : document.querySelector('.network-addr');
-                
-                const address = addressElement?.textContent;
-                
-                if (address) {
-                    try {
-                        await navigator.clipboard.writeText(address);
-                        
-                        // Toast-Benachrichtigung
-                        this.showToast('📋 Address copied to clipboard!');
-                        
-                        // Visuelles Feedback am Button
-                        btn.textContent = '✅';
-                        setTimeout(() => btn.textContent = '📋', 1500);
-                    } catch (error) {
-                        console.error('Copy failed:', error);
-                        this.showToast('❌ Failed to copy address', true);
-                    }
-                }
-            };
-        });
-    }
-
-    /**
      * Wendet Address Display Format an
      * @param {string} format - 'both', 'generic', oder 'network'
      */
@@ -2979,19 +2955,19 @@ class QuizUI {
                     const address = addressElement.textContent;
                     navigator.clipboard.writeText(address).then(() => {
                         // Toast-Feedback
-                        this.showToast('Address copied to clipboard!');
+                        this.showToast('📋 Address copied to clipboard!');
                         
-                        // Button-Feedback
+                        // Button-Feedback - Grüner Hintergrund
                         const originalText = btn.textContent;
+                        btn.style.setProperty('background', 'var(--account-copy-button-bg-klicked)', 'important');
                         btn.textContent = '✓';
-                        btn.style.background = '#2196F3';
                         setTimeout(() => {
                             btn.textContent = originalText;
                             btn.style.background = '';
-                        }, 1000);
+                        }, 2000);
                     }).catch(err => {
                         console.error('Copy failed:', err);
-                        alert('Failed to copy address');
+                        this.showToast('❌ Failed to copy address', true);
                     });
                 }
             };
